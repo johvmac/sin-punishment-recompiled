@@ -14,35 +14,23 @@ bss_section_suffix = "_bss"
 
 [patches]
 ignored = [
-    # Microcode/data symbols that are not functions (adjust to actual symbol names after Phase 1)
-    "boot_gSPF3DEX_fifoTextStart",
-    "boot_gSPF3DEX_fifoDataStart",
+    # (empty) - no symbol ignored; validated in Phase 1.
 ]
 
 stubs = [
-    # Boot segment libultra duplicates handled by N64ModernRuntime.
-    # Start from BanjoRecomp's list and trim to what Sin & Punishment actually links:
-    # boot___ll_div, boot___ll_lshift, boot___ll_mod, boot___ll_mul, boot___ll_rem,
-    # boot___ll_rshift, boot___ull_div, boot___ull_divremi, boot___ull_rem, boot___ull_rshift,
-    # boot_osPiRawStartDma, boot_osPiGetStatus, boot___osSetSR, boot___osGetSR,
-    # boot___osSetFpcCsr, boot___osSiRawReadIo, boot___osSiRawWriteIo,
-    # boot___osExceptionPreamble, boot___osExceptionPreamble2, boot___osException,
-    # boot_send_mesg, boot_handle_CpU, boot___osEnqueueAndYield, boot___osEnqueueThread,
-    # boot___osPopThread, boot___osDispatchThread, boot___osCleanupThread,
-    # boot_osWritebackDCache, boot_osInvalICache, boot_osMapTLBRdb, boot_osPiRawReadIo,
-    # boot_osVirtualToPhysical, boot___osSiDeviceBusy, boot___osDequeueThread,
-    # boot___osLeoInterrupt, boot___osLeoAbnormalResume, boot___osLeoResume,
-    # boot_osSetEventMesg, boot_osDestroyThread, boot___osProbeTLB, boot_osLeoDiskInit,
-    # boot_osEPiRawStartDma, boot___osDisableInt, boot___osRestoreInt,
-    # boot_osCreatePiManager, boot_osCartRomInit, boot_osCreateMesgQueue,
-    # boot___osPiCreateAccessQueue, boot___osPiGetAccess, boot___osPiRelAccess,
-    # boot_osGetThreadPri, boot_osSetThreadPri, boot_osCreateThread, boot___osDevMgrMain,
-    # boot_osStartThread, boot_osSendMesg, boot_osRecvMesg, boot___osResetGlobalIntMask,
-    # boot_osEPiRawWriteIo, boot_osEPiRawReadIo, boot___osSetGlobalIntMask, boot_osYieldThread,
+    # Functions containing instructions N64Recomp cannot compile (cache ops, cop0 regs != Status, TLB ops).
+    # All are libultra boot functions that N64ModernRuntime provides (mapped in Phase 2).
+    "boot_func_80042F50",   # osWritebackDCache
+    "boot_func_80043000",   # osInvalICache
+    "boot_func_80043080",   # osWritebackIcache
+    "boot_func_80043100",   # osInvalDCache
+    "boot_func_800460F0",   # reads COP0 Cause
+    "boot_func_80046100",   # reads COP0 Count (osGetTime)
+    "boot_func_80046120",   # writes COP0 Compare (osSetTimer)
+    "boot_func_80046150",   # writes COP0 WatchLo
+    "boot_func_80047C60",   # __osProbeTLB (tlbp)
+    "boot_func_80047D20",   # osMapTLB (tlbwi)
+    "boot_func_80047D80",   # osUnmapTLB (tlbwi)
 ]
 
-# Single-instruction patches (populate during Phase 2, kseg1 -> kseg0 pattern):
-# [[patches.instruction]]
-# func = "func_..."
-# vram = 0x...
-# value = 0x3C0E8000 # lui $t6, 0xA000 -> lui $t6, 0x8000
+# (No instruction patches needed: N64Recomp cgenerator skips writes to $zero.)

@@ -37,9 +37,45 @@ add_compile_definitions(
     __PRFCHWINTRIN_H
 )
 
+# Make DXC/SPIRVCROSS and shader options visible to all subdirectories (recompui
+# builds shaders with rt64's build_*_shader functions, which need these variables
+# in the caller's scope).
+set (DXC_COMMON_OPTS "-I${CMAKE_SOURCE_DIR}/lib/rt64/src")
+set (DXC_DXIL_OPTS "-Wno-ignored-attributes")
+set (DXC_SPV_OPTS "-spirv" "-fspv-target-env=vulkan1.0" "-fvk-use-dx-layout")
+set (DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T ps_6_3")
+set (DXC_VS_OPTS "${DXC_COMMON_OPTS}" "-E" "VSMain" "-T vs_6_3" "-fvk-invert-y")
+set (DXC_CS_OPTS "${DXC_COMMON_OPTS}" "-E" "CSMain" "-T cs_6_3")
+set (DXC_GS_OPTS "${DXC_COMMON_OPTS}" "-E" "GSMain" "-T gs_6_3")
+set (DXC_LB_OPTS "${DXC_COMMON_OPTS}" "-D" "LIBRARY" "-T" "lib_6_3")
+set (DXC_RT_OPTS "${DXC_COMMON_OPTS}" "-D" "RT_SHADER" "-T" "lib_6_3" "-fspv-target-env=vulkan1.1spirv1.4" "-fspv-extension=SPV_KHR_ray_tracing" "-fspv-extension=SPV_EXT_descriptor_indexing")
+if (APPLE)
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        set (DXC "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/x64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/x64/dxc-macos")
+        set (SPIRVCROSS "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/x64:$ENV{DYLD_LIBRARY_PATH}" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/x64/spirv-cross")
+    else()
+        set (DXC "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/arm64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/arm64/dxc-macos")
+        set (SPIRVCROSS "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/arm64:$ENV{DYLD_LIBRARY_PATH}" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/arm64/spirv-cross")
+    endif()
+endif()
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/rt64 ${CMAKE_BINARY_DIR}/rt64)
+if (APPLE)
+    # hlslpp's scalar fallback uses labs() without including <stdlib.h>; some TUs
+    # (e.g. rt64_preset_draw_call.cpp) fail on macOS/clang. Force-include it.
+    target_compile_options(rt64 PRIVATE -include stdlib.h)
+endif()
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime)
+# RecompFrontend's subprojects (recompinput/recompui) expect these variables,
+# normally set by lib/RecompFrontend/CMakeLists.txt. Since the root adds the
+# subdirectories directly, provide them here (and find SDL2 before they
+# configure so SDL2_INCLUDE_DIRS is available to them).
+set(RECOMP_FRONTEND_N64MODERNRUNTIME_PATH "${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime")
+set(RECOMP_FRONTEND_RT64_PATH "${CMAKE_SOURCE_DIR}/lib/rt64")
+if (APPLE OR CMAKE_SYSTEM_NAME MATCHES "Linux")
+    find_package(SDL2 REQUIRED)
+endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RecompFrontend/recompinput)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RecompFrontend/recompui)
 
@@ -65,21 +101,24 @@ endforeach()
 
 if (FUNC_C_SOURCES OR FUNC_CXX_SOURCES OR HAS_PORT_SOURCES)
 
-    # RecompiledFuncs - primary recompiler output
-    add_library(RecompiledFuncs STATIC)
-    target_compile_options(RecompiledFuncs PRIVATE
-        -fno-strict-aliasing
-        -Wno-unused-variable
-        -Wno-implicit-function-declaration
-        -falign-functions=16
-    )
-    target_include_directories(RecompiledFuncs PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/ultramodern/include
-        ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include
-        ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
-    )
-    target_sources(RecompiledFuncs PRIVATE ${FUNC_C_SOURCES} ${FUNC_CXX_SOURCES})
+    # RecompiledFuncs - primary recompiler output (only created once the
+    # recompiler has produced sources, i.e. after Phase 1's recompile.sh).
+    if (FUNC_C_SOURCES OR FUNC_CXX_SOURCES)
+        add_library(RecompiledFuncs STATIC)
+        target_compile_options(RecompiledFuncs PRIVATE
+            -fno-strict-aliasing
+            -Wno-unused-variable
+            -Wno-implicit-function-declaration
+            -falign-functions=16
+        )
+        target_include_directories(RecompiledFuncs PRIVATE
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/ultramodern/include
+            ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include
+            ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
+        )
+        target_sources(RecompiledFuncs PRIVATE ${FUNC_C_SOURCES} ${FUNC_CXX_SOURCES})
+    endif()
 
     # Main executable
     add_executable(SinPunishmentRecompiled)
@@ -180,8 +219,11 @@ if (FUNC_C_SOURCES OR FUNC_CXX_SOURCES OR HAS_PORT_SOURCES)
     endif()
 
     # RecompUI links against RT64's plume; keep link order stable.
+    # RecompiledFuncs is only created once Phase 1's recompiler output exists.
+    if (TARGET RecompiledFuncs)
+        target_link_libraries(SinPunishmentRecompiled PRIVATE RecompiledFuncs)
+    endif()
     target_link_libraries(SinPunishmentRecompiled PRIVATE
-        RecompiledFuncs
         recompui
         recompinput
         ultramodern

@@ -9,6 +9,16 @@ cd "$ROOT"
 echo "==> [1/4] System dependencies"
 if [[ "$(uname)" == "Darwin" ]]; then
     brew install cmake ninja sdl2
+    # RT64 builds Metal shaders at compile time: the 'metal' compiler ships with
+    # Xcode.app (Command Line Tools alone is NOT enough).
+    if ! xcrun --find metal >/dev/null 2>&1; then
+        echo "ERROR: 'metal' compiler not found. Install full Xcode:" >&2
+        echo "  sudo xcode-select --install   # CLT only - NOT enough" >&2
+        echo "  # Use the App Store (search 'Xcode') or https://developer.apple.com/download/all/" >&2
+        echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer" >&2
+        echo "  xcodebuild -runFirstLaunch" >&2
+        exit 1
+    fi
 elif [[ -f /etc/debian_version ]]; then
     sudo apt-get install -y cmake ninja-build libsdl2-dev libgtk-3-dev lld llvm clang
 else
