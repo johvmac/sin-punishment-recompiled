@@ -1,0 +1,48 @@
+# Config file for Sin & Punishment (Japan) Recompilation.
+# Based on the N64Recomp config format (see BanjoRecomp's banjo.us.rev0.toml and
+# N64Recomp/src/config.cpp). Paths are relative to the location of this config file.
+
+[input]
+entrypoint = 0x80025C00
+# Paths are relative to the location of this config file.
+output_func_path = "RecompiledFuncs"
+# relocatable_sections_path = "overlays.sinpunishment.txt"  # enable once overlays are mapped (Phase 1)
+rom_file_path = "rom/sinpunishment.z64"
+# NOTE: generated in Phase 1 via Ghidra RE. Until then, N64Recomp cannot run.
+symbols_file_path = "symbols/sinpunishment.syms.toml"
+bss_section_suffix = "_bss"
+
+[patches]
+ignored = [
+    # Microcode/data symbols that are not functions (adjust to actual symbol names after Phase 1)
+    "boot_gSPF3DEX_fifoTextStart",
+    "boot_gSPF3DEX_fifoDataStart",
+]
+
+stubs = [
+    # Boot segment libultra duplicates handled by N64ModernRuntime.
+    # Start from BanjoRecomp's list and trim to what Sin & Punishment actually links:
+    # boot___ll_div, boot___ll_lshift, boot___ll_mod, boot___ll_mul, boot___ll_rem,
+    # boot___ll_rshift, boot___ull_div, boot___ull_divremi, boot___ull_rem, boot___ull_rshift,
+    # boot_osPiRawStartDma, boot_osPiGetStatus, boot___osSetSR, boot___osGetSR,
+    # boot___osSetFpcCsr, boot___osSiRawReadIo, boot___osSiRawWriteIo,
+    # boot___osExceptionPreamble, boot___osExceptionPreamble2, boot___osException,
+    # boot_send_mesg, boot_handle_CpU, boot___osEnqueueAndYield, boot___osEnqueueThread,
+    # boot___osPopThread, boot___osDispatchThread, boot___osCleanupThread,
+    # boot_osWritebackDCache, boot_osInvalICache, boot_osMapTLBRdb, boot_osPiRawReadIo,
+    # boot_osVirtualToPhysical, boot___osSiDeviceBusy, boot___osDequeueThread,
+    # boot___osLeoInterrupt, boot___osLeoAbnormalResume, boot___osLeoResume,
+    # boot_osSetEventMesg, boot_osDestroyThread, boot___osProbeTLB, boot_osLeoDiskInit,
+    # boot_osEPiRawStartDma, boot___osDisableInt, boot___osRestoreInt,
+    # boot_osCreatePiManager, boot_osCartRomInit, boot_osCreateMesgQueue,
+    # boot___osPiCreateAccessQueue, boot___osPiGetAccess, boot___osPiRelAccess,
+    # boot_osGetThreadPri, boot_osSetThreadPri, boot_osCreateThread, boot___osDevMgrMain,
+    # boot_osStartThread, boot_osSendMesg, boot_osRecvMesg, boot___osResetGlobalIntMask,
+    # boot_osEPiRawWriteIo, boot_osEPiRawReadIo, boot___osSetGlobalIntMask, boot_osYieldThread,
+]
+
+# Single-instruction patches (populate during Phase 2, kseg1 -> kseg0 pattern):
+# [[patches.instruction]]
+# func = "func_..."
+# vram = 0x...
+# value = 0x3C0E8000 # lui $t6, 0xA000 -> lui $t6, 0x8000

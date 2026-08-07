@@ -1,0 +1,31 @@
+# ROMs — nunca commitear
+*.n64
+*.z64
+*.v64
+rom/
+
+# Recompiler output (generated)
+RecompiledFuncs/
+RecompiledPatches/
+rsp/*.cpp
+rsp/*.h
+
+# Build output
+build*/
+out/
+*.o
+*.obj
+
+# Tool binaries (copied in by bootstrap.sh)
+/N64Recomp
+/RSPRecomp
+/N64Btd
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local state
+config/rt64.*.json
+portable.txt
