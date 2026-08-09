@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="420" viewBox="0 0 1600 420" role="img" aria-labelledby="title desc">
+  <title id="title">Sin &amp; Punishment: Recompiled</title>
+  <desc id="desc">An abstract dark project banner with a red targeting reticle and the words Sin &amp; Punishment: Recompiled.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#080b12"/>
+      <stop offset="0.58" stop-color="#111522"/>
+      <stop offset="1" stop-color="#231018"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f04b3e"/>
+      <stop offset="0.52" stop-color="#f8b84e"/>
+      <stop offset="1" stop-color="#72d8ff"/>
+    </linearGradient>
+    <radialGradient id="redGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff5a4f" stop-opacity="0.5"/>
+      <stop offset="0.45" stop-color="#f04b3e" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#f04b3e" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.045"/>
+    </pattern>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="420" rx="28" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1598" height="418" rx="27" fill="url(#grid)" stroke="#ffffff" stroke-opacity="0.12"/>
+  <path d="M0 352C310 284 506 372 770 320S1275 182 1600 248V420H0Z" fill="#f04b3e" fill-opacity="0.055"/>
+  <path d="M0 368C310 300 506 388 770 336S1275 198 1600 264" fill="none" stroke="url(#edge)" stroke-opacity="0.34" stroke-width="2"/>
+
+  <g transform="translate(132 210)">
+    <circle r="132" fill="url(#redGlow)" filter="url(#blur)"/>
+    <circle r="92" fill="none" stroke="#f04b3e" stroke-opacity="0.34" stroke-width="2"/>
+    <circle r="62" fill="none" stroke="#f04b3e" stroke-opacity="0.88" stroke-width="3"/>
+    <circle r="12" fill="#f04b3e"/>
+    <path d="M-126 0H-76M76 0H126M0-126V-76M0 76V126" stroke="#f8b84e" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-42-42L-20-20M42-42L20-20M-42 42L-20 20M42 42L20 20" stroke="#72d8ff" stroke-opacity="0.9" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g fill="#ffffff" font-family="Inter, Avenir Next, Helvetica, Arial, sans-serif">
+    <text x="292" y="145" font-size="22" font-weight="700" letter-spacing="6" fill="#f8b84e">N64  /  STATIC RECOMPILATION  /  WIP</text>
+    <text x="288" y="222" font-size="58" font-weight="800" letter-spacing="-1.5">Sin &amp; Punishment:</text>
+    <text x="292" y="286" font-size="58" font-weight="800" letter-spacing="-1.5" fill="#f04b3e">Recompiled</text>
+    <text x="296" y="333" font-size="20" font-weight="500" letter-spacing="1.2" fill="#c9d1df">A native PC port in active reverse engineering</text>
+  </g>
+
+  <g transform="translate(1400 76)" fill="none" stroke="#72d8ff" stroke-opacity="0.7">
+    <path d="M0 0h72v72" stroke-width="2"/>
+    <path d="M18 0v54h54M36 0v36h36M54 0v18h18" stroke-width="1"/>
+  </g>
+</svg>
