@@ -55,7 +55,7 @@ and symbol map into a native C++ executable.
 
 The latest engineering checkpoint is substantially past the initial scaffold:
 
-- Phases 0–2 are marked complete in [`GOAL.md`](GOAL.md).
+- Phases 0–2 are complete in the current development checkpoint.
 - The executable reaches the title screen through the native RT64 path.
 - The documented stability run reached **4,577 graphics tasks (about 76 seconds) without a crash**.
 - The display pipeline was repaired: the title is presented, `osViBlack(0)` occurs once at boot, and the render loop keeps producing graphics work.
@@ -67,9 +67,8 @@ The status above is deliberately conservative. Reaching the title screen is not 
 same as completing a game, and the project will not call itself playable until the
 Phase 3 acceptance criteria are evidenced.
 
-For the reverse-engineering record and the runtime checkpoint details, see
-[`docs/research.md`](docs/research.md) and
-[`docs/session-handoff-2026-08-09-display-fix.md`](docs/session-handoff-2026-08-09-display-fix.md).
+The public repository intentionally omits internal reverse-engineering notebooks and
+session handoffs. The status above is the concise, publishable checkpoint.
 
 ## Architecture
 
@@ -128,10 +127,9 @@ cmake --build build
 The clean `rom/sinpunishment.z64` is the runtime ROM identity. The active
 reverse-engineering config currently points N64Recomp at
 `rom/sinpunishment_patched.z64`, a development working image that is not distributed
-by this repository. The patch inventory and the clean/stored ROM distinction are
-documented in [`docs/research.md`](docs/research.md). Until that working-image
-pipeline is published, a clean clone is an engineering checkout, not a one-command
-release build.
+by this repository. The patch inventory and the clean/stored ROM distinction stay
+outside the public tree. Until that working-image pipeline is published, a clean
+clone is an engineering checkout, not a one-command release build.
 
 ### Run the current executable
 
@@ -166,9 +164,7 @@ include/                  Port-facing headers and generated interfaces
 patches/                  Port patch helpers and UI integration headers
 lib/                      Pinned RT64, runtime, and frontend submodules
 external/N64Recomp/       Pinned N64Recomp toolchain submodule
-docs/research.md          Reverse-engineering source of truth
-GOAL.md                   Master roadmap and acceptance criteria
-GOAL_FASE3.md             Current runtime-completion work plan
+README.md                 Public project status, build notes, and contribution rules
 ```
 
 ## Roadmap
@@ -183,16 +179,15 @@ Phase 3 playthrough:
 5. Exercise two-player assignment and a long session before calling the phase done.
 6. Only then move to widescreen, resolution, framerate, and release QA.
 
-The full acceptance checklist lives in [`GOAL_FASE3.md`](GOAL_FASE3.md), with the
-long-term release criteria in [`GOAL.md`](GOAL.md).
+The roadmap above is the public summary; detailed acceptance evidence stays in the
+development workspace rather than this repository.
 
 ## Research and contribution rules
 
 This project has no public decompilation to build on, so reverse-engineering evidence
 is part of the implementation. When working here:
 
-- Read the relevant sections of [`GOAL.md`](GOAL.md) and [`docs/research.md`](docs/research.md) first.
-- Record new offsets, behavior, and hypotheses with reproducible evidence.
+- Keep reverse-engineering findings in private notes or issue/PR discussions, with reproducible evidence.
 - Keep commits focused and do not commit ROMs, generated recompilation output, build directories, or local runtime state.
 - Treat the pinned submodules as upstream dependencies; changes to them need an explicit reason and a reproducible checkpoint.
 - Do not describe the project as playable until the acceptance criteria are met.

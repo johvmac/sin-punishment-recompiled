@@ -32,3 +32,8 @@ portable.txt
 scripts/__pycache__/
 .cache/
 symbols/sinpunishment.syms.toml.orig
+
+
+# Public tree: keep the landing page; development Markdown stays local.
+*.md
+!README.md
