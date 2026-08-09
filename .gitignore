@@ -31,3 +31,4 @@ config/rt64.*.json
 portable.txt
 scripts/__pycache__/
 .cache/
+symbols/sinpunishment.syms.toml.orig
