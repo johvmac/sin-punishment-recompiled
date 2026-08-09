@@ -7,6 +7,11 @@
 #include <vector>
 #include <string>
 #include <cinttypes>
+#include <cstring>
+#include <cmath>
+#include <array>
+#include <algorithm>
+#include <chrono>
 #include <filesystem>
 
 #define SDL_MAIN_HANDLED
@@ -97,6 +102,20 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
         assert(false);
     }
     ::window = sdl_window;  // publish for recompui
+
+    // Honor the persisted window mode (graphics.json wm_option) at startup. Without this the
+    // window always opens windowed: RT64 only applies wm_option when it *changes* at runtime
+    // (update_config diff), so a saved Fullscreen preference was never applied on relaunch.
+    {
+        recomp::config::ConfigValueVariant wm_value =
+            recompui::config::get_graphics_config().get_option_value(recompui::config::graphics::options::wm_option);
+        if (const auto* wm = std::get_if<uint32_t>(&wm_value);
+            wm != nullptr && static_cast<ultramodern::renderer::WindowMode>(*wm) == ultramodern::renderer::WindowMode::Fullscreen) {
+            if (SDL_SetWindowFullscreen(sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP) != 0) {
+                fprintf(stderr, "Failed to set fullscreen from config: %s\n", SDL_GetError());
+            }
+        }
+    }
 #ifdef __APPLE__
     // RT64's Metal backend needs the NSWindow and its Metal layer (CAMetalLayer).
     SDL_SysWMinfo wmInfo{};
@@ -122,11 +141,60 @@ void update_gfx(ultramodern::gfx_callbacks_t::gfx_data_t) {
 // ---------------------------------------------------------------------------
 // Audio callbacks (minimal SDL audio queue for Fase 2; full mixer later)
 // ---------------------------------------------------------------------------
+// [ws3-audio] debug instrumentation, env-gated (no effect on normal runs):
+//   SNP_AUDIO_DUMP=<path>  tee every queued sample (int16 LE, stereo) to a raw
+//                          file for offline analysis (underruns, content, pops)
+//   SNP_TRACE=1            log set_frequency changes, queue depths, underruns
 static SDL_AudioDeviceID audio_device = 0;
+static FILE* audio_dump_file = nullptr;
+static uint64_t audio_queue_call_count = 0;
+static uint64_t audio_total_samples_queued = 0;
+static size_t audio_min_depth_before = SIZE_MAX;
 
 void queue_samples(int16_t* samples, size_t count) {
     if (audio_device != 0) {
+        if (audio_dump_file == nullptr) {
+            const char* dump_path = getenv("SNP_AUDIO_DUMP");
+            if (dump_path != nullptr) {
+                audio_dump_file = fopen(dump_path, "wb");
+                if (audio_dump_file != nullptr) {
+                    fprintf(stderr, "[audio] dumping samples to %s\n", dump_path);
+                }
+            }
+        }
+        if (audio_dump_file != nullptr) {
+            fwrite(samples, sizeof(int16_t), count, audio_dump_file);
+            audio_total_samples_queued += count;
+            if (audio_total_samples_queued % 44100 == 0) {
+                fflush(audio_dump_file);
+            }
+        }
+        Uint32 depth_before = SDL_GetQueuedAudioSize(audio_device);
+        if (depth_before < audio_min_depth_before) {
+            audio_min_depth_before = depth_before;
+        }
         SDL_QueueAudio(audio_device, samples, (Uint32)(count * sizeof(int16_t)));
+        audio_queue_call_count++;
+        if (getenv("SNP_TRACE") != nullptr) {
+            if (audio_queue_call_count <= 20 || (audio_queue_call_count % 4096) == 0) {
+                fprintf(stderr, "[audio] queue_samples #%llu count=%zu depth_before=%u depth_after=%u min=%zu total_samples=%llu\n",
+                        (unsigned long long)audio_queue_call_count, count, (unsigned)depth_before,
+                        (unsigned)SDL_GetQueuedAudioSize(audio_device), audio_min_depth_before,
+                        (unsigned long long)audio_total_samples_queued);
+            }
+            // Near-empty queue when a new buffer arrives = the SDL queue drained
+            // to silence between refills -> audible pop. Log every occurrence
+            // (rate-limited to every 64th call when the queue is chronically low).
+            if (depth_before < 4096) {
+                static uint64_t low_queue_last_logged = 0;
+                if (audio_queue_call_count - low_queue_last_logged >= 64) {
+                    fprintf(stderr, "[audio] LOW-QUEUE #%llu depth_before=%u bytes (%zu samples, ~%.1f ms at 44.1kHz) -> underrun risk\n",
+                            (unsigned long long)audio_queue_call_count, (unsigned)depth_before,
+                            (size_t)(depth_before / 2), (double)(depth_before / 2) / 44.1);
+                    low_queue_last_logged = audio_queue_call_count;
+                }
+            }
+        }
     }
 }
 
@@ -138,6 +206,9 @@ size_t get_frames_remaining() {
 }
 
 void set_frequency(uint32_t freq) {
+    if (getenv("SNP_TRACE") != nullptr) {
+        fprintf(stderr, "[audio] set_frequency(%u)\n", freq);
+    }
     if (audio_device != 0) {
         SDL_CloseAudioDevice(audio_device);
         audio_device = 0;
@@ -151,18 +222,223 @@ void set_frequency(uint32_t freq) {
     if (audio_device == 0) {
         fprintf(stderr, "Failed to open audio device: %s\n", SDL_GetError());
     } else {
+        fprintf(stderr, "[audio] device open: freq=%d channels=%d samples=%u\n", spec.freq, spec.channels, spec.samples);
         SDL_PauseAudioDevice(audio_device, 0);
     }
 }
 
 // ---------------------------------------------------------------------------
-// Input callbacks (minimal: no input yet in Fase 2, wired in Fase 3)
+// Input callbacks (Fase 3 / WS1): wired to recompinput (profiles, bindings).
+// Mouse aiming: recompinput captures raw mouse deltas (add_mouse_deltas) but
+// does NOT convert them to the N64 stick (InputType::Mouse is a TODO that
+// returns 0). For a stick-aim rail shooter we integrate the deltas into a
+// virtual stick at the port boundary, enabled by the General tab's
+// "Mouse Sensitivity" option (> 0). Keyboard/controller paths unchanged.
+// Dev/test hook: SP_INPUT_SCRIPT=<file> feeds timed synthetic input at the
+// port boundary (same path real input takes), used for headless verification:
+//   t=<seconds> keydown <NAME> | keyup <NAME> | stick <x> <y>
+//   NAME: A B Z L R START C_UP C_DOWN C_LEFT C_RIGHT DPAD_* (0x8000/0x4000/...)
 // ---------------------------------------------------------------------------
+
+// Virtual stick fed by the mouse (decays back to center when the mouse stops).
+static std::array<float, 2> mouse_aim_stick{ 0.0f, 0.0f };
+
+static bool mouse_aiming_enabled() {
+    if (!recompui::config::general::has_mouse_sensitivity_option()) {
+        return false;
+    }
+    return recompui::config::general::get_mouse_sensitivity() > 0.0;
+}
+
 static void poll_input() {
     recompinput::poll_inputs();
+
+    // Integrate the mouse deltas accumulated since the last poll into a
+    // decaying virtual stick. Screen-space Y is inverted (up = positive stick).
+    if (mouse_aiming_enabled() && !recompinput::game_input_disabled()) {
+        float dx = 0.0f, dy = 0.0f;
+        recompinput::get_mouse_deltas(&dx, &dy);
+        // kDecay: stick returns to center in ~0.1s after the mouse stops.
+        // kScale: pixel delta per frame -> stick units (tuned for 60 fps).
+        constexpr float kDecay = 0.70f;
+        constexpr float kScale = 0.012f;
+        float sens = (float)(recompui::config::general::get_mouse_sensitivity() / 100.0);
+        mouse_aim_stick[0] = mouse_aim_stick[0] * kDecay + dx * kScale * sens;
+        mouse_aim_stick[1] = mouse_aim_stick[1] * kDecay - dy * kScale * sens;
+    } else {
+        mouse_aim_stick = { 0.0f, 0.0f };
+    }
 }
+
+// --- SP_INPUT_SCRIPT (dev/test hook, see header comment) --------------------
+struct ScriptedInputState {
+    struct Event {
+        double t;
+        bool keydown;      // true = keydown, false = keyup
+        uint16_t button;   // N64 button bit (0 = stick event)
+        float sx, sy;      // stick value for stick events
+        bool mouse_delta;  // true = feed synthetic mouse delta (test path)
+    };
+    std::vector<Event> events{};
+    size_t next = 0;
+    bool loaded = false;
+    std::chrono::steady_clock::time_point t0{};
+    uint16_t buttons = 0;
+    bool stick_set = false;
+    float sx = 0.0f, sy = 0.0f;
+};
+
+static ScriptedInputState g_scripted_input;
+
+static uint16_t script_button_bit(const char* name) {
+    struct { const char* name; uint16_t bit; } table[] = {
+        { "A", 0x8000 }, { "B", 0x4000 }, { "Z", 0x2000 }, { "L", 0x0020 },
+        { "R", 0x0010 }, { "START", 0x1000 }, { "C_UP", 0x0008 },
+        { "C_DOWN", 0x0004 }, { "C_LEFT", 0x0002 }, { "C_RIGHT", 0x0001 },
+        { "DPAD_UP", 0x0800 }, { "DPAD_DOWN", 0x0400 }, { "DPAD_LEFT", 0x0200 },
+        { "DPAD_RIGHT", 0x0100 },
+    };
+    for (const auto& entry : table) {
+        if (strcmp(name, entry.name) == 0) {
+            return entry.bit;
+        }
+    }
+    return 0;
+}
+
+static void load_input_script() {
+    const char* path = getenv("SP_INPUT_SCRIPT");
+    if (path == nullptr) {
+        return;
+    }
+    FILE* f = fopen(path, "r");
+    if (f == nullptr) {
+        fprintf(stderr, "[input-script] warning: cannot open %s\n", path);
+        return;
+    }
+    char line[256];
+    int line_no = 0;
+    while (fgets(line, sizeof(line), f)) {
+        line_no++;
+        char* comment = strchr(line, '#');
+        if (comment != nullptr) {
+            *comment = '\0';
+        }
+        double t = 0.0;
+        char cmd[64] = { 0 };
+        if (sscanf(line, " t=%lf %63s", &t, cmd) < 2) {
+            continue;
+        }
+        ScriptedInputState::Event ev{};
+        ev.t = t;
+        if (strcmp(cmd, "keydown") == 0 || strcmp(cmd, "keyup") == 0) {
+            char name[32] = { 0 };
+            if (sscanf(line, " t=%lf %63s %31s", &t, cmd, name) < 3) {
+                fprintf(stderr, "[input-script] %s:%d: bad key event\n", path, line_no);
+                continue;
+            }
+            ev.keydown = strcmp(cmd, "keydown") == 0;
+            ev.button = script_button_bit(name);
+            if (ev.button == 0) {
+                fprintf(stderr, "[input-script] %s:%d: unknown key '%s'\n", path, line_no, name);
+                continue;
+            }
+        } else if (strcmp(cmd, "stick") == 0) {
+            if (sscanf(line, " t=%lf %63s %f %f", &t, cmd, &ev.sx, &ev.sy) < 4) {
+                fprintf(stderr, "[input-script] %s:%d: bad stick event\n", path, line_no);
+                continue;
+            }
+            ev.sx = std::clamp(ev.sx, -1.0f, 1.0f);
+            ev.sy = std::clamp(ev.sy, -1.0f, 1.0f);
+        } else if (strcmp(cmd, "mousedelta") == 0) {
+            // Feeds recompinput::add_mouse_deltas (the real SDL_MOUSEMOTION
+            // path) so the poll_input mouse->stick integration is exercised.
+            if (sscanf(line, " t=%lf %63s %f %f", &t, cmd, &ev.sx, &ev.sy) < 4) {
+                fprintf(stderr, "[input-script] %s:%d: bad mousedelta event\n", path, line_no);
+                continue;
+            }
+            ev.mouse_delta = true;
+        } else {
+            fprintf(stderr, "[input-script] %s:%d: unknown command '%s'\n", path, line_no, cmd);
+            continue;
+        }
+        g_scripted_input.events.emplace_back(ev);
+    }
+    fclose(f);
+    std::sort(g_scripted_input.events.begin(), g_scripted_input.events.end(),
+              [](const auto& a, const auto& b) { return a.t < b.t; });
+    g_scripted_input.loaded = !g_scripted_input.events.empty();
+    g_scripted_input.t0 = std::chrono::steady_clock::now();
+    fprintf(stderr, "[input-script] loaded %zu events from %s\n", g_scripted_input.events.size(), path);
+}
+
+// Apply scripted events whose timestamp has elapsed; returns true if state changed.
+static bool update_scripted_input() {
+    if (!g_scripted_input.loaded) {
+        return false;
+    }
+    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - g_scripted_input.t0).count();
+    bool changed = false;
+    while (g_scripted_input.next < g_scripted_input.events.size() &&
+           g_scripted_input.events[g_scripted_input.next].t <= elapsed) {
+        const auto& ev = g_scripted_input.events[g_scripted_input.next++];
+        if (ev.button != 0) {
+            if (ev.keydown) {
+                g_scripted_input.buttons |= ev.button;
+            } else {
+                g_scripted_input.buttons &= (uint16_t)~ev.button;
+            }
+            fprintf(stderr, "[input-script] t=%.2f %s %04X (buttons now %04X)\n",
+                    ev.t, ev.keydown ? "keydown" : "keyup", ev.button, g_scripted_input.buttons);
+        } else if (ev.mouse_delta) {
+            recompinput::add_mouse_deltas(ev.sx, ev.sy);
+            fprintf(stderr, "[input-script] t=%.2f mousedelta %.2f %.2f\n", ev.t, ev.sx, ev.sy);
+        } else {
+            g_scripted_input.stick_set = true;
+            g_scripted_input.sx = ev.sx;
+            g_scripted_input.sy = ev.sy;
+            fprintf(stderr, "[input-script] t=%.2f stick %.2f %.2f\n", ev.t, ev.sx, ev.sy);
+        }
+        changed = true;
+    }
+    return changed;
+}
+
+static void maybe_log_input(int controller_num, uint16_t buttons, float x, float y) {
+    if (getenv("SNP_TRACE") == nullptr) {
+        return;
+    }
+    static uint16_t prev_buttons = 0;
+    static float prev_x = 0.0f, prev_y = 0.0f;
+    if (buttons != prev_buttons || fabsf(x - prev_x) > 0.01f || fabsf(y - prev_y) > 0.01f) {
+        fprintf(stderr, "[input] ch=%d buttons=%04X stick=%.3f,%.3f\n", controller_num, buttons, x, y);
+    }
+    prev_buttons = buttons;
+    prev_x = x;
+    prev_y = y;
+}
+
 static bool get_input(int controller_num, uint16_t* buttons, float* x, float* y) {
-    return recompinput::profiles::get_n64_input(controller_num, buttons, x, y);
+    bool ok = recompinput::profiles::get_n64_input(controller_num, buttons, x, y);
+
+    // Mouse aiming (player 1 only; deltas already integrated once per poll).
+    if (ok && controller_num == 0 && mouse_aiming_enabled() && !recompinput::game_input_disabled()) {
+        *x = std::clamp(*x + mouse_aim_stick[0], -1.0f, 1.0f);
+        *y = std::clamp(*y + mouse_aim_stick[1], -1.0f, 1.0f);
+    }
+
+    // SP_INPUT_SCRIPT dev hook (player 1 only): OR scripted buttons, override stick.
+    if (ok && controller_num == 0 && g_scripted_input.loaded) {
+        update_scripted_input();
+        *buttons |= g_scripted_input.buttons;
+        if (g_scripted_input.stick_set) {
+            *x = g_scripted_input.sx;
+            *y = g_scripted_input.sy;
+        }
+    }
+
+    maybe_log_input(controller_num, *buttons, *x, *y);
+    return ok;
 }
 static void set_rumble(int controller_num, bool on) {
     recompinput::set_rumble(controller_num, on);
@@ -214,7 +490,10 @@ static void init_config() {
     recompui::config::GeneralTabOptions general_options{};
     general_options.has_rumble_strength = false;
     general_options.has_gyro_sensitivity = false;
-    general_options.has_mouse_sensitivity = false;
+    // WS1: mouse aiming is wired at the port boundary (poll_input/get_input).
+    // The slider shows in the General tab; 0 disables it (desktop default),
+    // >0 enables mouse->stick aiming (cursor locks during gameplay).
+    general_options.has_mouse_sensitivity = true;
 
     recompui::config::create_general_tab(general_options);
     recompui::config::create_graphics_tab();
@@ -319,6 +598,9 @@ int main(int argc, char** argv) {
 
     // Register the recompiled function section table (must precede recomp::start).
     register_snp_overlays();
+
+    // Dev/test hook: SP_INPUT_SCRIPT=<file> (see input callbacks section).
+    load_input_script();
 
     recomp::Configuration config{
         .project_version = project_version,
