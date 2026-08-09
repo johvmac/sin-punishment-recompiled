@@ -206,6 +206,7 @@ third-party submodules retain their upstream licenses:
 - [N64ModernRuntime — GPL-3.0](https://github.com/N64Recomp/N64ModernRuntime)
 - [RT64 — MIT](https://github.com/rt64/rt64)
 - [RecompFrontend — GPL-3.0](https://github.com/N64Recomp/RecompFrontend)
+- AI assistance: **DeepSeek Flash** — development and research support, with gratitude.
 
 No ROM or proprietary game asset is included. Use only materials you are legally
 entitled to use locally; do not open issues or pull requests containing copyrighted
