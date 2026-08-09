@@ -41,6 +41,10 @@ add_compile_definitions(
 # builds shaders with rt64's build_*_shader functions, which need these variables
 # in the caller's scope).
 set (DXC_COMMON_OPTS "-I${CMAKE_SOURCE_DIR}/lib/rt64/src")
+# Repo path contains '&' (sin&punishmentrecomp); /bin/sh splits unescaped
+# '&' in custom-command args. Escape for the shell here (ninja-internal
+# OUTPUT/DEPENDS paths are unaffected).
+string(REPLACE "&" "\\&" DXC_COMMON_OPTS "${DXC_COMMON_OPTS}")
 set (DXC_DXIL_OPTS "-Wno-ignored-attributes")
 set (DXC_SPV_OPTS "-spirv" "-fspv-target-env=vulkan1.0" "-fvk-use-dx-layout")
 set (DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T ps_6_3")
@@ -51,11 +55,11 @@ set (DXC_LB_OPTS "${DXC_COMMON_OPTS}" "-D" "LIBRARY" "-T" "lib_6_3")
 set (DXC_RT_OPTS "${DXC_COMMON_OPTS}" "-D" "RT_SHADER" "-T" "lib_6_3" "-fspv-target-env=vulkan1.1spirv1.4" "-fspv-extension=SPV_KHR_ray_tracing" "-fspv-extension=SPV_EXT_descriptor_indexing")
 if (APPLE)
     if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-        set (DXC "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/x64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/x64/dxc-macos")
-        set (SPIRVCROSS "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/x64:$ENV{DYLD_LIBRARY_PATH}" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/x64/spirv-cross")
+        set (DXC "${CMAKE_COMMAND}" -E env "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/x64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/x64/dxc-macos")
+        set (SPIRVCROSS "${CMAKE_COMMAND}" -E env "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/x64:$ENV{DYLD_LIBRARY_PATH}" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/x64/spirv-cross")
     else()
-        set (DXC "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/arm64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/arm64/dxc-macos")
-        set (SPIRVCROSS "DYLD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/arm64:$ENV{DYLD_LIBRARY_PATH}" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/arm64/spirv-cross")
+        set (DXC "${CMAKE_SOURCE_DIR}/scripts/snp-shader-tool.sh" "dxc")
+        set (SPIRVCROSS "${CMAKE_SOURCE_DIR}/scripts/snp-shader-tool.sh" "spirv-cross")
     endif()
 endif()
 
@@ -126,6 +130,7 @@ if (FUNC_C_SOURCES OR FUNC_CXX_SOURCES OR HAS_PORT_SOURCES)
     set(SOURCES)
     foreach(game_src
         ${CMAKE_SOURCE_DIR}/src/main/main.cpp
+        ${CMAKE_SOURCE_DIR}/src/main/register_overlays.cpp
         ${CMAKE_SOURCE_DIR}/src/game/game.cpp
     )
         if(EXISTS ${game_src})

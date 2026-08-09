@@ -29,3 +29,5 @@ out/
 # Local state
 config/rt64.*.json
 portable.txt
+scripts/__pycache__/
+.cache/

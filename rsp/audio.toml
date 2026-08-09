@@ -11,8 +11,8 @@
 #   SP PC = 0x04001000 and DMAs ucode text at SP_MEM_ADDR = 0x04001000 (IMEM 0x000).
 #
 # Indirect jumps: jr $1 (command dispatch via DMEM table -> covered by all
-# 4-aligned in-text addresses), jr $7 -> 0x1080, jr $5 -> (264, 340) ($ra of
-# jal 0x1120), jr $ra (jal returns, tracked by RSPRecomp).
+# 4-aligned in-text addresses), jr $7 -> 0x1080, jr $5 -> {0x108, 0x154} ($ra
+# of jal 0x1120), jr $ra (jal returns, tracked by RSPRecomp).
 text_offset = 0x32280
 text_size = 0xD24
 text_address = 0x04001000

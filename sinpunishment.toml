@@ -6,8 +6,8 @@
 entrypoint = 0x80025C00
 # Paths are relative to the location of this config file.
 output_func_path = "RecompiledFuncs"
-# relocatable_sections_path = "overlays.sinpunishment.txt"  # enable once overlays are mapped (Phase 1)
-rom_file_path = "rom/sinpunishment.z64"
+# relocatable_sections_path = "overlays.sinpunishment.txt"  # DISABLED: symbols sections lack relocs arrays; enabling makes N64Recomp exit(1) at ".ovl1" and truncate outputs. Overlays are registered via recomp.cpp load_overlays() instead.
+rom_file_path = "rom/sinpunishment_patched.z64"
 # NOTE: generated in Phase 1 via Ghidra RE. Until then, N64Recomp cannot run.
 symbols_file_path = "symbols/sinpunishment.syms.toml"
 bss_section_suffix = "_bss"
@@ -19,18 +19,47 @@ ignored = [
 
 stubs = [
     # Functions containing instructions N64Recomp cannot compile (cache ops, cop0 regs != Status, TLB ops).
-    # All are libultra boot functions that N64ModernRuntime provides (mapped in Phase 2).
-    "boot_func_80042F50",   # osWritebackDCache
-    "boot_func_80043000",   # osInvalICache
-    "boot_func_80043080",   # osWritebackIcache
-    "boot_func_80043100",   # osInvalDCache
-    "boot_func_800460F0",   # reads COP0 Cause
-    "boot_func_80046100",   # reads COP0 Count (osGetTime)
-    "boot_func_80046120",   # writes COP0 Compare (osSetTimer)
-    "boot_func_80046150",   # writes COP0 WatchLo
+    # Non-reimplemented libultra helpers; kept as stubs (dead code after libultra renames).
+    "boot_func_80043080",   # osWritebackIcache (no native reimpl)
+    "boot_func_80046120",   # writes COP0 Compare (__osSetCompare)
+    "boot_func_80046150",   # writes COP0 WatchLo (__osSetWatchLo)
     "boot_func_80047C60",   # __osProbeTLB (tlbp)
     "boot_func_80047D20",   # osMapTLB (tlbwi)
     "boot_func_80047D80",   # osUnmapTLB (tlbwi)
+
+    # --- Game's own SI manager stack (raw SI register writes -> SIGBUS in recomp) ---
+    # The game runs its own libultra-like SI manager: thread 6 (boot_func_8004EAD0)
+    # receives controller commands on queue 0x800A5A4C via boot_func_8004EA68 and
+    # dispatches them to PIF executors (boot_func_8004B610/B800) that call
+    # boot_func_80046FE0 (__osSiRawStartDma) -> writes 0xA4800000-0x18 -> SIGBUS.
+    # The runtime reimplemented osCont* path (osContStartReadData_recomp etc.)
+    # handles real input, so the game's own SI stack is neutralized entirely.
+    # Stubs are post-processed (scripts/patch_si_stubs.py) to set ctx->r2 = 0 so
+    # callers see "success" (controller present, no pak) instead of garbage.
+    "boot_func_8004EA68",   # SI command sender (osSendMesg 0x800A5A4C + block on reply)
+    "boot_func_8004EAD0",   # SI manager thread entry (dispatch loop)
+    "boot_func_8004B800",   # PIF command executor (would block on SI-DMA completion)
+    "boot_func_8004B610",   # PIF command executor (alternate path)
+    "boot_func_80046FE0",   # __osSiRawStartDma (raw SI reg writes: crash site)
+    "ovl1_func_800E5424",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E5760",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E5C20",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E60B4",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E60F0",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E6318",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E6340",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E6400",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E64B4",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E6528",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
+    "ovl1_func_800E65B0",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
 ]
 
+# Hook the game's logical code-file loader (boot_func_8003A1D0): after it DMAs
+# an overlay's code image (jal 0x8003A5F0 at 0x8003A270) it returns through
+# 0x8003A278, where we mirror the load into the runtime's func_map so
+# get_function() can resolve the overlay's functions. Stack slots at the hook
+# point (set earlier by the loader): [0x1C]=rom, [0x20]=next-file rom (size
+# bound), [0x24]=ram destination. All code overlays share 0x800E4780, so the
+# previous mapping is unloaded first (0x80C70 covers every overlay section).
+# # [[patches.hook]] DISABLED FOR TEST
 # (No instruction patches needed: N64Recomp cgenerator skips writes to $zero.)
