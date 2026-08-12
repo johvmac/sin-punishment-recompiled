@@ -32,9 +32,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(RT64_STATIC TRUE)
 set(RT64_SDL_WINDOW_VULKAN TRUE)
+# PLUME_SDL_VULKAN_ENABLED selects plume::RenderWindow's SDL_Window* typedef
+# over its raw X11 struct fallback (see plume_render_interface_types.h). Some
+# targets (e.g. rt64 itself) pick this up transitively; recompui's own
+# sources need it directly, so it's set project-wide here rather than relying
+# on per-target propagation through link dependencies.
 add_compile_definitions(
     HLSL_CPU
     __PRFCHWINTRIN_H
+    PLUME_SDL_VULKAN_ENABLED
 )
 
 # Make DXC/SPIRVCROSS and shader options visible to all subdirectories (recompui
@@ -47,10 +53,10 @@ set (DXC_COMMON_OPTS "-I${CMAKE_SOURCE_DIR}/lib/rt64/src")
 string(REPLACE "&" "\\&" DXC_COMMON_OPTS "${DXC_COMMON_OPTS}")
 set (DXC_DXIL_OPTS "-Wno-ignored-attributes")
 set (DXC_SPV_OPTS "-spirv" "-fspv-target-env=vulkan1.0" "-fvk-use-dx-layout")
-set (DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T ps_6_3")
-set (DXC_VS_OPTS "${DXC_COMMON_OPTS}" "-E" "VSMain" "-T vs_6_3" "-fvk-invert-y")
-set (DXC_CS_OPTS "${DXC_COMMON_OPTS}" "-E" "CSMain" "-T cs_6_3")
-set (DXC_GS_OPTS "${DXC_COMMON_OPTS}" "-E" "GSMain" "-T gs_6_3")
+set (DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T" "ps_6_3")
+set (DXC_VS_OPTS "${DXC_COMMON_OPTS}" "-E" "VSMain" "-T" "vs_6_3" "-fvk-invert-y")
+set (DXC_CS_OPTS "${DXC_COMMON_OPTS}" "-E" "CSMain" "-T" "cs_6_3")
+set (DXC_GS_OPTS "${DXC_COMMON_OPTS}" "-E" "GSMain" "-T" "gs_6_3")
 set (DXC_LB_OPTS "${DXC_COMMON_OPTS}" "-D" "LIBRARY" "-T" "lib_6_3")
 set (DXC_RT_OPTS "${DXC_COMMON_OPTS}" "-D" "RT_SHADER" "-T" "lib_6_3" "-fspv-target-env=vulkan1.1spirv1.4" "-fspv-extension=SPV_KHR_ray_tracing" "-fspv-extension=SPV_EXT_descriptor_indexing")
 if (APPLE)
@@ -60,6 +66,18 @@ if (APPLE)
     else()
         set (DXC "${CMAKE_SOURCE_DIR}/scripts/snp-shader-tool.sh" "dxc")
         set (SPIRVCROSS "${CMAKE_SOURCE_DIR}/scripts/snp-shader-tool.sh" "spirv-cross")
+    endif()
+elseif (UNIX)
+    # Same gap as the APPLE-only block above: rt64's own CMakeLists.txt sets
+    # DXC for Linux too, but that's scoped to rt64's own subdirectory and
+    # never reaches recompui's sibling subdirectory, which needs it to build
+    # its own shaders via rt64's build_*_shader functions. Mirrors rt64's own
+    # Linux DXC path (lib/rt64/CMakeLists.txt) using CMake's portable env
+    # wrapper instead of a raw "VAR=value" command-list prefix.
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        set (DXC "${CMAKE_COMMAND}" -E env "LD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/x64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/x64/dxc-linux")
+    else()
+        set (DXC "${CMAKE_COMMAND}" -E env "LD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/lib/arm64" "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/arm64/dxc-linux")
     endif()
 endif()
 

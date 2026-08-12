@@ -24,6 +24,11 @@ python3 scripts/fix_dangling_gotos.py
 echo "==> Post-processing SI stubs (return 0)"
 python3 scripts/patch_si_stubs.py
 
+# Strip malformed writes to $zero (cgenerator gap; always behavior-preserving
+# to remove since $zero writes are architectural no-ops on real hardware).
+echo "==> Post-processing zero-register writes"
+python3 scripts/fix_zero_writes.py
+
 # Safety net: the audio-ucode SIG0 hack must survive regeneration
 # (expected_c0_reg_value(SP_STATUS) = 0x80 in RSPRecomp emits "r8 = 128;").
 if ! grep -q "r8 = 128;" rsp/audio.cpp; then

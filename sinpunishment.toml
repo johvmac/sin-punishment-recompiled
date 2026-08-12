@@ -18,14 +18,136 @@ ignored = [
 ]
 
 stubs = [
+    "ovlfile22_func_800E4780",   # auto: tail-calls into N64Recomp-synthesized 'static_24_800E47D4' (unresolvable branch inside it at 0x800E4984); real symbol-boundary issue, not addressable via this synthesized name
+    "ovlfile25_func_802C3D74",   # auto(warn-batch): branches to 0x802C3DB4 (target lands inside small (0xc-byte) neighbor ovlfile25_func_802C3DB0, consistent with data-gap pattern)
+    "ovlfile04_func_80104EB8",   # seeded gap symbol (0x5C38 bytes, trailing to the section's declared end) fails with "Unhandled instruction: INVALID" -- genuine non-code bytes, i.e. trailing data at the end of the file, same pattern as the .ovl1 tail region found earlier this session
+    "ovlfile04_func_800E4AEC",   # tail-calls to 0x800E49D8, which splat's own disassembly explicitly marks as "alabel func_800E49D8" (embedded data, not code) inside ovlfile04_func_800E49B8's body. N64Recomp auto-synthesizes a placeholder function there instead of raising a normal catchable error, which then fails on the data bytes further in (surfaced as "Error recompiling static_6_80104EB8" -- an internal name, not addressable via this stub list, hence stubbing the caller instead).
+    "ovlfile04_func_800E48E4",   # splat's own original data has this (size 0x150, ending 0x800E4A34) genuinely overlapping ovlfile04_func_800E49B8 (0x800E49B8-0x800E4B30 before our splits) -- an ambiguous/imperfect splat boundary call in this specific spot. Its own tail call to 0x800E4A34 is a second, independent path into the same problematic embedded-data region as the stub above.
+    "ovlfile24_func_802B5440",   # auto: branches to 0x83C00000 (branch target 0x83C00000 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile15_func_800E7B1C",   # auto: unhandled instruction 'lld'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80153474",   # auto: unhandled instruction 'll'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8015301C",   # auto: unhandled instruction 'tltu'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80152D28",   # auto: unhandled instruction 'tlt'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80152B70",   # auto: unhandled instruction 'tltu'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_801523C4",   # auto: unhandled instruction 'tgeu'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80151A8C",   # auto: branches to 0x84442450 (branch target 0x84442450 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80151740",   # auto: branches to 0x8453FFFC (branch target 0x8453FFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80151728",   # auto: branches to 0x8453FFFC (branch target 0x8453FFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8015170C",   # auto: branches to 0x8453FFFC (branch target 0x8453FFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80151700",   # auto: branches to 0x821C2224 (branch target 0x821C2224 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80150CA4",   # auto: branches to 0x81D42450 (branch target 0x81D42450 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80150BF4",   # auto: branches to 0x81F82204 (branch target 0x81F82204 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80150B14",   # auto: branches to 0x833C2344 (branch target 0x833C2344 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80150ACC",   # auto: branches to 0x83B023BC (branch target 0x83B023BC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013E50C",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013E1D0",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013DAC8",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013CBFC",   # auto: unhandled instruction 'sdc2'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013C96C",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013C94C",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8013C498",   # auto: unhandled instruction 'tgei'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80132D38",   # auto: jal target 0x83AFFFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80132C80",   # auto: branches to 0x8F202F24 (branch target 0x8F202F24 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80132C68",   # auto: branches to 0x8EE82F20 (branch target 0x8EE82F20 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80132C0C",   # auto: jal target 0x828C3290 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80132BF8",   # auto: jal target 0x83AFFFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80132BB4",   # auto: jal target 0x83C833CC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80132B40",   # auto: jal target 0x81403148 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80132928",   # auto: unhandled instruction 'tltiu'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_801328FC",   # auto: branches to 0x8E9833AC (branch target 0x8E9833AC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80132088",   # auto: branches to 0x8F4C33AC (branch target 0x8F4C33AC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80132064",   # auto: branches to 0x8F7033AC (branch target 0x8F7033AC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80132054",   # auto: branches to 0x8ED82EE8 (branch target 0x8ED82EE8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131F90",   # auto: unhandled instruction 'tgei'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80131D94",   # auto: jal target 0x8158318C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80131D4C",   # auto: jal target 0x8154316C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80131D20",   # auto: jal target 0x83AFFFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80131CEC",   # auto: branches to 0x8E9BFFFC (branch target 0x8E9BFFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801313F8",   # auto: branches to 0x827024A8 (branch target 0x827024A8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131398",   # auto: branches to 0x86F42700 (branch target 0x86F42700 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013138C",   # auto: branches to 0x86BC26C8 (branch target 0x86BC26C8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013134C",   # auto: branches to 0x85C425F0 (branch target 0x85C425F0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131274",   # auto: branches to 0x893C2940 (branch target 0x893C2940 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013126C",   # auto: branches to 0x8928292C (branch target 0x8928292C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131264",   # auto: branches to 0x8918291C (branch target 0x8918291C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013125C",   # auto: branches to 0x88E02904 (branch target 0x88E02904 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131254",   # auto: branches to 0x88C028D0 (branch target 0x88C028D0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013124C",   # auto: branches to 0x88AC28B0 (branch target 0x88AC28B0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131244",   # auto: branches to 0x82702890 (branch target 0x82702890 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131234",   # auto: jal target 0x83AFFFFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_8013122C",   # auto: branches to 0x8FEC2FFC (branch target 0x8FEC2FFC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131224",   # auto: branches to 0x8E982F44 (branch target 0x8E982F44 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013121C",   # auto: branches to 0x8B642B68 (branch target 0x8B642B68 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131214",   # auto: branches to 0x8B482B4C (branch target 0x8B482B4C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8013120C",   # auto: branches to 0x8B302B38 (branch target 0x8B302B38 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80131204",   # auto: branches to 0x8AE02AF8 (branch target 0x8AE02AF8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80130C40",   # auto: jal target 0x83C433D8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80130C0C",   # auto: jal target 0x842434E0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80130BFC",   # auto: jal target 0x85683584 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80130BF0",   # auto: jal target 0x850C3510 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80130A90",   # auto: jal target 0x81A031AC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile12_func_80114B20",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8011479C",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80114644",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80113B9C",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80113A18",   # auto: unhandled instruction 'cache'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_8011392C",   # auto: branches to 0x85E425D0 (branch target 0x85E425D0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801138F4",   # auto: branches to 0x85C425C0 (branch target 0x85C425C0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011388C",   # auto: branches to 0x85B82590 (branch target 0x85B82590 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113830",   # auto: branches to 0x85842588 (branch target 0x85842588 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011382C",   # auto: branches to 0x8550254C (branch target 0x8550254C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113820",   # auto: branches to 0x8538252C (branch target 0x8538252C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801136E4",   # auto: branches to 0x84A024E4 (branch target 0x84A024E4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801136B0",   # auto: branches to 0x84C824C0 (branch target 0x84C824C0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011363C",   # auto: branches to 0x84482460 (branch target 0x84482460 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113610",   # auto: branches to 0x84282460 (branch target 0x84282460 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801135EC",   # auto: branches to 0x8458246C (branch target 0x8458246C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011355C",   # auto: branches to 0x83F823C4 (branch target 0x83F823C4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113554",   # auto: branches to 0x842823A4 (branch target 0x842823A4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113534",   # auto: branches to 0x83B823FC (branch target 0x83B823FC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113510",   # auto: branches to 0x84042408 (branch target 0x84042408 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801133CC",   # auto: branches to 0x832C237C (branch target 0x832C237C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801133B0",   # auto: branches to 0x83602328 (branch target 0x83602328 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113394",   # auto: branches to 0x83602364 (branch target 0x83602364 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113340",   # auto: branches to 0x83342338 (branch target 0x83342338 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011332C",   # auto: branches to 0x832C2314 (branch target 0x832C2314 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113324",   # auto: branches to 0x82F82328 (branch target 0x82F82328 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011331C",   # auto: branches to 0x831C2310 (branch target 0x831C2310 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113318",   # auto: branches to 0x8324231C (branch target 0x8324231C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011324C",   # auto: branches to 0x82A82284 (branch target 0x82A82284 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011322C",   # auto: branches to 0x82B822B4 (branch target 0x82B822B4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011321C",   # auto: branches to 0x82C822C4 (branch target 0x82C822C4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113204",   # auto: branches to 0x82C422B8 (branch target 0x82C422B8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113200",   # auto: branches to 0x829422BC (branch target 0x829422BC is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801131F4",   # auto: branches to 0x828422B8 (branch target 0x828422B8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_801131C4",   # auto: branches to 0x829822A0 (branch target 0x829822A0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113070",   # auto: branches to 0x81F0219C (branch target 0x81F0219C is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_8011304C",   # auto: branches to 0x81F42200 (branch target 0x81F42200 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80113020",   # auto: branches to 0x81D421A4 (branch target 0x81D421A4 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80112FE4",   # auto: unhandled instruction 'tgeiu'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile12_func_80112FC0",   # auto: branches to 0x81B021A0 (branch target 0x81B021A0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80112FB8",   # auto: branches to 0x81AC21B0 (branch target 0x81AC21B0 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80112EC0",   # auto: branches to 0x80C82108 (branch target 0x80C82108 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80112D48",   # auto: branches to 0x80782088 (branch target 0x80782088 is unmapped but in plausible RAM; auto-fixed only because the immediately preceding function (ovlfile12_func_80112D40) was already confirmed misidentified data, and this is the same incoherent-jump pattern continuing into it)
+    "ovlfile12_func_80112D40",   # auto: branches to 0x80882078 (branch target 0x80882078 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile12_func_80112CE4",   # auto: branches to 0x805C2058 (branch target 0x805C2058 is unmapped but in plausible RAM; auto-fixed only because the immediately preceding function (ovlfile12_func_80112CC4) was already confirmed misidentified data, and this is the same incoherent-jump pattern continuing into it)
+    "ovlfile12_func_80112CC4",   # confirmed misidentified data (not auto-fixed: target 0x80582054 fell inside the loose plausible-RAM safety margin). Splat's own disassembly shows every "instruction" here is a j to a scattered, incoherent address (one instruction even overlaps into an impossible bgezall), and it directly follows a block splat already classified as data (enddlabel, ending in a bare .word) -- this is that same data blob's tail, mis-glabeled as its own function.
+    "ovlfile12_func_8011263C",   # auto: unhandled instruction 'tlti'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile06_func_801106C8",   # auto: branches to 0x88A3CBA8 (branch target 0x88A3CBA8 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile05_func_80106ACC",   # auto: unhandled instruction 'sdc2'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
+    "ovlfile03_func_800E87B4",   # auto: branches to 0x8884A800 (branch target 0x8884A800 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a branch instruction)
+    "ovlfile03_func_800E8790",   # auto: jal target 0x81510400 is outside valid N64 RAM (0x80000000-0x80800000); embedded data word misidentified as a jal instruction
+    "ovlfile02_func_800E4FC0",   # auto: unhandled instruction 'bc0f'; unsupported opcode (hardware/coprocessor), same class as existing cop0/TLB stubs
     # Functions containing instructions N64Recomp cannot compile (cache ops, cop0 regs != Status, TLB ops).
     # Non-reimplemented libultra helpers; kept as stubs (dead code after libultra renames).
     "boot_func_80043080",   # osWritebackIcache (no native reimpl)
+    "boot_func_800460F0",   # reads COP0 Cause via mfc0 (likely __osGetCause); N64Recomp only handles mfc0 Status
     "boot_func_80046120",   # writes COP0 Compare (__osSetCompare)
     "boot_func_80046150",   # writes COP0 WatchLo (__osSetWatchLo)
     "boot_func_80047C60",   # __osProbeTLB (tlbp)
     "boot_func_80047D20",   # osMapTLB (tlbwi)
     "boot_func_80047D80",   # osUnmapTLB (tlbwi)
+    "boot_func_8004BDF4",   # near osInitialize; branches into middle of boot_func_8004BDC8 (N64Recomp can't handle intra-function-boundary branches)
 
     # --- Game's own SI manager stack (raw SI register writes -> SIGBUS in recomp) ---
     # The game runs its own libultra-like SI manager: thread 6 (boot_func_8004EAD0)
@@ -41,17 +163,6 @@ stubs = [
     "boot_func_8004B800",   # PIF command executor (would block on SI-DMA completion)
     "boot_func_8004B610",   # PIF command executor (alternate path)
     "boot_func_80046FE0",   # __osSiRawStartDma (raw SI reg writes: crash site)
-    "ovl1_func_800E5424",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E5760",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E5C20",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E60B4",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E60F0",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E6318",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E6340",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E6400",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E64B4",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E6528",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
-    "ovl1_func_800E65B0",   # ovl1 data-gap call target (dead code in ovl1 context; boot provides the real fn)
 ]
 
 # Hook the game's logical code-file loader (boot_func_8003A1D0): after it DMAs

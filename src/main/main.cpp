@@ -614,11 +614,9 @@ int main(int argc, char** argv) {
         .error_handling_callbacks = error_handling_callbacks,
         .threads_callbacks = threads_callbacks,
         .message_queue_control = {
-            // NOTE: requeue_vi=true was tried but causes a pump busy-loop: with the game's
-            // VI queue (0x800A326C, cap 8) full, the 1ms pump pops a VI message, do_send
-            // fails, it's requeued, and the pump spins (tens of millions of log lines).
-            // Dropping VI retraces is fine (game handles missed retraces).
-            .requeue_vi = false,
+            // Field order here must match ultramodern::MessageQueueControl's
+            // declaration order (C++20 designated-initializer requirement).
+            //
             // SP completions (0x29B -> 0x800A32A4): drop-on-full like VI. With
             // requeue_sp=true (default), an SP-done message that cannot be inserted
             // because the queue is full gets requeued into the external-message queue
@@ -626,6 +624,11 @@ int main(int argc, char** argv) {
             // hot loop (snp_fix26.log: 670MB in ~25s). The game polls; a lost
             // completion is equivalent to a missed retrace on real hardware.
             .requeue_sp = false,
+            // NOTE: requeue_vi=true was tried but causes a pump busy-loop: with the game's
+            // VI queue (0x800A326C, cap 8) full, the 1ms pump pops a VI message, do_send
+            // fails, it's requeued, and the pump spins (tens of millions of log lines).
+            // Dropping VI retraces is fine (game handles missed retraces).
+            .requeue_vi = false,
             // PI DMA completions must be requeued if the game's queue is momentarily full,
             // otherwise do_send drops them and the game hangs forever in osRecvMesg
             // (boot thread 3 waits on its sync-PI-DMA helper boot_func_8003A514).

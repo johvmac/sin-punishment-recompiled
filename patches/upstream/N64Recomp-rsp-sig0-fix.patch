@@ -1,0 +1,18 @@
+diff --git a/RSPRecomp/src/rsp_recomp.cpp b/RSPRecomp/src/rsp_recomp.cpp
+index 518477d..0ed65a5 100644
+--- a/RSPRecomp/src/rsp_recomp.cpp
++++ b/RSPRecomp/src/rsp_recomp.cpp
+@@ -124,7 +124,12 @@ std::string_view ctx_gpr_prefix(int reg) {
+ uint32_t expected_c0_reg_value(int cop0_reg) {
+     switch (static_cast<Cop0Reg>(cop0_reg)) {
+     case Cop0Reg::RSP_COP0_SP_STATUS:
+-        return 0; // None of the flags in RSP status are set
++        // Sin & Punishment's custom audio ucode polls SP_STATUS for the SIG0
++        // flag (bit 0x80) before proceeding; without it set, the recompiled
++        // polling loop never observes the signal. See sinpunishment.toml's
++        // "SIG0 hack" comment and scripts/recompile.sh's sanity check for
++        // "r8 = 128;" in the generated rsp/audio.cpp.
++        return 0x80;
+     case Cop0Reg::RSP_COP0_SP_DMA_FULL:
+         return 0; // Pretend DMAs complete instantly
+     case Cop0Reg::RSP_COP0_SP_DMA_BUSY:

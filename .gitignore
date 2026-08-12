@@ -33,6 +33,9 @@ scripts/__pycache__/
 .cache/
 symbols/sinpunishment.syms.toml.orig
 
+# Debug/session logs from the auto-fix scripts (not source)
+scripts/*.log
+
 
 # Public tree: keep the landing page; development Markdown stays local.
 *.md

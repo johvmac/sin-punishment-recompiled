@@ -28,6 +28,18 @@ fi
 echo "==> [2/4] Submodules"
 git submodule update --init --recursive
 
+# Sin & Punishment's custom audio ucode polls SP_STATUS for the SIG0 flag
+# before proceeding; upstream RSPRecomp hardcodes that read as always 0
+# (real hardware/coprocessor state isn't tracked statically), which leaves
+# the recompiled polling loop unable to ever observe the signal. Not a TOML
+# option -- it's a literal value in RSPRecomp's own source, so it's patched
+# here rather than configured. See scripts/recompile.sh's sanity check for
+# "r8 = 128;" in the generated rsp/audio.cpp.
+if ! grep -q "return 0x80;" external/N64Recomp/RSPRecomp/src/rsp_recomp.cpp; then
+    echo "==> Patching RSPRecomp (SIG0 hack, patches/upstream/N64Recomp-rsp-sig0-fix.patch)"
+    git -C external/N64Recomp apply "$ROOT/patches/upstream/N64Recomp-rsp-sig0-fix.patch"
+fi
+
 echo "==> [3/4] Building N64Recomp + RSPRecomp"
 cmake -S external/N64Recomp -B build-n64recomp -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build-n64recomp --parallel
