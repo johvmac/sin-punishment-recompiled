@@ -169,8 +169,80 @@ stubs = [
 # an overlay's code image (jal 0x8003A5F0 at 0x8003A270) it returns through
 # 0x8003A278, where we mirror the load into the runtime's func_map so
 # get_function() can resolve the overlay's functions. Stack slots at the hook
-# point (set earlier by the loader): [0x1C]=rom, [0x20]=next-file rom (size
-# bound), [0x24]=ram destination. All code overlays share 0x800E4780, so the
-# previous mapping is unloaded first (0x80C70 covers every overlay section).
-# # [[patches.hook]] DISABLED FOR TEST
-# (No instruction patches needed: N64Recomp cgenerator skips writes to $zero.)
+# point (set earlier by the loader, confirmed by reading boot_func_8003A1D0's
+# own body): [0x1C]=rom, [0x20]=next-file rom (exclusive bound -> size =
+# [0x20]-[0x1C]), [0x24]=ram destination. All code overlays share 0x800E4780.
+#
+# This was previously left disabled with nothing wired up to replace it:
+# `load_overlays()` (librecomp/src/overlays.cpp) is only ever called once at
+# startup, for the initial 1MB from the entrypoint (recomp.cpp:499). None of
+# the 27 ovlfileNN code overlays that share the 0x800E4780 window ever got
+# mirrored into func_map, so any LOOKUP_FUNC call landing in that window
+# failed with "Failed to find function at 0x...", which get_function()
+# treats as fatal (calls std::exit()). Confirmed live via debug prints: this
+# is exactly what killed boot once thread 3 (post scheduler-setup) started
+# calling into a just-loaded overlay.
+[[patches.hook]]
+func = "boot_func_8003A1D0"
+before_vram = 0x8003A278
+text = "extern void load_overlays(unsigned int, int, unsigned int); load_overlays((unsigned int)MEM_W(ctx->r29, 0x1C), (int)MEM_W(ctx->r29, 0x24), (unsigned int)(MEM_W(ctx->r29, 0x20) - MEM_W(ctx->r29, 0x1C)));"
+
+# Second, independent overlay-loading path used e.g. by boot_func_800263CC ->
+# boot_func_8003A290, which funnels through the same raw PI-DMA primitive as
+# the "sync-PI-DMA helper" from the requeue_pi comment in main.cpp:
+# boot_func_8003A514(rom, ram_dest, size). Its original o32 args are exactly
+# load_overlays()'s signature. Hooking at its entry, before its body moves
+# them out of a0-a2, mirrors every DMA'd region unconditionally.
+# load_overlays() only touches its own ROM-range-indexed section table (a
+# binary search bounded by [rom, rom+size)), so calling it for a DMA that
+# isn't a (currently-known) code overlay -- textures, audio, or the
+# Yay0-compressed overlays this path also loads, which aren't symbolized yet
+# -- just finds no matching section and no-ops. Safe to call unconditionally.
+[[patches.hook]]
+func = "boot_func_8003A514"
+before_vram = 0x8003A514
+text = "extern void load_overlays(unsigned int, int, unsigned int); load_overlays((unsigned int)ctx->r4, (int)ctx->r5, (unsigned int)ctx->r6);"
+
+# boot_func_80025CA4 is the game's lowest-priority "idle" thread: after
+# spawning and starting the higher-priority thread that does the real
+# scheduler setup (boot_func_80025E44, N64 thread id 3), it demotes its own
+# priority to 0 and spins on `lw $v0, 0x57B0($at); beq $v0, $zero, spin`,
+# waiting for another thread to write a function pointer into D_800657B0.
+#
+# On real hardware this works because a VI/PI/timer hardware interrupt can
+# preempt the spin at any point and asynchronously deliver the write. Ultramodern
+# has no equivalent async preemption: ultramodern::dequeue_external_messages()
+# (which drains queued VI/PI/SI/timer completions into their target message
+# queues) and ultramodern::check_running_queue() (which swaps to a
+# higher-priority ready thread) are only invoked from within a game thread's
+# own OS calls (osSendMesg/osRecvMesg/osSetThreadPri/etc). Since this loop is a
+# faithful, call-free translation of the original 3 MIPS instructions, nothing
+# ever pumps those queues once it starts spinning: thread 3 (and everything it
+# spawned) is left parked forever waiting on a message that can never be
+# delivered, and D_800657B0 is never written. Confirmed live via gdb: message
+# queue creation and osViSetEvent registration all succeed normally, then all
+# message/thread activity stops dead the instant this thread enters the loop.
+#
+# Fix: make each spin iteration call ultramodern::yield_self_1ms(), which
+# already exists for exactly this purpose (wait_for_external_message_timed +
+# check_running_queue). This drains the pending message(s), wakes/re-queues
+# whichever thread was waiting on them, and -- since that thread now has
+# higher priority than this one -- immediately swaps execution to it. No
+# runtime/scheduler changes needed; this only uses already-existing,
+# already-used-elsewhere ultramodern primitives from the one call site that
+# was missing them.
+[[patches.hook]]
+func = "boot_func_80025CA4"
+before_vram = 0x80025D30
+text = "extern void yield_self_1ms(unsigned char*); yield_self_1ms(rdram);"
+
+# Same call-free spin-wait pattern as above, one level deeper: boot_func_8004D7B0
+# is the entire function body -- `while (*(int*)0x8008546C != 0);` -- called
+# synchronously from thread 3's own scheduler-setup chain (boot_func_80025D50).
+# A codebase-wide scan for this exact shape (whole function is a single
+# backward-branching poll of a MEM_* read, no calls) found only these two
+# occurrences; this is the second and, as far as that scan shows, last one.
+[[patches.hook]]
+func = "boot_func_8004D7B0"
+before_vram = 0x8004D7B0
+text = "extern void yield_self_1ms(unsigned char*); yield_self_1ms(rdram);"

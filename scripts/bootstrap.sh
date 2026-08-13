@@ -40,6 +40,17 @@ if ! grep -q "return 0x80;" external/N64Recomp/RSPRecomp/src/rsp_recomp.cpp; the
     git -C external/N64Recomp apply "$ROOT/patches/upstream/N64Recomp-rsp-sig0-fix.patch"
 fi
 
+# Startup race: is_game_started() flips true the instant the game is launched
+# (SP_AUTOSTART or the launcher's "start" button), before the game's own MIPS
+# code has run far enough to call osViSetMode -- and once it's true, the VI
+# thread's set_dummy_vi() fallback stops populating a mode, leaving
+# ViState::mode null with no default initializer. Without this guard,
+# update_vi() dereferences it and crashes on startup.
+if ! grep -q "next_mode == nullptr" lib/N64ModernRuntime/ultramodern/src/events.cpp; then
+    echo "==> Patching N64ModernRuntime (VI null-mode startup race, patches/upstream/N64ModernRuntime-vi-null-mode-fix.patch)"
+    git -C lib/N64ModernRuntime apply "$ROOT/patches/upstream/N64ModernRuntime-vi-null-mode-fix.patch"
+fi
+
 echo "==> [3/4] Building N64Recomp + RSPRecomp"
 cmake -S external/N64Recomp -B build-n64recomp -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build-n64recomp --parallel

@@ -91,11 +91,21 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx() {
 }
 
 ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::gfx_data_t) {
+    // Non-Apple builds hand the raw SDL window straight to RT64's Vulkan
+    // backend (see the #else branch below): SDL_Vulkan_CreateSurface refuses
+    // any window not created with SDL_WINDOW_VULKAN ("isn't a Vulkan
+    // window"), so the flag is required here, not just at surface-creation
+    // time. Apple uses Metal (separate window-handle path below) and doesn't
+    // need it.
+    Uint32 window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+#ifndef __APPLE__
+    window_flags |= SDL_WINDOW_VULKAN;
+#endif
     SDL_Window* sdl_window = SDL_CreateWindow(
         "Sin & Punishment: Recompiled",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         1280, 720,
-        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
+        window_flags
     );
     if (sdl_window == nullptr) {
         fprintf(stderr, "Failed to create SDL window: %s\n", SDL_GetError());

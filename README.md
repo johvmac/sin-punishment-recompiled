@@ -25,9 +25,10 @@ and symbol map into a native C++ executable.
 
 > [!WARNING]
 > This is an active reverse-engineering repository, not a finished release. It does
-> not ship a ROM, game assets, or a redistributable playable build. The title screen
-> milestone is real; full gameplay, menus, two-player support, enhancement features,
-> and release QA are still ahead.
+> not ship a ROM, game assets, or a redistributable playable build. It does not yet
+> reach the title screen; boot crashes partway through, past the initial engine
+> setup. Full gameplay, menus, two-player support, enhancement features, and
+> release QA are all still ahead.
 
 ### At a glance
 
@@ -36,7 +37,7 @@ and symbol map into a native C++ executable.
 | Toolchain | N64Recomp and RSPRecomp build locally; CMake/Ninja tree is wired |
 | Reverse engineering | Symbol sections and custom audio microcode have been mapped |
 | Runtime | Native window, RT64 presentation, audio callbacks, input callbacks, and overlays are integrated |
-| Visual milestone | The game boots to the title screen and continues rendering |
+| Visual milestone | Not yet reached; boot crashes before the title screen |
 | Playability | Phase 3 validation is in progress; not yet claimed complete |
 | Release | No packaged build, ROM distribution, or final QA pass |
 
@@ -46,26 +47,35 @@ and symbol map into a native C++ executable.
 | --- | --- | --- |
 | 0 — Toolchain | Complete | Recompiler tools, submodules, scripts, and the CMake tree |
 | 1 — Symbols and memory map | Complete | Ghidra-derived symbol data, overlays, and RSP findings |
-| 2 — Boot and title screen | Complete | Native executable opens, renders the title screen, and survives the documented long-run checkpoint |
+| 2 — Boot and title screen | In progress | Native executable opens and boots; does not yet reach the title screen (see 2026-08-13 update below) |
 | 3 — Runtime completion | In progress | Menus, input, audio, configuration, and two-player verification |
 | 4 — Enhancements | Planned | Widescreen, higher internal resolution, high framerate, and modern aiming |
 | 5 — QA and release | Planned | Full playthrough, platform matrix, packaging, and troubleshooting documentation |
 
-### Current checkpoint — 2026-08-09
+### Update — 2026-08-13
 
-The latest engineering checkpoint is substantially past the initial scaffold:
+Boot currently crashes before the title screen, in engine setup that runs on a
+background thread after the initial scheduler comes up. Two real boot-blocking
+bugs were found and fixed this session (a scheduler deadlock, and overlay code
+that was never registered with the runtime — both call-free spin loops and
+unresolved function lookups respectively), which moved boot substantially
+further than before, but a third, unrelated crash comes up right after,
+not yet root-caused. The checkpoint below, from 2026-08-09, describes an
+earlier state and is kept for history; it does not describe the current build.
 
-- Phases 0–2 are complete in the current development checkpoint.
-- The executable reaches the title screen through the native RT64 path.
+### Checkpoint — 2026-08-09 (superseded, see above)
+
+- Phases 0–2 were reported complete as of this checkpoint.
+- The executable reached the title screen through the native RT64 path.
 - The documented stability run reached **4,577 graphics tasks (about 76 seconds) without a crash**.
 - The display pipeline was repaired: the title is presented, `osViBlack(0)` occurs once at boot, and the render loop keeps producing graphics work.
 - The custom audio ucode is located and recompiles through RSPRecomp; SDL audio callbacks and tracing are wired.
 - The Phase 3 foundation is present: recompinput profiles, controller polling, a mouse-to-stick path, a recompui launcher, graphics/input/audio/mod configuration tabs, and a scripted-input test hook.
 - The remaining Phase 3 work is validation and correction, not an empty scaffold: navigate title → mode selection → level 1, verify full audio, persist settings, exercise two controllers, and complete the robustness pass.
 
-The status above is deliberately conservative. Reaching the title screen is not the
-same as completing a game, and the project will not call itself playable until the
-Phase 3 acceptance criteria are evidenced.
+The project will not call itself playable until the Phase 3 acceptance criteria
+are evidenced, and won't claim the title screen milestone again until it's been
+independently reproduced on the current build.
 
 The public repository intentionally omits internal reverse-engineering notebooks and
 session handoffs. The status above is the concise, publishable checkpoint.
@@ -201,7 +211,7 @@ third-party submodules retain their upstream licenses:
 - [N64ModernRuntime — GPL-3.0](https://github.com/N64Recomp/N64ModernRuntime)
 - [RT64 — MIT](https://github.com/rt64/rt64)
 - [RecompFrontend — GPL-3.0](https://github.com/N64Recomp/RecompFrontend)
-- AI assistance: **DeepSeek Flash** — development and research support, with gratitude.
+- AI assistance: **DeepSeek Flash** and **Claude** — development and research support.
 
 No ROM or proprietary game asset is included. Use only materials you are legally
 entitled to use locally; do not open issues or pull requests containing copyrighted

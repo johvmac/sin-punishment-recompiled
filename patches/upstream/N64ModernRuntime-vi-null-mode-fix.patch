@@ -1,0 +1,21 @@
+diff --git a/ultramodern/src/events.cpp b/ultramodern/src/events.cpp
+index 2f1cfb5..e7faa2b 100644
+--- a/ultramodern/src/events.cpp
++++ b/ultramodern/src/events.cpp
+@@ -72,6 +72,16 @@ static struct {
+         void update_vi() {
+             ViState* next_state = get_next_state();
+             const OSViMode* next_mode = next_state->mode;
++            if (next_mode == nullptr) {
++                // Startup race: is_game_started() flips true the instant the
++                // game is launched, before its MIPS code has run far enough
++                // to call osViSetMode -- and once it's true, the VI thread's
++                // set_dummy_vi() fallback (which would otherwise populate
++                // this) stops running. ViState::mode has no default
++                // initializer, so it's still null here. Nothing to present
++                // yet; skip this update rather than dereference null.
++                return;
++            }
+             const OSViCommonRegs* common_regs = &next_mode->comRegs;
+             const OSViFieldRegs* field_regs = &next_mode->fldRegs[field];
+             PTR(void) framebuffer = osVirtualToPhysical(next_state->framebuffer);
