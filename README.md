@@ -25,9 +25,10 @@ and symbol map into a native C++ executable.
 
 > [!WARNING]
 > This is an active reverse-engineering repository, not a finished release. It does
-> not ship a ROM, game assets, or a redistributable playable build. It does not yet
-> reach the title screen; boot crashes partway through, past the initial engine
-> setup. Full gameplay, menus, two-player support, enhancement features, and
+> not ship a ROM, game assets, or a redistributable playable build. The build reaches
+> a live, correctly-rendering title screen (see the 2026-08-13 update below), but
+> whether controller/keyboard input actually reaches the game from there is not yet
+> verified. Full gameplay, menus, two-player support, enhancement features, and
 > release QA are all still ahead.
 
 ### At a glance
@@ -37,8 +38,8 @@ and symbol map into a native C++ executable.
 | Toolchain | N64Recomp and RSPRecomp build locally; CMake/Ninja tree is wired |
 | Reverse engineering | Symbol sections and custom audio microcode have been mapped |
 | Runtime | Native window, RT64 presentation, audio callbacks, input callbacks, and overlays are integrated |
-| Visual milestone | Not yet reached; boot crashes before the title screen |
-| Playability | Phase 3 validation is in progress; not yet claimed complete |
+| Visual milestone | Reached: a live, correctly-rendering title screen, reproduced on the current build (2026-08-13) |
+| Playability | Phase 3 validation is in progress; input handling past the title screen not yet verified |
 | Release | No packaged build, ROM distribution, or final QA pass |
 
 ## Progress
@@ -47,21 +48,44 @@ and symbol map into a native C++ executable.
 | --- | --- | --- |
 | 0 — Toolchain | Complete | Recompiler tools, submodules, scripts, and the CMake tree |
 | 1 — Symbols and memory map | Complete | Ghidra-derived symbol data, overlays, and RSP findings |
-| 2 — Boot and title screen | In progress | Native executable opens and boots; does not yet reach the title screen (see 2026-08-13 update below) |
+| 2 — Boot and title screen | Reached | Native executable boots and reaches a live, correctly-rendering title screen (see 2026-08-13 update below) |
 | 3 — Runtime completion | In progress | Menus, input, audio, configuration, and two-player verification |
 | 4 — Enhancements | Planned | Widescreen, higher internal resolution, high framerate, and modern aiming |
 | 5 — QA and release | Planned | Full playthrough, platform matrix, packaging, and troubleshooting documentation |
 
-### Update — 2026-08-13
+### Update — 2026-08-13 (evening)
 
-Boot currently crashes before the title screen, in engine setup that runs on a
-background thread after the initial scheduler comes up. Two real boot-blocking
-bugs were found and fixed this session (a scheduler deadlock, and overlay code
-that was never registered with the runtime — both call-free spin loops and
-unresolved function lookups respectively), which moved boot substantially
-further than before, but a third, unrelated crash comes up right after,
-not yet root-caused. The checkpoint below, from 2026-08-09, describes an
-earlier state and is kept for history; it does not describe the current build.
+The build now reaches a live, correctly-rendering title screen, reproduced
+directly on this build (not just claimed from an earlier checkpoint). Two
+more real bugs were found and fixed on top of the boot-blocking fixes from
+earlier the same day:
+
+- Two symbol-boundary issues where N64Recomp couldn't resolve a branch that
+  jumped into the middle of a neighboring function (a shared-tail/switch-
+  statement pattern), and had silently stubbed the affected function to a
+  no-op rather than raising a build error. Both functions turned out to be
+  on the game's live per-frame path — one was permanently starving a
+  scheduler thread, the other was reachable but never taking effect. Fixed
+  by correcting the function boundaries in the symbol map so N64Recomp
+  compiles the real logic instead of stubbing it.
+- A fifth instance of the same struct-validation bug class from earlier the
+  same day (a per-client message-queue pointer read from a struct field
+  that hadn't been populated yet — see the architecture notes on
+  `ultramodern`'s synchronous vs. real hardware's asynchronous PI DMA).
+
+With both fixed, the build passed well over 1,000 rendered graphics tasks
+(previously capped at 123, permanently) and shows the actual attract-mode
+title sequence, matching a real-hardware reference emulator run frame for
+frame. **Not yet verified:** whether a Start button press is recognized by
+the game's own input handling — a scripted press was sent and the on-screen
+content changed, but it's very likely that was just the attract-mode demo
+continuing on its own schedule rather than a real state transition, per
+direct comparison against the reference emulator (which also plays a full
+demo scene under the "press start" prompt). Input handling is Phase 3 scope
+and hasn't been investigated yet.
+
+The checkpoint below, from 2026-08-09, describes an earlier state and is
+kept for history; it does not describe the current build.
 
 ### Checkpoint — 2026-08-09 (superseded, see above)
 
@@ -73,9 +97,10 @@ earlier state and is kept for history; it does not describe the current build.
 - The Phase 3 foundation is present: recompinput profiles, controller polling, a mouse-to-stick path, a recompui launcher, graphics/input/audio/mod configuration tabs, and a scripted-input test hook.
 - The remaining Phase 3 work is validation and correction, not an empty scaffold: navigate title → mode selection → level 1, verify full audio, persist settings, exercise two controllers, and complete the robustness pass.
 
-The project will not call itself playable until the Phase 3 acceptance criteria
-are evidenced, and won't claim the title screen milestone again until it's been
-independently reproduced on the current build.
+The title screen milestone above is reproduced on the current build (see the
+2026-08-13 update), not carried over from this superseded checkpoint. The
+project will not call itself playable until the Phase 3 acceptance criteria
+are evidenced.
 
 The public repository intentionally omits internal reverse-engineering notebooks and
 session handoffs. The status above is the concise, publishable checkpoint.

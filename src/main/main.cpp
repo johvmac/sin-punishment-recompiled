@@ -520,6 +520,19 @@ int main(int argc, char** argv) {
     // SDL audio init
     SDL_InitSubSystem(SDL_INIT_AUDIO);
 
+    // Developer/testing hook: SP_RT64_DEV=1 enables RT64's developer mode
+    // (F1 in-game inspector, plus its otherwise-suppressed HLE/RDP
+    // diagnostic warnings -- see rt64_state.cpp/rt64_rdp.cpp's
+    // `warningsEnabled = ext.userConfig->developerMode` checks). Nothing
+    // in this project sets developer_mode anywhere, so it defaults to
+    // false (GraphicsConfig is value-initialized), meaning those warnings
+    // are always silent otherwise.
+    if (getenv("SP_RT64_DEV") != nullptr) {
+        auto config = ultramodern::renderer::get_graphics_config();
+        config.developer_mode = true;
+        ultramodern::renderer::set_graphics_config(config);
+    }
+
     recomp::rsp::callbacks_t rsp_callbacks{
         .get_rsp_microcode = get_rsp_microcode,
     };

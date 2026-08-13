@@ -1493,9 +1493,8 @@ functions = [
     { name = "ovlfile01_func_800E4E30", vram = 0x800E4E30, size = 0x24 },
     { name = "ovlfile01_func_800E4ABC", vram = 0x800E4ABC, size = 0x68 },
     { name = "ovlfile01_func_800E4B24", vram = 0x800E4B24, size = 0xD0 },
-    { name = "ovlfile01_func_800E47C0", vram = 0x800E47C0, size = 0xB8 },
     { name = "ovlfile01_func_800E4878", vram = 0x800E4878, size = 0x14 },
-    { name = "ovlfile01_func_800E4780", vram = 0x800E4780, size = 0x40 },
+    { name = "ovlfile01_func_800E4780", vram = 0x800E4780, size = 0xF8 },
     { name = "ovlfile01_func_800E488C", vram = 0x800E488C, size = 0x1E8 },
     { name = "ovlfile01_func_800E4A74", vram = 0x800E4A74, size = 0x48 },
     { name = "ovlfile01_func_800E4BF4", vram = 0x800E4BF4, size = 0x180 },
@@ -6900,8 +6899,7 @@ vram = 0x800E4780
 size = 0x10010
 
 functions = [
-    { name = "ovlfile22_func_800E47C0", vram = 0x800E47C0, size = 0x1CC },
-    { name = "ovlfile22_func_800E4780", vram = 0x800E4780, size = 0x40 },
+    { name = "ovlfile22_func_800E4780", vram = 0x800E4780, size = 0x20C },
     { name = "ovlfile22_func_800E498C", vram = 0x800E498C, size = 0x5D0 },
     { name = "ovlfile22_func_800E4F5C", vram = 0x800E4F5C, size = 0x3D8 },
     { name = "ovlfile22_func_800E5334", vram = 0x800E5334, size = 0x1C },

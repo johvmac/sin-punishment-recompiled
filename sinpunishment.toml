@@ -18,7 +18,6 @@ ignored = [
 ]
 
 stubs = [
-    "ovlfile22_func_800E4780",   # auto: tail-calls into N64Recomp-synthesized 'static_24_800E47D4' (unresolvable branch inside it at 0x800E4984); real symbol-boundary issue, not addressable via this synthesized name
     "ovlfile25_func_802C3D74",   # auto(warn-batch): branches to 0x802C3DB4 (target lands inside small (0xc-byte) neighbor ovlfile25_func_802C3DB0, consistent with data-gap pattern)
     "ovlfile04_func_80104EB8",   # seeded gap symbol (0x5C38 bytes, trailing to the section's declared end) fails with "Unhandled instruction: INVALID" -- genuine non-code bytes, i.e. trailing data at the end of the file, same pattern as the .ovl1 tail region found earlier this session
     "ovlfile04_func_800E4AEC",   # tail-calls to 0x800E49D8, which splat's own disassembly explicitly marks as "alabel func_800E49D8" (embedded data, not code) inside ovlfile04_func_800E49B8's body. N64Recomp auto-synthesizes a placeholder function there instead of raising a normal catchable error, which then fails on the data bytes further in (surfaced as "Error recompiling static_6_80104EB8" -- an internal name, not addressable via this stub list, hence stubbing the caller instead).
@@ -182,6 +181,110 @@ stubs = [
 # treats as fatal (calls std::exit()). Confirmed live via debug prints: this
 # is exactly what killed boot once thread 3 (post scheduler-setup) started
 # calling into a just-loaded overlay.
+# boot_func_80026A54(queue_index) walks a linked list of deferred callbacks
+# (5 head pointers at 0x80068A9C[queue_index*8]; each node has a countdown
+# byte at +0, a function pointer at +4, a `next` pointer at +0xC). Confirmed
+# via a live gdb watchpoint that one node's `next` field gets legitimately
+# overwritten by a real, unmodified PI DMA -- boot_func_800263CC's own
+# per-tick file-loading loop (thread 3's main loop, in boot_func_80025E44)
+# bursts through up to ~23 files in a single call with no interleaved queue
+# processing, and one of those files' destination overlaps a still-pending
+# node's memory. This is original ROM behavior, not something introduced by
+# any other patch here; nothing in this repo has been changed to trigger it.
+# It was simply unreachable before the boot-deadlock and overlay-registration
+# fixes above got this far for the first time. Whether real hardware avoids
+# this via a load-ordering detail this reconstruction is still missing, or
+# recovers from it some other way, isn't established -- see
+# docs/boot-debugging-2026-08-13.md for the full trace.
+#
+# Rather than guess at the real fix, make the list walk defensive: treat a
+# `next` pointer outside valid N64 RAM (the same 0x80000000-0x80800000 bound
+# scripts/auto_stub_pass.py already uses for branch-target validation) as an
+# end-of-list sentinel instead of dereferencing it. Hooked at the loop-back
+# check (L_80026AD8), which runs every time `next` has just been read,
+# before either continuing the loop or falling through to the existing,
+# unmodified return path -- so a sanitized `next` of 0 takes that same
+# correct return path with no new control flow needed.
+[[patches.hook]]
+func = "boot_func_80026A54"
+before_vram = 0x80026AD8
+text = "if ((unsigned int)ctx->r16 != 0 && ((unsigned int)ctx->r16 < 0x80000000u || (unsigned int)ctx->r16 >= 0x80800000u)) { ctx->r16 = 0; }"
+
+# Same class of bug as boot_func_80026A54 above, and confirmed the same way
+# (a live gdb inspection at the actual crash): boot_func_800395C8(obj) reads
+# a count (obj+0x112), a loop-continuation value $s1 (obj+0x118), and a data
+# pointer $s2 (obj+0x114) from a per-object struct, then loops
+# unconditionally dereferencing $s2 while $s1 != 0. At the crash, the count
+# field held a plausible small value (0x3F) but $s2/$s1 held clearly
+# non-N64-RAM values (0x2c15e05f / 0x2d61d07f) -- the object's count was
+# populated but its data pointers weren't yet, the same
+# populated-metadata-before-data-pointers shape as the fix above, and
+# consistent with the confirmed root cause noted further down (ultramodern's
+# synchronous PI DMA vs real hardware's async model -- see
+# docs/boot-debugging-2026-08-13.md).
+#
+# $s2 is read once and never changes across loop iterations, so validating
+# it once, right after both reads (before the unconditional jump into the
+# loop), is enough: if invalid, zero $s1 too so the loop's own real
+# continuation check (`bne $s1, $zero, ...`) naturally treats it as
+# nothing-to-do, without dereferencing anything.
+[[patches.hook]]
+func = "boot_func_800395C8"
+before_vram = 0x80039600
+text = "if ((unsigned int)ctx->r18 < 0x80000000u || (unsigned int)ctx->r18 >= 0x80800000u) { ctx->r17 = 0; }"
+
+# Third instance of the same PI-DMA-timing-gap class (see
+# docs/boot-debugging-2026-08-13.md), confirmed the same way via live gdb
+# inspection at the actual crash. boot_func_80030448(list_struct) reads a
+# count $s1 = *(list_struct+4) and an array base $s0 = *(list_struct+0) +
+# $s1*4 (i.e. one-past-the-end), then walks backward from $s0 in a loop
+# gated by `$s1 != 0`, decrementing $s0 by 4 and dereferencing it each
+# iteration. At the crash, $s1 held 0x1d98d01f -- not a plausible element
+# count for anything in this game (~500 million) -- so the walk immediately
+# underflows past the array's real bounds into unmapped memory. Same
+# populated-metadata-before-data shape as the two fixes above, just a count
+# instead of a pointer this time.
+#
+# Sanitize $s1 right after both reads, before the unconditional jump into
+# the loop: if it's above a generously large but still sane bound (0x10000
+# -- far beyond any real array size in this game), treat it as 0 so the
+# loop's own real continuation check (`bne $s1, $zero, ...`) naturally
+# treats it as nothing-to-do.
+[[patches.hook]]
+func = "boot_func_80030448"
+before_vram = 0x80030468
+text = "if ((unsigned int)ctx->r17 > 0x10000u) { ctx->r17 = 0; }"
+
+# Fourth instance, structurally identical to boot_func_80030448 immediately
+# above (same list_struct argument shape: $s0 = *(a0+0), $s1 = *(a0+4)),
+# just walking the array forward instead of backward. Confirmed via gdb the
+# same way: $s1 held 0x217f1bb2 at the crash, not a plausible count. Same
+# fix, same reasoning -- see docs/boot-debugging-2026-08-13.md.
+[[patches.hook]]
+func = "boot_func_800303D4"
+before_vram = 0x800303EC
+text = "if ((unsigned int)ctx->r17 > 0x10000u) { ctx->r17 = 0; }"
+
+# A third call-free spin-wait, embedded inside boot_func_80025E44 (thread
+# 3's own per-tick loop) rather than being a whole standalone function --
+# which is why the earlier codebase-wide scan for "whole function is a
+# spin" (used to find the first two, boot_func_80025CA4 and
+# boot_func_8004D7B0) didn't catch it. `L_80025FB0: while
+# (MEM_BU($8007,-0x756B) == 0);` -- waits for the currently-loaded
+# overlay's own per-tick dispatch (called earlier in the same loop, via
+# boot_func_800263CC's LOOKUP_FUNC jump table) to write a nonzero value
+# here. Normally resolves synchronously, same-thread, same call, so it
+# never actually blocks -- confirmed live via gdb across multiple runs:
+# after the four crash fixes above changed downstream execution enough,
+# thread 3 now gets stuck here at 100% CPU with every other thread idle,
+# the exact same "runtime never pumps/reschedules because nothing yields"
+# failure as the first two fixes. Same fix, same reasoning -- see
+# docs/boot-debugging-2026-08-13.md.
+[[patches.hook]]
+func = "boot_func_80025E44"
+before_vram = 0x80025FB0
+text = "extern void yield_self_1ms(unsigned char*); yield_self_1ms(rdram);"
+
 [[patches.hook]]
 func = "boot_func_8003A1D0"
 before_vram = 0x8003A278
@@ -246,3 +349,39 @@ text = "extern void yield_self_1ms(unsigned char*); yield_self_1ms(rdram);"
 func = "boot_func_8004D7B0"
 before_vram = 0x8004D7B0
 text = "extern void yield_self_1ms(unsigned char*); yield_self_1ms(rdram);"
+
+# Fifth instance of the "populated metadata / unpopulated data pointer"
+# struct-validation bug class (see the four above). This one only became
+# reachable after fixing the ovlfile22_func_800E4780/ovlfile01_func_800E4780
+# symbol-boundary issues (symbols/sinpunishment.syms.toml) that were
+# permanently stalling this thread earlier -- boot_func_8004E640 used to
+# block forever in osRecvMesg before ever reaching this code. Now it does,
+# and crashes: at L_8004E7B4 (the per-client completion-notify send at the
+# end of the dispatch loop, right before looping back), $a1 = the per-client
+# struct pointer read from the stack, and $a0 (the target OSMesgQueue*) is
+# loaded from client_struct+0x50. Confirmed live via gdb: that field holds
+# 0xbcab4f09 at the crash (do_send() dereferences it, SIGSEGV) -- not a
+# plausible RDRAM address, same "count/metadata populated before the
+# pointer field is" timing gap as the other four instances, all downstream
+# of ultramodern's synchronous (vs. real hardware's async) PI DMA. Fixed by
+# skipping the send entirely when the loaded pointer is invalid -- jumping
+# straight to L_8004E64C (the loop's own top-of-loop label, which is what
+# this send's fallthrough (`after_16`) unconditionally does next anyway, so
+# this is behaviorally identical to "the send silently did nothing" on an
+# invalid target, not a new control-flow path). See
+# docs/boot-debugging-2026-08-13.md for the ovlfile01/22 fix and this
+# crash's full gdb backtrace.
+[[patches.hook]]
+func = "boot_func_8004E640"
+before_vram = 0x8004E7C0
+text = "if ((unsigned int)ctx->r4 < 0x80000000u || (unsigned int)ctx->r4 >= 0x80800000u) { goto L_8004E64C; }"
+
+# Temporary [[patches.hook]] entries for the current investigation go
+# between the markers below. Strip them all with
+# `scripts/strip_scratch_hooks.sh` before committing -- it deletes
+# everything between the two marker lines (not this comment) and leaves the
+# markers themselves in place, ready for next time. Never leave a debug
+# print here past a commit; the real, permanent hooks all live above this
+# block.
+# ===== BEGIN SCRATCH DEBUG HOOKS =====
+# ===== END SCRATCH DEBUG HOOKS =====
