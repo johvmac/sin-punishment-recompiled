@@ -376,6 +376,41 @@ func = "boot_func_8004E640"
 before_vram = 0x8004E7C0
 text = "if ((unsigned int)ctx->r4 < 0x80000000u || (unsigned int)ctx->r4 >= 0x80800000u) { goto L_8004E64C; }"
 
+# Sixth instance of the same bug class, but on a function pointer instead of
+# a data pointer this time. boot_func_8004DD0C is a message-driven callback
+# dispatcher: it blocks on osRecvMesg, and on message type 1 or 2 loads a
+# registered callback function pointer from one of two globals
+# (0x8008xxxx-0x50F4 for type 1, -0x50F0 for type 2) and calls it via
+# LOOKUP_FUNC (get_function() + indirect call). Both sites already guard
+# against the pointer being exactly zero ("not registered yet") but not
+# against it being nonzero-but-garbage. Confirmed live via gdb (breaking on
+# get_function()'s entry, conditioned on the known bad value seen in
+# earlier non-gdb runs -- source-line and by-name breakpoints both failed
+# to resolve for this translation unit/symbol, worked around with a raw
+# address breakpoint computed from `nm`'s static offset plus the ASLR slide
+# gdb reports for `main`, and by reading the address parameter directly out
+# of $edi since it's read before the prologue spills it to its debug-visible
+# stack slot): get_function(0x3DC7CA55) -- nowhere near valid N64 RAM
+# (0x80000000-0x80800000), and not a value that looks like it started as a
+# real pointer and got corrupted a little; consistent with an uninitialized
+# stack/heap value read before whatever sets up this callback registration
+# has run. Same root cause class as the other five (ultramodern's
+# synchronous PI DMA vs. real hardware's async model creating a window
+# where a slot is legitimately still unpopulated when something reads it).
+# Fixed the same way at both call sites: validate the loaded pointer is in
+# valid N64 RAM before calling LOOKUP_FUNC on it; if not, skip the call the
+# same way the existing "== 0" check already does (both fall through to
+# L_8004DD48, the loop's own top, to wait for the next message).
+[[patches.hook]]
+func = "boot_func_8004DD0C"
+before_vram = 0x8004DDA0
+text = "if ((unsigned int)ctx->r2 < 0x80000000u || (unsigned int)ctx->r2 >= 0x80800000u) { goto L_8004DD48; }"
+
+[[patches.hook]]
+func = "boot_func_8004DD0C"
+before_vram = 0x8004DDC0
+text = "if ((unsigned int)ctx->r2 < 0x80000000u || (unsigned int)ctx->r2 >= 0x80800000u) { goto L_8004DD48; }"
+
 # Temporary [[patches.hook]] entries for the current investigation go
 # between the markers below. Strip them all with
 # `scripts/strip_scratch_hooks.sh` before committing -- it deletes
