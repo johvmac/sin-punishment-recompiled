@@ -1,0 +1,690 @@
+--- a/ultramodern/src/events.cpp
++++ b/ultramodern/src/events.cpp
+@@ -7,7 +7,11 @@
+ #include <utility>
+ #include <mutex>
+ #include <queue>
++#include <set>
++#include <vector>
++#include <string>
+ #include <cstring>
++#include <execinfo.h>
+ 
+ #include "blockingconcurrentqueue.h"
+ 
+@@ -567,15 +571,313 @@
+     return events_context.vi.get_cur_state()->framebuffer;
+ }
+ 
++// --- Liveness heartbeat (SNP_HEARTBEAT=1) -----------------------------------
++//
++// Counts display lists the GAME submits. This is the only trustworthy "is the
++// game still running?" signal we have: it is produced by game logic itself and
++// is completely independent of any screen capture.
++//
++// Why it exists: on 2026-08-15 a screenshot-diffing harness repeatedly reported
++// a build as "animating" while the user watched it sit frozen. Captures were
++// taken from a *minimized* window, where xwd does not reliably reflect what is
++// being drawn, so "consecutive frames differ" was capture noise. Do not use
++// frame differences to judge liveness -- use this.
++//
++// A sampling thread does the reporting rather than the submit path, because the
++// interesting event is submissions STOPPING, which by definition can't print
++// from inside the submit function.
++// Base of the emulated RDRAM, for scripts/gdb_watch.sh. See init_events.
++uint8_t* g_rdram_base = nullptr;
++
++void recomp_walk_report(long long secs);
++
++std::atomic<uint64_t> g_gfx_task_count{ 0 };
++// Non-graphics RSP tasks (audio, in this game). Discriminates "the game's frame
++// loop stopped entirely" from "only the graphics branch stopped being taken".
++std::atomic<uint64_t> g_other_task_count{ 0 };
++
++// VI delivery probe counters, defined in mesgqueue.cpp. Reported from here so
++// the timeline keeps advancing once the game itself goes quiet.
++extern std::atomic<uint64_t> g_viprobe_vi_enq;
++extern std::atomic<uint32_t> g_viprobe_vi_mq;
++extern std::atomic<uint64_t> g_viprobe_send_ok;
++extern std::atomic<uint64_t> g_viprobe_send_full;
++extern std::atomic<uint64_t> g_viprobe_send_woke;
++extern std::atomic<uint64_t> g_viprobe_recv_ok;
++extern std::atomic<uint64_t> g_viprobe_recv_block;
++extern std::atomic<int32_t>  g_viprobe_last_blocker;
++uint32_t viprobe_target_mq();
++
++static void heartbeat_thread_func() {
++    ultramodern::set_native_thread_name("Heartbeat");
++    const auto start = std::chrono::steady_clock::now();
++    uint64_t last = 0;
++    uint64_t stalled_secs = 0;
++    uint64_t p_enq = 0, p_ok = 0, p_full = 0, p_woke = 0, p_rok = 0, p_rblk = 0;
++    uint64_t last_other = 0;
++    while (true) {
++        std::this_thread::sleep_for(std::chrono::seconds(1));
++        uint64_t now_other = g_other_task_count.load();
++        uint64_t other_delta = now_other - last_other;
++        last_other = now_other;
++        uint64_t now_count = g_gfx_task_count.load();
++        uint64_t delta = now_count - last;
++        last = now_count;
++        auto secs = std::chrono::duration_cast<std::chrono::seconds>(
++            std::chrono::steady_clock::now() - start).count();
++        if (delta == 0) {
++            stalled_secs++;
++            fprintf(stderr, "[heartbeat] t=%llds gfx_tasks=%llu  +0  other=%llu +%llu  <<< NO GFX TASKS (%llus stalled)\n",
++                (long long)secs, (unsigned long long)now_count,
++                (unsigned long long)now_other, (unsigned long long)other_delta,
++                (unsigned long long)stalled_secs);
++        }
++        else {
++            stalled_secs = 0;
++            fprintf(stderr, "[heartbeat] t=%llds gfx_tasks=%llu  +%llu  other=%llu +%llu\n",
++                (long long)secs, (unsigned long long)now_count, (unsigned long long)delta,
++                (unsigned long long)now_other, (unsigned long long)other_delta);
++        }
++
++        // --- Memory watch (SNP_WATCH=0xADDR[,0xADDR...]) --------------------
++        //
++        // DIAGNOSTIC (2026-08-17). Sample game bytes once per second from this
++        // native thread. Written to test the gate at 0x80068A95: boot_func_
++        // 800261FC returns immediately when that byte is nonzero, skipping the
++        // call chain that feeds the queue thread 17 is stuck on. Reading from
++        // here needs no toml hook and so no recompile -- a byte watch that
++        // costs a rebuild is a byte watch you don't run.
++        // Byte addressing is XOR-3 swapped (see MEM_BU in recomp.h).
++        //
++        // A token of the form BASE+LEN watches a whole word range and reports
++        // only the words that CHANGED. Added to recover the destination pointer
++        // of the write that corrupts the callback table: the writer is a 4x4
++        // matrix multiply storing 16 consecutive words, so the extent of the
++        // damage gives the base it wrote from, which a single-address watch
++        // cannot show.
++        if (const char* watch = getenv("SNP_WATCH")) {
++            struct Region { uint32_t base; uint32_t words; };
++            static std::vector<Region> regions = [&]() {
++                std::vector<Region> out;
++                for (const char* p = watch; *p; ) {
++                    uint32_t base = (uint32_t)strtoul(p, nullptr, 0);
++                    uint32_t words = 1;
++                    const char* comma = strchr(p, ',');
++                    const char* plus = strchr(p, '+');
++                    if (plus != nullptr && (comma == nullptr || plus < comma)) {
++                        words = (uint32_t)strtoul(plus + 1, nullptr, 0) / 4;
++                        if (words == 0) words = 1;
++                    }
++                    out.push_back({ base & ~3u, words });
++                    if (comma == nullptr) break;
++                    p = comma + 1;
++                }
++                return out;
++            }();
++
++            static std::vector<uint32_t> addrs = [&]() {
++                std::vector<uint32_t> out;
++                for (const Region& r : regions) {
++                    for (uint32_t i = 0; i < r.words; i++) {
++                        out.push_back(r.base + i * 4);
++                    }
++                }
++                return out;
++            }();
++            const bool range_mode = addrs.size() > regions.size();
++            static std::vector<uint32_t> last(addrs.size(), 0);
++            static bool primed = false;
++            uint8_t* rdram = events_context.rdram;
++            if (rdram != nullptr) {
++                for (size_t i = 0; i < addrs.size(); i++) {
++                    // Words are stored natively (only BYTE access is XOR-3).
++                    uint32_t word = *(uint32_t*)(rdram + (addrs[i] - 0x80000000u));
++                    bool changed = primed && word != last[i];
++                    // In range mode only changes are interesting -- printing a
++                    // whole region every second would bury them.
++                    if (!range_mode || changed) {
++                        fprintf(stderr, "[watch] t=%llds 0x%08X word=0x%08X%s\n",
++                            (long long)secs, addrs[i], word,
++                            changed ? "   <<< CHANGED" : "");
++                    }
++                    last[i] = word;
++                }
++                primed = true;
++            }
++        }
++
++        recomp_walk_report((long long)secs);
++
++        if (viprobe_target_mq() != 0) {
++            uint64_t enq = g_viprobe_vi_enq.load(), ok = g_viprobe_send_ok.load();
++            uint64_t full = g_viprobe_send_full.load(), woke = g_viprobe_send_woke.load();
++            uint64_t rok = g_viprobe_recv_ok.load(), rblk = g_viprobe_recv_block.load();
++            fprintf(stderr, "[viprobe] t=%llds target=0x%x vi_enq=%llu(+%llu ->mq=0x%x) "
++                    "send_ok=%llu(+%llu) send_full=%llu(+%llu) woke=%llu(+%llu) "
++                    "recv_ok=%llu(+%llu) recv_block=%llu(+%llu, last thread %d)\n",
++                (long long)secs, viprobe_target_mq(),
++                (unsigned long long)enq,  (unsigned long long)(enq - p_enq),
++                g_viprobe_vi_mq.load(),
++                (unsigned long long)ok,   (unsigned long long)(ok - p_ok),
++                (unsigned long long)full, (unsigned long long)(full - p_full),
++                (unsigned long long)woke, (unsigned long long)(woke - p_woke),
++                (unsigned long long)rok,  (unsigned long long)(rok - p_rok),
++                (unsigned long long)rblk, (unsigned long long)(rblk - p_rblk),
++                g_viprobe_last_blocker.load());
++            p_enq = enq; p_ok = ok; p_full = full; p_woke = woke; p_rok = rok; p_rblk = rblk;
++        }
++    }
++}
++
++// --- Stub-reachability probe (SNP_STUB_PROBE=1) -----------------------------
++//
++// DIAGNOSTIC (2026-08-17). N64Recomp emits an EMPTY BODY for every function it
++// cannot recompile (137 of them here, mostly overlay code), and it does so
++// silently -- twice already a silently-stubbed function turned out to sit on
++// the live per-frame path (see the 2026-08-13 evening entry). The attract
++// sequence stops submitting display lists at exactly gfx task 1240 in every
++// run, which is a deterministic state transition, so the question is whether
++// that transition dispatches into a stub.
++//
++// scripts/probe_stubs.py injects a call to this into every empty stub body.
++// First call per function only, stamped with the gfx task count -- a stub whose
++// first call lands at ~1240 is the suspect. Ones that fired long before are not.
++extern "C" void recomp_stub_hit(const char* name) {
++    static const bool enabled = getenv("SNP_STUB_PROBE") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    static std::mutex seen_mutex;
++    static std::set<std::string> seen;
++    std::lock_guard lock{ seen_mutex };
++    if (seen.insert(name).second) {
++        fprintf(stderr, "[stub] gfx_task=%llu FIRST CALL: %s\n",
++            (unsigned long long)g_gfx_task_count.load(), name);
++    }
++}
++
++extern "C" void recomp_stub_hit(const char* name);
++
++// Shared raw-address backtrace printer for the diagnostic probes. Recompiled
++// output is ordinary C with global symbols, so the frames name game functions;
++// resolve with scripts/resolve_bt.sh. Raw addresses only, because
++// backtrace_symbols() sees only dynamic symbols and this binary is linked
++// without -rdynamic. The anchor line lets the resolver undo PIE's load slide.
++void probe_backtrace(const char* tag) {
++    static std::once_flag anchor_once;
++    std::call_once(anchor_once, []() {
++        fprintf(stderr, "[taskbt] anchor recomp_stub_hit=%p\n", (void*)&recomp_stub_hit);
++    });
++    void* frames[24];
++    int count = backtrace(frames, 24);
++    fprintf(stderr, "[taskbt] %s depth=%d:", tag, count);
++    for (int i = 0; i < count; i++) {
++        fprintf(stderr, " %p", frames[i]);
++    }
++    fprintf(stderr, "\n");
++}
++
++struct WalkStat {
++    uint32_t min_sp = 0xFFFFFFFFu;
++    uint32_t max_sp = 0;
++    uint32_t max_list = 0;
++    uint32_t bad_ptr = 0;
++    uint64_t calls = 0;
++};
++static std::mutex walk_mutex;
++static std::map<int32_t, WalkStat> walk_stats;
++
++// --- Scene-walk depth probe (SNP_WALK=1) ------------------------------------
++//
++// DIAGNOSTIC (2026-08-17). boot_func_80033758 walks a scene graph by reading a
++// list of child indices from (node + 8) that is terminated ONLY by a 0xFF byte,
++// recursing once per entry. If that pointer or its contents are wrong the walk
++// runs over arbitrary bytes and recurses arbitrarily deep -- which is what
++// drives thread 4's stack off its floor and onto the callback table at frame
++// 1240 (see docs/boot-debugging-2026-08-13.md, 2026-08-17 final).
++//
++// Called from a toml hook at the function's entry, so ctx->r29 is still the
++// CALLER's stack pointer; its minimum over time is the stack low-water mark.
++// Counters plus one line per second -- deliberately cheap, because a probe on a
++// hot path that changes timing measures itself (see the playbook).
++extern "C" void recomp_walk_probe(uint8_t* rdram, uint32_t sp, uint32_t node) {
++    static const bool enabled = getenv("SNP_WALK") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    // PER THREAD. The first version kept one global min_sp, which is useless
++    // here: thread 3's stack lives at 0x80067xxx and thread 4's at 0x8007xxxx,
++    // so a global minimum is always thread 3's and thread 4 -- the one that
++    // overflows -- never shows up at all. Track each thread separately, and
++    // report depth relative to that thread's own highest observed sp.
++    int32_t tid = ultramodern::is_game_thread()
++        ? TO_PTR(OSThread, ultramodern::this_thread())->id
++        : -1;
++
++    auto valid = [](uint32_t a) { return a >= 0x80000000u && a < 0x80800000u; };
++    uint32_t list_len = 0;
++    bool bad = false;
++    if (valid(node)) {
++        uint32_t list = *(uint32_t*)(rdram + ((node + 8) - 0x80000000u));
++        if (list != 0 && !valid(list)) {
++            bad = true;
++        }
++        else if (list != 0) {
++            while (list_len < 4096 && rdram[((list + list_len) ^ 3) - 0x80000000u] != 0xFF) {
++                list_len++;
++            }
++        }
++    }
++
++    std::lock_guard lock{ walk_mutex };
++    WalkStat& s = walk_stats[tid];
++    s.calls++;
++    if (sp < s.min_sp) s.min_sp = sp;
++    if (sp > s.max_sp) s.max_sp = sp;
++    if (list_len > s.max_list) s.max_list = list_len;
++    if (bad) s.bad_ptr++;
++
++}
++
++// Reported once a second by the heartbeat thread rather than from the probe
++// itself: the walk runs in bursts, so in-probe reporting went silent for whole
++// stretches -- including, in the first run, the seven seconds leading up to the
++// freeze, which is precisely the interval of interest.
++void recomp_walk_report(long long secs) {
++    if (getenv("SNP_WALK") == nullptr) {
++        return;
++    }
++    std::lock_guard lock{ walk_mutex };
++    for (const auto& [id, v] : walk_stats) {
++        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u longest_list=%u bad=%u\n",
++            secs, id, (unsigned long long)v.calls,
++            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.max_list, v.bad_ptr);
++    }
++}
++
+ void ultramodern::submit_rsp_task(RDRAM_ARG PTR(OSTask) task_) {
+     OSTask* task = TO_PTR(OSTask, task_);
+ 
+     // Send gfx tasks to the graphics action queue
+     if (task->t.type == M_GFXTASK) {
++        uint64_t n = g_gfx_task_count.fetch_add(1, std::memory_order_relaxed) + 1;
++        // DIAGNOSTIC (2026-08-17): which GAME function chain builds display
++        // lists? Submission stops dead at task 1240 while everything else keeps
++        // running, so we need the caller path in order to find where the game
++        // stops entering it. Recompiled output is ordinary C with global
++        // symbols, so a native backtrace names the game functions directly.
++        // Raw addresses only -- resolve with scripts/resolve_bt.sh, since
++        // backtrace_symbols() can't see non-dynamic symbols without -rdynamic.
++        if (getenv("SNP_TASK_BT") != nullptr && (n <= 2 || n >= 1235)) {
++            char tag[64];
++            snprintf(tag, sizeof(tag), "gfx task #%llu", (unsigned long long)n);
++            probe_backtrace(tag);
++        }
+         events_context.action_queue.enqueue(SpTaskAction{ *task });
+     }
+     // Set all other tasks as the RSP task
+     else {
++        g_other_task_count.fetch_add(1, std::memory_order_relaxed);
+         events_context.sp_task_queue.enqueue(task);
+     }
+ }
+@@ -585,9 +887,20 @@
+ }
+ 
+ void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
++    // Opt-in liveness trace; detached so it never affects shutdown.
++    if (getenv("SNP_HEARTBEAT") != nullptr) {
++        std::thread{ heartbeat_thread_func }.detach();
++    }
++
+     moodycamel::LightweightSemaphore gfx_thread_ready;
+     moodycamel::LightweightSemaphore task_thread_ready;
+     events_context.rdram = rdram;
++    // Exported for scripts/gdb_watch.sh. RDRAM is mmap'd at a fresh address
++    // every run, so a watchpoint on a game address has to read the base out of
++    // the live process. Reading it from a stack frame does not work in a
++    // Release build -- the parameter is optimised into a register and gdb
++    // reports "could not find rdram in any frame". A plain global always works.
++    g_rdram_base = rdram;
+     events_context.sp.gfx_thread = std::thread{ gfx_thread_func, rdram, &gfx_thread_ready, window_handle };
+     events_context.sp.task_thread = std::thread{ task_thread_func, rdram, &task_thread_ready };
+ 
+diff --git a/ultramodern/src/input.cpp b/ultramodern/src/input.cpp
+index 23228c7..3606b14 100644
+--- a/ultramodern/src/input.cpp
++++ b/ultramodern/src/input.cpp
+@@ -1,5 +1,7 @@
+ #include <cassert>
+ #include <cmath>
++#include <cstdio>
++#include <cstdlib>
+ 
+ #include "ultramodern/input.hpp"
+ #include "ultramodern/ultra64.h"
+@@ -172,6 +174,18 @@ extern "C" void osContGetReadData(OSContPad *data) {
+             got_response = input_callbacks.get_input(controller, &buttons, &x, &y);
+         }
+ 
++        // Scratch probe (2026-08-15): prove real N64 input reaches the game.
++        // Fires only on change, so holding a key doesn't spam. START = 0x1000.
++        // Remove along with the matching sinpunishment.toml scratch hook.
++        if (controller == 0) {
++            static uint16_t last_buttons = 0;
++            if (buttons != last_buttons) {
++                last_buttons = buttons;
++                fprintf(stderr, "[input] runtime: buttons=0x%04X%s\n",
++                    buttons, (buttons & 0x1000) ? "   <<< START >>>" : "");
++            }
++        }
++
+         if (got_response) {
+             convert_to_n64_range(x, y, data[controller].stick_x, data[controller].stick_y);
+ 
+diff --git a/ultramodern/src/mesgqueue.cpp b/ultramodern/src/mesgqueue.cpp
+index 9944a02..a479cc6 100644
+--- a/ultramodern/src/mesgqueue.cpp
++++ b/ultramodern/src/mesgqueue.cpp
+@@ -1,5 +1,16 @@
++#include <atomic>
++#include <chrono>
++#include <map>
++#include <tuple>
++#include <set>
++#include <utility>
++#include <mutex>
++#include <execinfo.h>
+ #include <bitset>
+ #include <thread>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
+ 
+ #include "blockingconcurrentqueue.h"
+ 
+@@ -27,7 +38,51 @@ void ultramodern::set_message_queue_control(const ultramodern::MessageQueueContr
+     requeue_enabled.set(static_cast<int>(EventMessageSource::Dp), mqc.requeue_dp);
+ }
+ 
++// --- VI delivery probe (SNP_VI_PROBE=1, or =<addr> for another queue) -------
++//
++// DIAGNOSTIC (2026-08-17). At the attract freeze, thread 19 (display scheduler,
++// pri 120) is blocked on 0x800A326C awaiting VI retrace, while thread 3 drains
++// external messages ~1,420 times/second. If a retrace were delivered there,
++// do_send would queue thread 19 and check_running_queue WOULD hand off (120 >
++// 10). It never does. Three explanations; these counters separate them:
++//
++//   1. VI stops enqueueing        -> vi_enq delta goes to 0
++//   2. enqueued but sent elsewhere -> vi_enq keeps rising, send_* stay 0
++//      (vi_mq shows the address it actually went to)
++//   3. delivered, nobody waiting   -> send_ok rises but woke stays 0
++//      (and send_full rising means the queue is backing up unreceived)
++//
++// Counters only; all printing is done once/second by the heartbeat thread, so
++// the timeline keeps advancing after the game goes quiet.
++std::atomic<uint64_t> g_viprobe_vi_enq{ 0 };
++std::atomic<uint32_t> g_viprobe_vi_mq{ 0 };
++std::atomic<uint64_t> g_viprobe_send_ok{ 0 };
++std::atomic<uint64_t> g_viprobe_send_full{ 0 };
++std::atomic<uint64_t> g_viprobe_send_woke{ 0 };
++std::atomic<uint64_t> g_viprobe_recv_ok{ 0 };
++std::atomic<uint64_t> g_viprobe_recv_block{ 0 };
++std::atomic<int32_t>  g_viprobe_last_blocker{ -1 };
++
++// 0 when disabled. Function-local static => thread-safe one-time init.
++uint32_t viprobe_target_mq() {
++    static const uint32_t target = []() -> uint32_t {
++        const char* e = getenv("SNP_VI_PROBE");
++        if (e == nullptr) {
++            return 0;
++        }
++        if (strcmp(e, "1") == 0) {
++            return 0x800A326Cu; // the queue thread 19 is blocked on at the freeze
++        }
++        return (uint32_t)strtoul(e, nullptr, 0);
++    }();
++    return target;
++}
++
+ void ultramodern::enqueue_external_message_src(PTR(OSMesgQueue) mq, OSMesg msg, bool jam, EventMessageSource src) {
++    if (viprobe_target_mq() != 0 && src == EventMessageSource::Vi) {
++        g_viprobe_vi_enq.fetch_add(1, std::memory_order_relaxed);
++        g_viprobe_vi_mq.store((uint32_t)mq, std::memory_order_relaxed);
++    }
+     external_messages.enqueue({mq, msg, jam, requeue_enabled[static_cast<int>(src)]});
+ }
+ 
+@@ -36,6 +91,57 @@ void ultramodern::enqueue_external_message(PTR(OSMesgQueue) mq, OSMesg msg, bool
+ }
+ 
+ bool do_send(RDRAM_ARG PTR(OSMesgQueue) mq_, OSMesg msg, bool jam, bool block);
++void probe_backtrace(const char* tag);
++
++// --- Global message census (SNP_CENSUS=1) -----------------------------------
++//
++// DIAGNOSTIC (2026-08-17). Per-second rates for every (queue, thread, event)
++// triple, where event is S=send, R=receive, B=blocked-on-receive. Written
++// because chasing the graphics stall one queue at a time meant guessing
++// addresses out of the recompiled source, and every guess cost a run. This
++// answers "which flow stops at the freeze, and what is each thread waiting on
++// afterwards?" in ONE run with no address known in advance. Grep the output.
++//
++// KEYED ON THREAD ID, NOT A BACKTRACE, DELIBERATELY. The first version called
++// backtrace() here to name the sending game function. These paths run thousands
++// of times a second and backtrace() is slow enough that it changed the
++// cooperative scheduler's interleaving: the game died at t=8s with "No threads
++// left to run!", a failure that does not occur without the probe. A probe that
++// alters the outcome is measuring itself. Thread id is already in hand and
++// costs nothing. Once this narrows things to one queue, use the targeted
++// SNP_TASK_BT backtrace on that queue alone -- cheap, because it fires for one
++// queue only and at most once per second.
++void census_note(RDRAM_ARG PTR(OSMesgQueue) mq_, char kind) {
++    static const bool enabled = getenv("SNP_CENSUS") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    int32_t thread_id = ultramodern::is_game_thread()
++        ? TO_PTR(OSThread, ultramodern::this_thread())->id
++        : -1;
++
++    using Key = std::tuple<uint32_t, int32_t, char>;
++    static std::mutex census_mutex;
++    static std::map<Key, uint64_t> totals;
++    static std::map<Key, uint64_t> prev;
++    static int64_t last_report = -1;
++    static const auto census_start = std::chrono::steady_clock::now();
++
++    std::lock_guard lock{ census_mutex };
++    totals[Key{ (uint32_t)mq_, thread_id, kind }]++;
++    int64_t secs = std::chrono::duration_cast<std::chrono::seconds>(
++        std::chrono::steady_clock::now() - census_start).count();
++    if (secs != last_report) {
++        last_report = secs;
++        for (const auto& [key, count] : totals) {
++            fprintf(stderr, "[census] t=%llds mq=0x%x thread=%d ev=%c total=%llu +%llu\n",
++                (long long)secs, std::get<0>(key), std::get<1>(key), std::get<2>(key),
++                (unsigned long long)count,
++                (unsigned long long)(count - prev[key]));
++            prev[key] = count;
++        }
++    }
++}
+ 
+ void dequeue_external_messages(RDRAM_ARG1) {
+     QueuedMessage to_send;
+@@ -68,6 +174,11 @@ void ultramodern::wait_for_external_message_timed(RDRAM_ARG u32 millis) {
+ }
+ 
+ extern "C" void osCreateMesgQueue(RDRAM_ARG PTR(OSMesgQueue) mq_, PTR(OSMesg) msg, s32 count) {
++    if (getenv("SNP_TRACE") != nullptr) {
++        OSThread* creator = ultramodern::is_game_thread() ? TO_PTR(OSThread, ultramodern::this_thread()) : nullptr;
++        fprintf(stderr, "[probe] osCreateMesgQueue: mq=0x%x count=%d created by thread %d\n",
++            (unsigned)mq_, count, creator != nullptr ? creator->id : -1);
++    }
+     OSMesgQueue *mq = TO_PTR(OSMesgQueue, mq_);
+     mq->blocked_on_recv = NULLPTR;
+     mq->blocked_on_send = NULLPTR;
+@@ -91,9 +202,13 @@ s32 MQ_IS_FULL(OSMesgQueue* mq) {
+ 
+ bool do_send(RDRAM_ARG PTR(OSMesgQueue) mq_, OSMesg msg, bool jam, bool block) {
+     OSMesgQueue* mq = TO_PTR(OSMesgQueue, mq_);
++    const bool viprobe = viprobe_target_mq() != 0 && (uint32_t)mq_ == viprobe_target_mq();
+     if (!block) {
+         // If non-blocking, fail if the queue is full.
+         if (MQ_IS_FULL(mq)) {
++            if (viprobe) {
++                g_viprobe_send_full.fetch_add(1, std::memory_order_relaxed);
++            }
+             return false;
+         }
+     }
+@@ -119,17 +234,61 @@ bool do_send(RDRAM_ARG PTR(OSMesgQueue) mq_, OSMesg msg, bool jam, bool block) {
+         mq->validCount++;
+     }
+ 
++    if (getenv("SNP_TRACE") != nullptr) {
++        OSThread* sender = ultramodern::is_game_thread() ? TO_PTR(OSThread, ultramodern::this_thread()) : nullptr;
++        fprintf(stderr, "[probe] do_send: delivered to mq=0x%x (jam=%d) by thread %d\n",
++            (unsigned)mq_, (int)jam, sender != nullptr ? sender->id : -1);
++    }
++
++    census_note(PASS_RDRAM mq_, 'S');
++
++    if (viprobe) {
++        g_viprobe_send_ok.fetch_add(1, std::memory_order_relaxed);
++        // WHO sends to this queue? Print one full backtrace per DISTINCT
++        // sender, the first time each is seen. Rate is already covered by
++        // SNP_CENSUS; what this adds is the resolvable call chain naming the
++        // game function. Once per sender, so it stays cheap enough not to
++        // perturb the cooperative scheduler (see census_note's note above).
++        if (getenv("SNP_TASK_BT") != nullptr) {
++            void* frames[8];
++            int depth = backtrace(frames, 8);
++            // [0]=here, [1]=do_send, [2]=osSendMesg, [3]=osSendMesg_recomp,
++            // [4]=the game function that called it.
++            void* key = depth > 4 ? frames[4] : nullptr;
++
++            static std::mutex seen_mutex;
++            static std::set<void*> seen;
++            bool is_new;
++            {
++                std::lock_guard lock{ seen_mutex };
++                is_new = seen.insert(key).second;
++            }
++            if (is_new) {
++                char tag[80];
++                snprintf(tag, sizeof(tag), "send->0x%x", (unsigned)mq_);
++                probe_backtrace(tag);
++            }
++        }
++    }
++
+     // If any threads were blocked on receiving from this message queue, pop the first one and schedule it.
+     PTR(PTR(OSThread)) blocked_queue = GET_MEMBER(OSMesgQueue, mq_, blocked_on_recv);
+     if (!ultramodern::thread_queue_empty(PASS_RDRAM blocked_queue)) {
++        if (viprobe) {
++            g_viprobe_send_woke.fetch_add(1, std::memory_order_relaxed);
++        }
++        if (getenv("SNP_TRACE") != nullptr) {
++            fprintf(stderr, "[probe] do_send: mq=0x%x had a waiter, waking it\n", (unsigned)mq_);
++        }
+         ultramodern::schedule_running_thread(PASS_RDRAM ultramodern::thread_queue_pop(PASS_RDRAM blocked_queue));
+     }
+-    
++
+     return true;
+ }
+ 
+ bool do_recv(RDRAM_ARG PTR(OSMesgQueue) mq_, PTR(OSMesg) msg_, bool block) {
+     OSMesgQueue* mq = TO_PTR(OSMesgQueue, mq_);
++    const bool viprobe = viprobe_target_mq() != 0 && (uint32_t)mq_ == viprobe_target_mq();
+     if (!block) {
+         // If non-blocking, fail if the queue is empty
+         if (MQ_IS_EMPTY(mq)) {
+@@ -138,6 +297,14 @@ bool do_recv(RDRAM_ARG PTR(OSMesgQueue) mq_, PTR(OSMesg) msg_, bool block) {
+     } else {
+         // Otherwise, yield this thread in a loop until the queue is no longer full
+         while (MQ_IS_EMPTY(mq)) {
++            census_note(PASS_RDRAM mq_, 'B');
++            if (viprobe) {
++                g_viprobe_recv_block.fetch_add(1, std::memory_order_relaxed);
++                g_viprobe_last_blocker.store(TO_PTR(OSThread, ultramodern::this_thread())->id, std::memory_order_relaxed);
++            }
++            if (getenv("SNP_TRACE") != nullptr) {
++                fprintf(stderr, "[probe] do_recv: thread %d blocking on mq=0x%x\n", TO_PTR(OSThread, ultramodern::this_thread())->id, (unsigned)mq_);
++            }
+             debug_printf("[Message Queue] Thread %d is blocked on receive\n", TO_PTR(OSThread, ultramodern::this_thread())->id);
+             ultramodern::thread_queue_insert(PASS_RDRAM GET_MEMBER(OSMesgQueue, mq_, blocked_on_recv), ultramodern::this_thread());
+             ultramodern::run_next_thread_and_wait(PASS_RDRAM1);
+@@ -151,6 +318,11 @@ bool do_recv(RDRAM_ARG PTR(OSMesgQueue) mq_, PTR(OSMesg) msg_, bool block) {
+     mq->first = (mq->first + 1) % mq->msgCount;
+     mq->validCount--;
+ 
++    census_note(PASS_RDRAM mq_, 'R');
++    if (viprobe) {
++        g_viprobe_recv_ok.fetch_add(1, std::memory_order_relaxed);
++    }
++
+     // If any threads were blocked on sending to this message queue, pop the first one and schedule it.
+     PTR(PTR(OSThread)) blocked_queue = GET_MEMBER(OSMesgQueue, mq_, blocked_on_send);
+     if (!ultramodern::thread_queue_empty(PASS_RDRAM blocked_queue)) {
+diff --git a/ultramodern/src/scheduling.cpp b/ultramodern/src/scheduling.cpp
+index a22f747..1b5e0e2 100644
+--- a/ultramodern/src/scheduling.cpp
++++ b/ultramodern/src/scheduling.cpp
+@@ -1,3 +1,7 @@
++#include <atomic>
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
+ #include "ultramodern/ultramodern.hpp"
+ 
+ void ultramodern::schedule_running_thread(RDRAM_ARG PTR(OSThread) t_) {
+@@ -26,6 +30,27 @@ void ultramodern::check_running_queue(RDRAM_ARG1) {
+             // Swap to the higher priority thread.
+             swap_to_thread(PASS_RDRAM next_thread);
+         }
++        else if (getenv("SNP_SCHED_PROBE") != nullptr) {
++            // DIAGNOSTIC (2026-08-17): is the attract-mode freeze actually
++            // "runnable thread exists but is never given execution because it
++            // isn't strictly higher priority"? Rate-limited to once per second
++            // (with a running total) rather than first-N, because the question
++            // is specifically whether declines CONTINUE past the freeze at
++            // ~t=43s -- a first-N cap answers that with boot-time noise.
++            static std::atomic<uint64_t> declines{0};
++            static std::atomic<int64_t> last_print{-1};
++            static const auto probe_start = std::chrono::steady_clock::now();
++            uint64_t n = declines.fetch_add(1) + 1;
++            int64_t secs = std::chrono::duration_cast<std::chrono::seconds>(
++                std::chrono::steady_clock::now() - probe_start).count();
++            if (secs != last_print.load()) {
++                last_print.store(secs);
++                fprintf(stderr, "[sched] t=%llds declines=%llu latest: runnable thread %d (pri %d) <= self %d (pri %d)\n",
++                    (long long)secs, (unsigned long long)n,
++                    next_thread->id, next_thread->priority,
++                    self->id, self->priority);
++            }
++        }
+     }
+ }
+ 
+diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
+index 6e3ed18..b46033c 100644
+--- a/ultramodern/src/threads.cpp
++++ b/ultramodern/src/threads.cpp
+@@ -249,6 +249,18 @@ extern "C" void osStartThread(RDRAM_ARG PTR(OSThread) t_) {
+ }
+ 
+ extern "C" void osCreateThread(RDRAM_ARG PTR(OSThread) t_, OSId id, PTR(thread_func_t) entrypoint, PTR(void) arg, PTR(void) sp, OSPri pri) {
++    // DIAGNOSTIC (2026-08-17). Log every thread's stack top and priority.
++    // The attract-mode graphics stall was traced to 16 consecutive words being
++    // overwritten at 0x8007AEF8-0x8007AF34, which is a 0x40-byte stack frame
++    // (boot_func_800489C0 writes its matrix product to 0x0($sp)), landing on
++    // the callback table at 0x8007AF0C. That is a game-thread stack overflow,
++    // so the stack layout is the thing to check. One line per thread at
++    // creation; costs nothing.
++    if (getenv("SNP_STACKS") != nullptr) {
++        fprintf(stderr, "[stack] thread %d pri %d stack_top=0x%08X entry=0x%08X\n",
++            (int)id, (int)pri, (uint32_t)sp, (uint32_t)entrypoint);
++    }
++
+     debug_printf("[os] Create Thread %d\n", id);
+     OSThread *t = TO_PTR(OSThread, t_);
+     

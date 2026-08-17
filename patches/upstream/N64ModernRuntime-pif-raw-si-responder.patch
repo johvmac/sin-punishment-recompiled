@@ -1,0 +1,89 @@
+diff --git a/librecomp/src/cont.cpp b/librecomp/src/cont.cpp
+index 7ad6c21..d8a8764 100644
+--- a/librecomp/src/cont.cpp
++++ b/librecomp/src/cont.cpp
+@@ -12,6 +12,84 @@ extern "C" void recomp_measure_latency(uint8_t* rdram, recomp_context* ctx) {
+     ultramodern::measure_input_latency();
+ }
+ 
++// --- Minimal PIF/joybus responder for the game's own raw SI manager ---------
++//
++// Sin & Punishment does not only use libultra's osCont* API (which ultramodern
++// reimplements). It also runs its own SI manager that talks to the PIF
++// directly: boot_func_8003D5B0 builds a joybus request block in RDRAM, calls
++// __osSiRawStartDma(OS_WRITE, buf), waits on the OS_EVENT_SI queue, calls
++// __osSiRawStartDma(OS_READ, buf), waits again, then parses the response.
++//
++// __osSiRawStartDma (boot_func_80046FE0) is stubbed because the real one writes
++// raw SI registers (0xA4800000-0x18) and SIGBUSes under the recomp. Signalling
++// completion alone unblocks the wait, but performs no transfer -- so the
++// response bytes keep their 0xFF placeholders. The game reads type == 0xFFFF,
++// and boot_func_8003D750 maps (type & 0xC000) == 0xC000 to status 2, which
++// boot_func_8003CB14's state machine treats as fatal and halts forever in a
++// deliberate `b .` self-loop (the 2026-08-15 black screen).
++//
++// So on the READ leg we synthesise what the PIF would have returned.
++//
++// Request block layout is libultra's __OSContRequesFormat, byte-verified
++// against the game's own parse in boot_func_8003D5B0:
++//     +0 dummy(0xFF)  +1 txsize  +2 rxsize(top 2 bits = error flags)
++//     +3 cmd          +4 typeh   +5 typel   +6 status   +7 pad
++// The game reconstructs type as `typeh | (typel << 8)`, so a standard
++// controller (CONT_TYPE_NORMAL 0x0005) is the byte pair 0x05, 0x00 -- exactly
++// what real hardware puts on the wire.
++
++#define JOYBUS_CMD_REQUEST_STATUS 0x00
++#define JOYBUS_PIF_RAM_SIZE       64
++
++// Report "controller present, nothing in the accessory slot". Deliberately not
++// claiming a pak: doing so invites follow-up pak read/write joybus commands
++// that this responder does not emulate. Games handle an empty slot fine.
++#define JOYBUS_STATUS_NO_PAK      0x00
++
++static void pif_respond_request_status(uint8_t* rdram, PTR(void) buf) {
++    // Scan the PIF RAM block for the fixed 4-byte request signature and fill in
++    // its response bytes. A full joybus walker isn't warranted yet -- this is
++    // the only command the game's raw path actually issues, and anything else
++    // is reported below rather than silently mishandled.
++    bool handled = false;
++    for (int off = 0; off + 7 < JOYBUS_PIF_RAM_SIZE; off++) {
++        uint8_t dummy  = MEM_B(off + 0, (gpr)buf);
++        uint8_t txsize = MEM_B(off + 1, (gpr)buf);
++        uint8_t rxsize = MEM_B(off + 2, (gpr)buf);
++        uint8_t cmd    = MEM_B(off + 3, (gpr)buf);
++
++        if (dummy != 0xFF || txsize != 0x01 || rxsize != 0x03) {
++            continue;
++        }
++        if (cmd != JOYBUS_CMD_REQUEST_STATUS) {
++            continue;
++        }
++
++        MEM_B(off + 4, (gpr)buf) = 0x05;                 // typeh -> type 0x0005
++        MEM_B(off + 5, (gpr)buf) = 0x00;                 // typel
++        MEM_B(off + 6, (gpr)buf) = JOYBUS_STATUS_NO_PAK; // status
++        // rxsize's top 2 bits stay clear => err_no 0 (no CHNL_ERR_NORESP).
++        handled = true;
++        break;
++    }
++
++    if (!handled && getenv("SNP_TRACE") != nullptr) {
++        fprintf(stderr, "[pif] unhandled raw joybus block at 0x%08X\n", (unsigned)buf);
++    }
++}
++
++extern "C" void recomp_trigger_si_event(uint8_t* rdram, recomp_context* ctx) {
++    // __osSiRawStartDma(s32 direction, void* dramAddr): OS_READ == 0.
++    int32_t direction = (int32_t)ctx->r4;
++    PTR(void) dram_addr = (PTR(void))ctx->r5;
++
++    if (direction == 0 && dram_addr != NULLPTR) {
++        pif_respond_request_status(rdram, dram_addr);
++    }
++
++    ultramodern::send_si_message();
++}
++
+ extern "C" void osContInit_recomp(uint8_t* rdram, recomp_context* ctx) {
+     PTR(OSMesgQueue) mq = _arg<0, PTR(OSMesgQueue)>(rdram, ctx);
+     PTR(u8) bitpattern = _arg<1, PTR(u8)>(rdram, ctx);

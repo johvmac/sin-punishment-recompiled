@@ -212,7 +212,17 @@ Phase 3 playthrough:
 3. Check title and level audio for continuity, latency, and synchronization.
 4. Confirm settings persist across launches and survive runtime option changes.
 5. Exercise two-player assignment and a long session before calling the phase done.
-6. Only then move to widescreen, resolution, framerate, and release QA.
+6. Implement mouse input (`InputType::Mouse`), currently an unimplemented
+   `// TODO mouse support` in `recompinput`'s `input_state.cpp` — the enum value
+   and binding plumbing exist, but both `get_input_digital` and
+   `get_input_analog` return "not pressed" for it, so mouse buttons cannot be
+   bound at all today. Two things depend on this: left-click for Z (shot/sword),
+   and mouse-driven aiming. Aiming matters most — the keyboard defaults bind the
+   3D stick (照準の移動, reticle movement) to the arrow keys, which is
+   full-deflection-or-nothing and unsuited to a rail shooter whose entire game is
+   the reticle. `main.cpp` already has a mouse-delta-to-virtual-stick scaffold to
+   build on.
+7. Only then move to widescreen, resolution, framerate, and release QA.
 
 The roadmap above is the public summary; detailed acceptance evidence stays in the
 development workspace rather than this repository.

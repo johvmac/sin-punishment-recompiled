@@ -101,10 +101,33 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
 #ifndef __APPLE__
     window_flags |= SDL_WINDOW_VULKAN;
 #endif
+    // Window size. Defaults to 640x480 -- the N64's own hi-res output size --
+    // rather than 720p. RT64's internal render scale is a separate setting, so
+    // this only changes how much the host GPU has to composite/present, not
+    // what the game renders. Smaller is markedly cheaper for the automated
+    // capture loops (xwd + PNG decode + per-pixel scan in freeze_check.sh /
+    // boot_screen_check.sh all scale with window area), which is the dominant
+    // cost of a debugging iteration.
+    //
+    // Override with SP_WINDOW_SIZE=WxH (e.g. SP_WINDOW_SIZE=1280x720) when you
+    // actually want to look at it properly.
+    int window_w = 640;
+    int window_h = 480;
+    if (const char* size_env = getenv("SP_WINDOW_SIZE")) {
+        int w = 0, h = 0;
+        if (sscanf(size_env, "%dx%d", &w, &h) == 2 && w > 0 && h > 0) {
+            window_w = w;
+            window_h = h;
+        }
+        else {
+            fprintf(stderr, "Ignoring malformed SP_WINDOW_SIZE=\"%s\" (want WxH)\n", size_env);
+        }
+    }
+
     SDL_Window* sdl_window = SDL_CreateWindow(
         "Sin & Punishment: Recompiled",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        1280, 720,
+        window_w, window_h,
         window_flags
     );
     if (sdl_window == nullptr) {

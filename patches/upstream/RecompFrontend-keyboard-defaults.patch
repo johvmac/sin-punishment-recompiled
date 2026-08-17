@@ -1,0 +1,72 @@
+diff --git a/recompinput/src/input_mapping.cpp b/recompinput/src/input_mapping.cpp
+index bfcfef4..8356c08 100644
+--- a/recompinput/src/input_mapping.cpp
++++ b/recompinput/src/input_mapping.cpp
+@@ -5,26 +5,50 @@ namespace recompinput {
+ 
+     using default_game_input_device_mapping = std::unordered_map<GameInput, std::vector<InputField>>;
+ 
++    // Keyboard defaults follow Sin & Punishment's own "Left position"
++    // (レフトポジション: 移動重視 / movement-focused) scheme from the JP manual:
++    //   D-pad (十字キー) = player movement, double-tap = roll
++    //   3D stick         = aim reticle
++    //   Z trigger        = shot / sword
++    //   L trigger        = jump, double-tap = double jump
++    //   A                = change targeting type
++    //   Start            = start game / pause menu
++    //
++    // Mapped for a left-hand-on-WASD layout: movement under the fingers, aim on
++    // the arrow keys as a stopgap. Aiming with digital keys is full-deflection
++    // or nothing, which is twitchy for a rail shooter -- mouse aiming is the
++    // real answer and is on the roadmap (needs InputType::Mouse implementing,
++    // currently a TODO in input_state.cpp). Z is also intended to bind to mouse
++    // left-click once that lands.
+     default_game_input_device_mapping default_n64_mappings_keyboard = {
+-        { GameInput::A,              { InputField::keyboard(SDL_SCANCODE_SPACE) } },
+-        { GameInput::B,              { InputField::keyboard(SDL_SCANCODE_LSHIFT) } },
+-        { GameInput::L,              { InputField::keyboard(SDL_SCANCODE_E) } },
++        // --- movement: D-pad ---
++        { GameInput::DPAD_UP,        { InputField::keyboard(SDL_SCANCODE_W) } },
++        { GameInput::DPAD_LEFT,      { InputField::keyboard(SDL_SCANCODE_A) } },
++        { GameInput::DPAD_DOWN,      { InputField::keyboard(SDL_SCANCODE_S) } },
++        { GameInput::DPAD_RIGHT,     { InputField::keyboard(SDL_SCANCODE_D) } },
++
++        // --- aim: 3D stick (temporary digital binding) ---
++        { GameInput::Y_AXIS_POS,     { InputField::keyboard(SDL_SCANCODE_UP) } },
++        { GameInput::Y_AXIS_NEG,     { InputField::keyboard(SDL_SCANCODE_DOWN) } },
++        { GameInput::X_AXIS_NEG,     { InputField::keyboard(SDL_SCANCODE_LEFT) } },
++        { GameInput::X_AXIS_POS,     { InputField::keyboard(SDL_SCANCODE_RIGHT) } },
++
++        // --- actions ---
++        { GameInput::Z,              { InputField::keyboard(SDL_SCANCODE_RCTRL) } },  // shot / sword
++        { GameInput::L,              { InputField::keyboard(SDL_SCANCODE_SPACE) } },  // jump / double jump
++        { GameInput::A,              { InputField::keyboard(SDL_SCANCODE_E) } },      // change targeting type
++        { GameInput::START,          { InputField::keyboard(SDL_SCANCODE_RETURN) } },
++
++        // --- not used by the Left-position scheme; left on their prior keys ---
+         { GameInput::B,              { InputField::keyboard(SDL_SCANCODE_LSHIFT) } },
+         { GameInput::R,              { InputField::keyboard(SDL_SCANCODE_R) } },
+-        { GameInput::Z,              { InputField::keyboard(SDL_SCANCODE_Q) } },
+-        { GameInput::START,          { InputField::keyboard(SDL_SCANCODE_RETURN) } },
+-        { GameInput::C_LEFT,         { InputField::keyboard(SDL_SCANCODE_LEFT) } },
+-        { GameInput::C_RIGHT,        { InputField::keyboard(SDL_SCANCODE_RIGHT) } },
+-        { GameInput::C_UP,           { InputField::keyboard(SDL_SCANCODE_UP) } },
+-        { GameInput::C_DOWN,         { InputField::keyboard(SDL_SCANCODE_DOWN) } },
+-        { GameInput::DPAD_LEFT,      { InputField::keyboard(SDL_SCANCODE_J) } },
+-        { GameInput::DPAD_RIGHT,     { InputField::keyboard(SDL_SCANCODE_L) } },
+-        { GameInput::DPAD_UP,        { InputField::keyboard(SDL_SCANCODE_I) } },
+-        { GameInput::DPAD_DOWN,      { InputField::keyboard(SDL_SCANCODE_K) } },
+-        { GameInput::X_AXIS_NEG,     { InputField::keyboard(SDL_SCANCODE_A) } },
+-        { GameInput::X_AXIS_POS,     { InputField::keyboard(SDL_SCANCODE_D) } },
+-        { GameInput::Y_AXIS_POS,     { InputField::keyboard(SDL_SCANCODE_W) } },
+-        { GameInput::Y_AXIS_NEG,     { InputField::keyboard(SDL_SCANCODE_S) } },
++
++        // C-buttons moved off the arrow keys (now the stick) onto the block
++        // vacated by the D-pad.
++        { GameInput::C_UP,           { InputField::keyboard(SDL_SCANCODE_I) } },
++        { GameInput::C_LEFT,         { InputField::keyboard(SDL_SCANCODE_J) } },
++        { GameInput::C_DOWN,         { InputField::keyboard(SDL_SCANCODE_K) } },
++        { GameInput::C_RIGHT,        { InputField::keyboard(SDL_SCANCODE_L) } },
+ 
+         { GameInput::TOGGLE_MENU,    { InputField::keyboard(SDL_SCANCODE_ESCAPE) } },
+         { GameInput::ACCEPT_MENU,    { InputField::keyboard(SDL_SCANCODE_RETURN) } },

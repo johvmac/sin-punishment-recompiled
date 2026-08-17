@@ -16,6 +16,10 @@ out/
 *.o
 *.obj
 
+# Cached known-good binaries for fast before/after comparison (see
+# known_good_builds/ -- large, local-only, never useful to commit)
+known_good_builds/
+
 # Tool binaries (copied in by bootstrap.sh)
 /N64Recomp
 /RSPRecomp
@@ -25,6 +29,7 @@ out/
 .vscode/
 .idea/
 .DS_Store
+.claude/
 
 # Local state
 config/rt64.*.json

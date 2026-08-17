@@ -51,6 +51,29 @@ if ! grep -q "next_mode == nullptr" lib/N64ModernRuntime/ultramodern/src/events.
     git -C lib/N64ModernRuntime apply "$ROOT/patches/upstream/N64ModernRuntime-vi-null-mode-fix.patch"
 fi
 
+# Sin & Punishment doesn't only use libultra's osCont* API (which ultramodern
+# reimplements); it also runs its own SI manager that talks to the PIF directly.
+# __osSiRawStartDma is stubbed (the real one writes raw SI registers and
+# SIGBUSes under the recomp), so scripts/patch_si_stubs.py injects
+# recomp_trigger_si_event() to signal completion -- but signalling alone
+# performs no transfer, leaving the response bytes at their 0xFF placeholders.
+# The game reads type == 0xFFFF, maps it to status 2, and halts forever in a
+# deliberate `b .` self-loop. This synthesises the joybus reply the PIF would
+# have sent, and defines recomp_trigger_si_event itself.
+if ! grep -q "recomp_trigger_si_event" lib/N64ModernRuntime/librecomp/src/cont.cpp; then
+    echo "==> Patching N64ModernRuntime (raw-SI/PIF responder, patches/upstream/N64ModernRuntime-pif-raw-si-responder.patch)"
+    git -C lib/N64ModernRuntime apply "$ROOT/patches/upstream/N64ModernRuntime-pif-raw-si-responder.patch"
+fi
+
+# Keyboard defaults: upstream's generic N64 layout puts the 3D stick on WASD and
+# the D-pad on IJKL, which is backwards for this game -- Sin & Punishment's own
+# "Left position" scheme drives the player with the D-pad and aims the reticle
+# with the stick. Remapped so movement sits under WASD. See the patch header.
+if ! grep -q "Left position" lib/RecompFrontend/recompinput/src/input_mapping.cpp; then
+    echo "==> Patching RecompFrontend (keyboard defaults, patches/upstream/RecompFrontend-keyboard-defaults.patch)"
+    git -C lib/RecompFrontend apply "$ROOT/patches/upstream/RecompFrontend-keyboard-defaults.patch"
+fi
+
 echo "==> [3/4] Building N64Recomp + RSPRecomp"
 cmake -S external/N64Recomp -B build-n64recomp -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build-n64recomp --parallel

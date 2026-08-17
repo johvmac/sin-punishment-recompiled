@@ -43,4 +43,16 @@ with open(path, "w") as f:
     f.writelines(out)
 
 print(f"Stripped {removed} line(s) between the scratch-hooks markers.")
+
+# A hook written AFTER the end marker is invisible to this script and rides
+# into the commit. That is not hypothetical -- it happened on 2026-08-17 with
+# the boot_func_80033758 scene-walk probe. The markers are meant to be the last
+# thing in the file, so anything below them is an error worth failing on.
+tail = "".join(out[[i for i, l in enumerate(out) if l.rstrip("\n") == end][0] + 1:])
+if "[[patches.hook]]" in tail:
+    sys.exit(
+        f"ERROR: a [[patches.hook]] appears AFTER '{end}' in {path}.\n"
+        "       Scratch hooks must go BETWEEN the markers or they survive a commit.\n"
+        "       Move it up, or make it permanent by moving it above the BEGIN marker."
+    )
 PYEOF

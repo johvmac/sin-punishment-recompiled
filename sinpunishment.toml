@@ -153,12 +153,23 @@ stubs = [
     # receives controller commands on queue 0x800A5A4C via boot_func_8004EA68 and
     # dispatches them to PIF executors (boot_func_8004B610/B800) that call
     # boot_func_80046FE0 (__osSiRawStartDma) -> writes 0xA4800000-0x18 -> SIGBUS.
+    #
     # The runtime reimplemented osCont* path (osContStartReadData_recomp etc.)
     # handles real input, so the game's own SI stack is neutralized entirely.
     # Stubs are post-processed (scripts/patch_si_stubs.py) to set ctx->r2 = 0 so
     # callers see "success" (controller present, no pak) instead of garbage.
-    "boot_func_8004EA68",   # SI command sender (osSendMesg 0x800A5A4C + block on reply)
-    "boot_func_8004EAD0",   # SI manager thread entry (dispatch loop)
+    # 2026-08-15: boot_func_8004EA68 / boot_func_8004EAD0 UN-STUBBED. The
+    # dispatch loop itself touches no hardware (audited 2026-08-14: only
+    # osCreateMesgQueue/osSendMesg/osRecvMesg/osSetIntMask + LOOKUP_FUNC), and
+    # stubbing it is what severed the only path that ever reaches the
+    # controller-poll table at 0x80061F40. Two earlier un-stub attempts
+    # regressed to a black screen; live gdb showed why, and the cause was
+    # upstream of both: __osSiRawStartDma (below) is stubbed, so the
+    # SI-DMA-complete interrupt never fires and boot_func_8003D5B0's
+    # osRecvMesg blocks forever. That is now handled by scripts/patch_si_stubs.py
+    # injecting recomp_trigger_si_event() into the __osSiRawStartDma stub.
+    # "boot_func_8004EA68",   # SI command sender (osSendMesg 0x800A5A4C + block on reply)
+    # "boot_func_8004EAD0",   # SI manager thread entry (dispatch loop)
     "boot_func_8004B800",   # PIF command executor (would block on SI-DMA completion)
     "boot_func_8004B610",   # PIF command executor (alternate path)
     "boot_func_80046FE0",   # __osSiRawStartDma (raw SI reg writes: crash site)

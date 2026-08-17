@@ -24,6 +24,12 @@ python3 scripts/fix_dangling_gotos.py
 echo "==> Post-processing SI stubs (return 0)"
 python3 scripts/patch_si_stubs.py
 
+# Generated funcs don't include <stdio.h>; any scratch fprintf/stderr debug
+# hook fails to compile without this. Must run AFTER any pass that injects
+# debug prints into the generated sources.
+echo "==> Ensuring <stdio.h> in generated funcs that use it"
+python3 scripts/ensure_stdio.py
+
 # Strip malformed writes to $zero (cgenerator gap; always behavior-preserving
 # to remove since $zero writes are architectural no-ops on real hardware).
 echo "==> Post-processing zero-register writes"
