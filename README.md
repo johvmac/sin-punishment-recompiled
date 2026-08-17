@@ -189,7 +189,17 @@ These hooks are for development and validation; they are not release UX.
 
 ### Debugging harness
 
-`scripts/` carries the tooling built while chasing boot and attract-mode
+`scripts/decomp.sh <func>` decompiles a ROM function to readable C via
+[m2c](https://github.com/matt-kempster/m2c), reading splat's per-function
+assembly — no MIPS toolchain or ROM access needed. Prefer it over reading
+`RecompiledFuncs/`, which is a literal instruction-by-instruction
+transliteration. Point it at your own checkouts with `SNP_SPLAT_DIR`,
+`SNP_M2C_DIR` and `SNP_M2C_PYTHON`.
+
+`scripts/shrink_shot.py <png>` downscales a capture to the N64's own ~320x240
+before viewing.
+
+`scripts/` also carries the tooling built while chasing boot and attract-mode
 defects: `run_game.sh` (the supported way to launch a run with instrumentation),
 `freeze_check.sh` and `boot_screen_check.sh` (scripted capture and
 black-frame checks), `gdb_watch.sh` and `gdb_threads.sh` (watchpoints and
