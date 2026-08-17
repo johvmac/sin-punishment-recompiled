@@ -35,6 +35,8 @@ re-apply the VI null-mode patch (that one is a real fix and must stay).
 | `SNP_TRACE=1` | verbose per-event queue tracing. Loud enough to perturb timing — prefer `SNP_CENSUS`. |
 | `SNP_SCHED_PROBE=1` | counts scheduler handoffs declined on priority |
 | `SNP_STUB_PROBE=1` | first-call report per silently-stubbed function; paired with `scripts/probe_stubs.py` |
+| `SNP_OVL=1` | logs every `load_overlays()` call with its ROM range and how many sections matched. **A load into `0x800E4780` with 0 matches means that code overlay is not recompiled at all** — its functions never enter `func_map` and indirect calls into the window resolve to a stale overlay instead of failing loudly |
+| `SNP_PHASE=1` | frame-phase tallies (DRIVER/REWIND/APPEND/PASS/CALLBACK) per thread, reported at thread 3's rewinds. Needs the toml hooks in the journal |
 | `SNP_SORT=1` | draw-list sort diagnostics: the three bucket (pointer, count) pairs at `obj+0xF8/+0x100/+0x108`, and the pivot's three slots when any is NULL. **Needs the two toml hooks below.** |
 
 ### `SNP_WALK` also needs a recompile hook

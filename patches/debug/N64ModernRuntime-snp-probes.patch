@@ -677,6 +677,30 @@
      events_context.sp.gfx_thread = std::thread{ gfx_thread_func, rdram, &gfx_thread_ready, window_handle };
      events_context.sp.task_thread = std::thread{ task_thread_func, rdram, &task_thread_ready };
  
+diff --git a/librecomp/src/overlays.cpp b/librecomp/src/overlays.cpp
+index 8c8e5d1..0de988b 100644
+--- a/librecomp/src/overlays.cpp
++++ b/librecomp/src/overlays.cpp
+@@ -198,6 +198,19 @@ extern "C" void load_overlays(uint32_t rom, int32_t ram_addr, uint32_t size) {
+             return addr < entry.size + entry.rom_addr;
+         }
+     );
++    // DIAGNOSTIC (2026-08-18, SNP_OVL=1). A DMA whose ROM range matches no known
++    // section makes this a silent no-op -- which is exactly what would happen to
++    // a Yay0-compressed overlay (not symbolised yet, per sinpunishment.toml's
++    // boot_func_8003A514 note). The overlay's functions then never enter
++    // func_map, so an indirect call into the shared 0x800E4780 window resolves
++    // to whatever overlay is still mapped there rather than failing loudly.
++    if (getenv("SNP_OVL") != nullptr) {
++        int matched = (int)std::distance(lower, upper);
++        fprintf(stderr, "[ovl] rom=0x%08X ram=0x%08X size=0x%X -> %d section(s)%s\n",
++            rom, (uint32_t)ram_addr, size, matched,
++            matched == 0 ? "   <<< NO MATCH" : "");
++    }
++
+     // Load the overlays that were found
+     for (auto it = lower; it != upper; ++it) {
+         load_overlay(std::distance(&sections_info.code_sections[0], it), it->rom_addr - rom + ram_addr);
 diff --git a/ultramodern/src/input.cpp b/ultramodern/src/input.cpp
 index 23228c7..3606b14 100644
 --- a/ultramodern/src/input.cpp
