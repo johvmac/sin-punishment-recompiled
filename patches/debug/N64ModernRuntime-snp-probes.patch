@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,313 @@
+@@ -567,15 +571,365 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -228,6 +228,13 @@
 +    uint32_t max_list = 0;
 +    uint32_t bad_ptr = 0;
 +    uint64_t calls = 0;
++    // Shadow stack of the descent in progress: (caller sp, node).
++    std::vector<std::pair<uint32_t, uint32_t>> path;
++    uint32_t max_path = 0;       // deepest recursion level reached
++    uint32_t deepest_node = 0;   // the node sitting at that depth
++    uint64_t cycles = 0;         // descents that revisited a node
++    uint32_t cycle_node = 0;     // first node caught repeating
++    uint32_t cycle_depth = 0;    // level it repeated at
 +};
 +static std::mutex walk_mutex;
 +static std::map<int32_t, WalkStat> walk_stats;
@@ -282,6 +289,44 @@
 +    if (list_len > s.max_list) s.max_list = list_len;
 +    if (bad) s.bad_ptr++;
 +
++    // CYCLE vs GROWTH (2026-08-18). Depth climbs by exactly 720 bytes/second
++    // (9 frames of 0x50) from t=40s onward, forever. Two shapes produce that:
++    //
++    //   cycle  -- the graph gained an edge back into itself, so one descent
++    //             revisits the same node over and over
++    //   growth -- something appends a fresh node per frame and never removes
++    //             it, so each descent is legitimately one level deeper
++    //
++    // They call for completely different fixes, and the counters above cannot
++    // tell them apart. This maintains a shadow stack of the current descent:
++    // the walker recurses, so sp falls on the way down and rises on return.
++    // Entries whose recorded sp is above the current one have returned and are
++    // popped. If the incoming node is still somewhere in what remains, this
++    // descent has revisited it -- a cycle.
++    // <=, not <. The probe records the CALLER's sp, so every sibling at a given
++    // level records the identical value; a strict < leaves the previous sibling
++    // on the path forever, inflating the depth and reporting phantom cycles.
++    // Caught by the free positive control this run already contains: t=7-39s is
++    // a known-healthy walk pinned at 640 bytes (8 levels), and the first version
++    // claimed 37 levels and 23 cycles there. A parent is never popped by its own
++    // child's arrival, because the child's recorded sp is strictly smaller.
++    while (!s.path.empty() && s.path.back().first <= sp) {
++        s.path.pop_back();
++    }
++    for (const auto& [frame_sp, frame_node] : s.path) {
++        if (frame_node == node) {
++            if (s.cycles++ == 0) {
++                s.cycle_node = node;
++                s.cycle_depth = (uint32_t)s.path.size();
++            }
++            break;
++        }
++    }
++    s.path.push_back({ sp, node });
++    if (s.path.size() > s.max_path) {
++        s.max_path = (uint32_t)s.path.size();
++        s.deepest_node = node;
++    }
 +}
 +
 +// Reported once a second by the heartbeat thread rather than from the probe
@@ -294,9 +339,16 @@
 +    }
 +    std::lock_guard lock{ walk_mutex };
 +    for (const auto& [id, v] : walk_stats) {
-+        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u longest_list=%u bad=%u\n",
++        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u longest_list=%u bad=%u "
++                        "levels=%u deepest_node=0x%08X cycles=%llu%s\n",
 +            secs, id, (unsigned long long)v.calls,
-+            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.max_list, v.bad_ptr);
++            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.max_list, v.bad_ptr,
++            v.max_path, v.deepest_node, (unsigned long long)v.cycles,
++            v.cycles ? "   <<< CYCLE" : "");
++        if (v.cycles != 0) {
++            fprintf(stderr, "[walk]   first cycle: node 0x%08X revisited at level %u\n",
++                v.cycle_node, v.cycle_depth);
++        }
 +    }
 +}
 +
@@ -326,7 +378,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +887,20 @@
+@@ -585,9 +939,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {

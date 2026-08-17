@@ -27,7 +27,7 @@ re-apply the VI null-mode patch (that one is a real fix and must stay).
 | `SNP_HEARTBEAT=1` | gfx + non-gfx RSP task counts per second — the trustworthy liveness signal. Also drives the once-per-second reporting for `SNP_WATCH`, `SNP_WALK` and `SNP_VI_PROBE`, so **those need it too**. |
 | `SNP_CENSUS=1` | per-second send/recv/block rates for every queue, keyed by thread |
 | `SNP_WATCH=0xA[,0xB][,0xA+0xLEN]` | sample game memory once per second; the `BASE+LEN` form watches a word range and reports only what changed |
-| `SNP_WALK=1` | per-thread scene-walk depth, stack low-water mark, child-list length. **Needs the toml hook below.** |
+| `SNP_WALK=1` | per-thread scene-walk depth, stack low-water mark, child-list length, recursion levels, and cycle detection (a node that is its own ancestor). **Needs the toml hook below.** |
 | `SNP_STACKS=1` | every thread's stack top, priority and entry point, logged at `osCreateThread` |
 | `SNP_STACK_RELOC=<id>[,<id>]` | hands the named threads a 256KB stack in unused high RDRAM instead of the game's. **Hides a defect rather than fixing it** — see below. |
 | `SNP_TASK_BT=1` | one resolvable backtrace per distinct sender to a queue (resolve with `scripts/resolve_bt.sh`) |
@@ -77,6 +77,20 @@ game allocates itself was observed at `0x80376160`, and a 55s run watching
 `0x80400000` / `0x80600000` / `0x80700000` / `0x807F0000` recorded no changes in
 any of them. **Re-run that survey before trusting a result from this switch in a
 later game state** — a level load may well reach higher than the attract loop.
+
+### Reading `SNP_WALK`'s cycle output
+
+`levels` is the recursion depth from an explicit shadow stack; `cycles` counts
+descents in which a node turned up as its own ancestor. Run it **with**
+`SNP_STACK_RELOC=4` — on the game's own 8KB stack the walk is truncated by the
+crash it causes, so the depth it actually wants is invisible.
+
+Sanity-check any run against its own free positive control: the attract loop is
+healthy until t≈40s and must read `levels=9 cycles=0` there, matching the
+independent `depth=640` from the sp low-water mark. A first version of the
+detector reported 37 levels and 23 cycles in that window — the probe records the
+*caller's* sp, so siblings share a value and a strict `<` pop never retired
+them. If the healthy window looks unhealthy, the instrument is broken.
 
 ## Probe discipline
 
