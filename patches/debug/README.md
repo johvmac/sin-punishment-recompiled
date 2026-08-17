@@ -35,6 +35,7 @@ re-apply the VI null-mode patch (that one is a real fix and must stay).
 | `SNP_TRACE=1` | verbose per-event queue tracing. Loud enough to perturb timing — prefer `SNP_CENSUS`. |
 | `SNP_SCHED_PROBE=1` | counts scheduler handoffs declined on priority |
 | `SNP_STUB_PROBE=1` | first-call report per silently-stubbed function; paired with `scripts/probe_stubs.py` |
+| `SNP_SORT=1` | draw-list sort diagnostics: the three bucket (pointer, count) pairs at `obj+0xF8/+0x100/+0x108`, and the pivot's three slots when any is NULL. **Needs the two toml hooks below.** |
 
 ### `SNP_WALK` also needs a recompile hook
 
@@ -57,6 +58,25 @@ Put it **inside** the `BEGIN/END SCRATCH DEBUG HOOKS` markers.
 `scripts/strip_scratch_hooks.sh` only removes what is between them, and a hook
 placed after `END` survives into a commit — which is exactly what happened on
 2026-08-17.
+
+### `SNP_SORT` also needs recompile hooks
+
+```toml
+[[patches.hook]]
+func = "boot_func_8002AA3C"
+before_vram = 0x8002AA3C
+text = "{ extern void recomp_buckets_probe(unsigned char*, unsigned int); recomp_buckets_probe(rdram, (unsigned int)ctx->r4); }"
+
+[[patches.hook]]
+func = "boot_func_8003860C"
+before_vram = 0x8003860C
+text = "{ extern void recomp_sort_probe(unsigned char*, unsigned int, unsigned int, unsigned int); recomp_sort_probe(rdram, (unsigned int)ctx->r4, (unsigned int)ctx->r5, (unsigned int)ctx->r6); }"
+```
+
+`boot_func_8002AA3C` sorts three parallel draw lists; `boot_func_8003860C` is
+the median-of-three pivot that dereferences three slots as float keys with no
+null check. Reproduce the fault with START at t=20s (`SP_INPUT_SCRIPT`), which
+needs no stack relocation and so runs in 25s.
 
 ### `SNP_STACK_RELOC` is a diagnostic, not a fix
 

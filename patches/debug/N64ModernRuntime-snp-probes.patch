@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,408 @@
+@@ -567,15 +571,515 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -364,6 +364,113 @@
 +// itself: the walk runs in bursts, so in-probe reporting went silent for whole
 +// stretches -- including, in the first run, the seven seconds leading up to the
 +// freeze, which is precisely the interval of interest.
++// --- Sort-pivot probe (SNP_SORT=1) ------------------------------------------
++//
++// DIAGNOSTIC (2026-08-18). boot_func_8003860C SIGSEGVs the instant START is
++// pressed. Its opening instructions are a median-of-three pivot selection:
++//
++//     a0 = array of pointers, a1 = i, a2 = j, mid = (i + j) >> 1
++//     f4 = *(float*)array[i]; f2 = *(float*)array[j]; f0 = *(float*)array[mid]
++//     c.lt.s f4, f2 ...
++//
++// i.e. a quicksort ordering objects by a float key. The fault is a NULL
++// dereference (measured: index register 0x80000000, which is what MEM_W
++// produces from a game pointer of 0x00000000), so one of those three slots is
++// null. This reports WHICH, plus the surrounding slots, so the bad entry can be
++// traced back to whatever failed to populate it.
++//
++// Hooked at function entry, so a0/a1/a2 are still the incoming arguments.
++extern "C" void recomp_sort_probe(uint8_t* rdram, uint32_t array, uint32_t i, uint32_t j) {
++    static const bool enabled = getenv("SNP_SORT") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    auto valid = [](uint32_t a) { return a >= 0x80000000u && a < 0x80800000u; };
++    auto slot = [&](uint32_t k) -> uint32_t {
++        uint32_t at = array + k * 4;
++        if (!valid(at)) {
++            return 0xDEADDEADu;
++        }
++        return *(uint32_t*)(rdram + (at - 0x80000000u));
++    };
++
++    static std::atomic<uint64_t> calls{ 0 };
++    uint64_t n = calls.fetch_add(1) + 1;
++    uint32_t mid = (i + j) >> 1;
++
++    if (!valid(array)) {
++        fprintf(stderr, "[sort] call %llu: ARRAY ITSELF INVALID 0x%08X (i=%u j=%u)\n",
++            (unsigned long long)n, array, i, j);
++        return;
++    }
++
++    uint32_t pi = slot(i), pj = slot(j), pm = slot(mid);
++    bool bad = !valid(pi) || !valid(pj) || !valid(pm);
++
++    // First few calls unconditionally: a positive control proving the probe
++    // fires and reads sane values on the healthy path, so a later "bad" report
++    // cannot be confused with a probe that was simply never right.
++    if (n <= 3 || bad) {
++        fprintf(stderr, "[sort] call %llu: array=0x%08X i=%u j=%u mid=%u -> "
++                        "[i]=0x%08X [j]=0x%08X [mid]=0x%08X%s\n",
++            (unsigned long long)n, array, i, j, mid, pi, pj, pm,
++            bad ? "   <<< NULL/INVALID SLOT" : "");
++    }
++    if (bad) {
++        // Dump the whole span so the shape of the damage is visible: one bad
++        // slot in a good array reads very differently from a half-filled one.
++        uint32_t lo = i < j ? i : j, hi = i < j ? j : i;
++        fprintf(stderr, "[sort]   span %u..%u:", lo, hi);
++        for (uint32_t k = lo; k <= hi && k - lo < 24; k++) {
++            fprintf(stderr, " [%u]=0x%08X", k, slot(k));
++        }
++        fprintf(stderr, "\n");
++    }
++}
++
++// Companion to recomp_sort_probe: boot_func_8002AA3C sorts THREE parallel draw
++// lists out of one struct -- (ptr,count) pairs at +0xF8/+0xFC, +0x100/+0x104,
++// +0x108/+0x10C -- and the arrays are contiguous slices of a single buffer.
++// This names which bucket carries the count whose array was never filled.
++extern "C" void recomp_buckets_probe(uint8_t* rdram, uint32_t obj) {
++    static const bool enabled = getenv("SNP_SORT") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    auto valid = [](uint32_t a) { return a >= 0x80000000u && a < 0x80800000u; };
++    if (!valid(obj)) {
++        return;
++    }
++    auto rd = [&](uint32_t off) {
++        return *(uint32_t*)(rdram + ((obj + off) - 0x80000000u));
++    };
++    auto first = [&](uint32_t arr) -> uint32_t {
++        if (!valid(arr)) return 0xDEADDEADu;
++        return *(uint32_t*)(rdram + (arr - 0x80000000u));
++    };
++
++    static std::atomic<uint64_t> calls{ 0 };
++    static std::atomic<uint32_t> last_sig{ 0 };
++    uint64_t n = calls.fetch_add(1) + 1;
++
++    uint32_t p0 = rd(0xF8), c0 = rd(0xFC);
++    uint32_t p1 = rd(0x100), c1 = rd(0x104);
++    uint32_t p2 = rd(0x108), c2 = rd(0x10C);
++
++    // Print the first few (positive control) and then only when the shape
++    // changes, so the transition into the bad state is visible without spam.
++    uint32_t sig = c0 ^ (c1 << 8) ^ (c2 << 16);
++    bool changed = last_sig.exchange(sig) != sig;
++    if (n <= 2 || changed) {
++        fprintf(stderr, "[buckets] call %llu obj=0x%08X | "
++                        "b0 ptr=0x%08X n=%u [0]=0x%08X | "
++                        "b1 ptr=0x%08X n=%u [0]=0x%08X | "
++                        "b2 ptr=0x%08X n=%u [0]=0x%08X\n",
++            (unsigned long long)n, obj,
++            p0, c0, first(p0), p1, c1, first(p1), p2, c2, first(p2));
++    }
++}
++
 +void recomp_walk_report(long long secs) {
 +    if (getenv("SNP_WALK") == nullptr) {
 +        return;
@@ -421,7 +528,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +982,20 @@
+@@ -585,9 +1089,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
