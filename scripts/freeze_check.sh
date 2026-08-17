@@ -53,13 +53,23 @@ echo "window $WIN_ID"
 # boot_screen_check.sh, confirmed reproducible 2026-08-14). Getting this wrong
 # here produced a full run of solid-black "frozen" frames that were an artifact
 # of this script, not the build.
-# Interpreter that can import python-xlib, for minimize_window.py. Override with
-# SNP_PYXLIB=/path/to/python3; otherwise the system python3 is used if it has
-# Xlib. If neither works, PYXLIB stays empty and the minimize step below is
-# skipped entirely -- the run still works, the window just stays on screen.
+# Interpreter that can import python-xlib, for minimize_window.py. Probed, not
+# hardcoded: SNP_PYXLIB wins if set, then the system python3, then any venv
+# listed below. Kept as a search rather than one absolute path so the repo
+# carries no machine-specific path, and as a search rather than a single
+# fallback because on at least one dev machine python-xlib exists ONLY inside a
+# venv -- assuming the system python3 has it silently disabled minimizing.
+# If none work PYXLIB stays empty and the minimize step is skipped: the run is
+# unaffected, the window just stays on screen.
 PYXLIB="${SNP_PYXLIB:-}"
-if [ -z "$PYXLIB" ] && python3 -c "import Xlib" >/dev/null 2>&1; then
-    PYXLIB=$(command -v python3)
+if [ -z "$PYXLIB" ]; then
+    for _cand in "$(command -v python3)" \
+                 "$HOME/Documents/reference-recomps/decomp-venv/bin/python3"; do
+        if [ -x "$_cand" ] && "$_cand" -c "import Xlib" >/dev/null 2>&1; then
+            PYXLIB="$_cand"
+            break
+        fi
+    done
 fi
 if [ -n "$PYXLIB" ] && [ -x "$PYXLIB" ] && [ "${KEEP_VISIBLE:-0}" != "1" ]; then
     for _ in $(seq 1 80); do
