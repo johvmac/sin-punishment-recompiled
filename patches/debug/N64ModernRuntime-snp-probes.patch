@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,620 @@
+@@ -567,15 +571,635 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -520,12 +520,27 @@
 +        : -1;
 +
 +    phase_by_thread[std::string(tag) + ":t" + std::to_string(tid)]++;
++    // Count every phase since this thread's last REWIND, not just APPEND, so
++    // one line can say whether the populate passes ran AND whether they
++    // actually invoked any callbacks. Reported only for thread 3, which rewinds
++    // ~4 times per run -- thread 4 does it 550 times and needs no transcript.
++    static std::map<int32_t, std::map<std::string, uint64_t>> since_rewind;
++    since_rewind[tid][tag]++;
 +    uint64_t& appends_this_frame = appends_by_thread[tid];
 +    std::vector<uint64_t>& recent = recent_by_thread[tid];
 +    if (strcmp(tag, "APPEND") == 0) {
 +        appends_this_frame++;
 +    }
 +    else if (strcmp(tag, "REWIND") == 0) {
++        if (tid == 3) {
++            fprintf(stderr, "[phase] thread3 REWIND #%llu since last:",
++                (unsigned long long)phase_by_thread["REWIND:t3"]);
++            for (const auto& [k, n] : since_rewind[tid]) {
++                fprintf(stderr, " %s=%llu", k.c_str(), (unsigned long long)n);
++            }
++            fprintf(stderr, "\n");
++        }
++        since_rewind[tid].clear();
 +        if (appends_this_frame == 0) {
 +            fprintf(stderr, "[phase] !!! REWIND on thread %d with ZERO APPENDS this frame"
 +                            " (prev frames:", tid);
@@ -633,7 +648,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +1194,20 @@
+@@ -585,9 +1209,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
