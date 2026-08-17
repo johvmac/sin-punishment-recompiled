@@ -27,7 +27,7 @@ re-apply the VI null-mode patch (that one is a real fix and must stay).
 | `SNP_HEARTBEAT=1` | gfx + non-gfx RSP task counts per second — the trustworthy liveness signal. Also drives the once-per-second reporting for `SNP_WATCH`, `SNP_WALK` and `SNP_VI_PROBE`, so **those need it too**. |
 | `SNP_CENSUS=1` | per-second send/recv/block rates for every queue, keyed by thread |
 | `SNP_WATCH=0xA[,0xB][,0xA+0xLEN]` | sample game memory once per second; the `BASE+LEN` form watches a word range and reports only what changed |
-| `SNP_WALK=1` | per-thread scene-walk depth, stack low-water mark, child-list length, recursion levels, and cycle detection (a node that is its own ancestor). **Needs the toml hook below.** |
+| `SNP_WALK=1` | per-thread scene-walk depth, stack low-water mark, dispatched node types, recursion levels, and cycle detection (a node that is its own ancestor), with the offending edge captured. **Needs the toml hook below.** |
 | `SNP_STACKS=1` | every thread's stack top, priority and entry point, logged at `osCreateThread` |
 | `SNP_STACK_RELOC=<id>[,<id>]` | hands the named threads a 256KB stack in unused high RDRAM instead of the game's. **Hides a defect rather than fixing it** — see below. |
 | `SNP_TASK_BT=1` | one resolvable backtrace per distinct sender to a queue (resolve with `scripts/resolve_bt.sh`) |
@@ -91,6 +91,21 @@ independent `depth=640` from the sp low-water mark. A first version of the
 detector reported 37 levels and 23 cycles in that window — the probe records the
 *caller's* sp, so siblings share a value and a strict `<` pop never retired
 them. If the healthy window looks unhealthy, the instrument is broken.
+
+### A retired counter, and why it is called out here
+
+`SNP_WALK` used to report `longest_list` / `bad`, walking a `0xFF`-terminated
+byte list at `node+8`. **That structure does not exist in this game.** The
+children are a counted array reached through the walker's third argument
+(`(a2)+0` -> object, `+0` = entry array, `+4` = count, `0x10`-byte entries,
+dispatched via a vtable at `0x80059748` indexed by the type halfword at
+entry+0). The counter was reading unrelated memory and reporting healthy-looking
+values, and a handoff used those values to rule out malformed child lists.
+
+Kept in this README rather than quietly deleted, because the failure mode is the
+point: **a probe that reads the wrong structure does not look broken.** It looks
+like evidence. Before trusting a counter that reads game memory, check its
+offsets against the generated source in `RecompiledFuncs/` — that read is free.
 
 ## Probe discipline
 

@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,365 @@
+@@ -567,15 +571,408 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -225,8 +225,7 @@
 +struct WalkStat {
 +    uint32_t min_sp = 0xFFFFFFFFu;
 +    uint32_t max_sp = 0;
-+    uint32_t max_list = 0;
-+    uint32_t bad_ptr = 0;
++    std::set<uint32_t> types;    // distinct node types dispatched on
 +    uint64_t calls = 0;
 +    // Shadow stack of the descent in progress: (caller sp, node).
 +    std::vector<std::pair<uint32_t, uint32_t>> path;
@@ -235,6 +234,11 @@
 +    uint64_t cycles = 0;         // descents that revisited a node
 +    uint32_t cycle_node = 0;     // first node caught repeating
 +    uint32_t cycle_depth = 0;    // level it repeated at
++    uint32_t cycle_parent = 0;   // node whose child list holds the bad edge
++    uint32_t cycle_list = 0;     // that child list's address (watchpoint target)
++    uint8_t  cycle_list_bytes[8] = {};
++    uint64_t cycle_gfx = 0;      // gfx task count when it first appeared
++    std::vector<uint32_t> cycle_path;
 +};
 +static std::mutex walk_mutex;
 +static std::map<int32_t, WalkStat> walk_stats;
@@ -267,18 +271,23 @@
 +        : -1;
 +
 +    auto valid = [](uint32_t a) { return a >= 0x80000000u && a < 0x80800000u; };
-+    uint32_t list_len = 0;
-+    bool bad = false;
++
++    // The node's TYPE, at offset 0 as a halfword. boot_func_80033758 dispatches
++    // on it: `lhu $v0, 0($s3); sll $v1, $v0, 2; lw $v0, -0x68B8($v0=0x80060000)`
++    // -> a vtable at 0x80059748 indexed by type*4. A type of 0xFFFF indexes
++    // 0x80059748 + 0x3FFC0 = 0x80099744, far outside it.
++    //
++    // NOTE, 2026-08-18: this replaced a `list_len`/`bad` pair that walked a
++    // 0xFF-terminated BYTE list at node+8. **That structure does not exist.**
++    // The generated source shows the children are a counted array reached
++    // through the THIRD argument: (a2)+0 -> object, +0 = entry array, +4 =
++    // count, entries 0x10 bytes. The old probe was reading unrelated memory,
++    // and its reassuring `longest_list=4 bad=0` is what the 2026-08-17 handoff
++    // used to rule out "malformed child lists". That rule-out is VOID.
++    uint32_t type = 0xFFFFFFFFu;
 +    if (valid(node)) {
-+        uint32_t list = *(uint32_t*)(rdram + ((node + 8) - 0x80000000u));
-+        if (list != 0 && !valid(list)) {
-+            bad = true;
-+        }
-+        else if (list != 0) {
-+            while (list_len < 4096 && rdram[((list + list_len) ^ 3) - 0x80000000u] != 0xFF) {
-+                list_len++;
-+            }
-+        }
++        uint32_t w = *(uint32_t*)(rdram + (node - 0x80000000u));
++        type = w >> 16;
 +    }
 +
 +    std::lock_guard lock{ walk_mutex };
@@ -286,8 +295,7 @@
 +    s.calls++;
 +    if (sp < s.min_sp) s.min_sp = sp;
 +    if (sp > s.max_sp) s.max_sp = sp;
-+    if (list_len > s.max_list) s.max_list = list_len;
-+    if (bad) s.bad_ptr++;
++    if (type != 0xFFFFFFFFu) s.types.insert(type);
 +
 +    // CYCLE vs GROWTH (2026-08-18). Depth climbs by exactly 720 bytes/second
 +    // (9 frames of 0x50) from t=40s onward, forever. Two shapes produce that:
@@ -318,6 +326,29 @@
 +            if (s.cycles++ == 0) {
 +                s.cycle_node = node;
 +                s.cycle_depth = (uint32_t)s.path.size();
++                // Snapshot the offending EDGE, not just the fact of a cycle.
++                // The parent is the frame we were called from; its child list
++                // is the byte array that gained an index pointing back at an
++                // ancestor. Capturing its address and contents here is what
++                // makes the next step a targeted watchpoint instead of a
++                // search -- and the list is a table of indices, so watching
++                // the node+8 POINTER would miss the write entirely.
++                s.cycle_parent = s.path.back().second;
++                s.cycle_gfx = g_gfx_task_count.load();
++                if (valid(s.cycle_parent)) {
++                    s.cycle_list = *(uint32_t*)(rdram + ((s.cycle_parent + 8) - 0x80000000u));
++                    if (valid(s.cycle_list)) {
++                        for (uint32_t i = 0; i < 8; i++) {
++                            s.cycle_list_bytes[i] =
++                                rdram[((s.cycle_list + i) ^ 3) - 0x80000000u];
++                        }
++                    }
++                }
++                for (const auto& [asp, anode] : s.path) {
++                    if (s.cycle_path.size() < 12) {
++                        s.cycle_path.push_back(anode);
++                    }
++                }
 +            }
 +            break;
 +        }
@@ -339,15 +370,27 @@
 +    }
 +    std::lock_guard lock{ walk_mutex };
 +    for (const auto& [id, v] : walk_stats) {
-+        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u longest_list=%u bad=%u "
++        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u types=%zu maxtype=0x%X "
 +                        "levels=%u deepest_node=0x%08X cycles=%llu%s\n",
 +            secs, id, (unsigned long long)v.calls,
-+            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.max_list, v.bad_ptr,
++            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.types.size(),
++            v.types.empty() ? 0u : *v.types.rbegin(),
 +            v.max_path, v.deepest_node, (unsigned long long)v.cycles,
 +            v.cycles ? "   <<< CYCLE" : "");
 +        if (v.cycles != 0) {
-+            fprintf(stderr, "[walk]   first cycle: node 0x%08X revisited at level %u\n",
-+                v.cycle_node, v.cycle_depth);
++            fprintf(stderr, "[walk]   first cycle: node 0x%08X revisited at level %u (gfx task %llu)\n",
++                v.cycle_node, v.cycle_depth, (unsigned long long)v.cycle_gfx);
++            fprintf(stderr, "[walk]   bad edge: parent 0x%08X -> child list 0x%08X ="
++                            " %02X %02X %02X %02X %02X %02X %02X %02X\n",
++                v.cycle_parent, v.cycle_list,
++                v.cycle_list_bytes[0], v.cycle_list_bytes[1], v.cycle_list_bytes[2],
++                v.cycle_list_bytes[3], v.cycle_list_bytes[4], v.cycle_list_bytes[5],
++                v.cycle_list_bytes[6], v.cycle_list_bytes[7]);
++            fprintf(stderr, "[walk]   ancestor path:");
++            for (uint32_t n : v.cycle_path) {
++                fprintf(stderr, " 0x%08X", n);
++            }
++            fprintf(stderr, "\n");
 +        }
 +    }
 +}
@@ -378,7 +421,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +939,20 @@
+@@ -585,9 +982,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
