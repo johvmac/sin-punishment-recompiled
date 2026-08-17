@@ -36,7 +36,7 @@ and symbol map into a native C++ executable.
 | Area | Current state |
 | --- | --- |
 | Toolchain | N64Recomp and RSPRecomp build locally; CMake/Ninja tree is wired |
-| Reverse engineering | Symbol sections and custom audio microcode have been mapped |
+| Reverse engineering | Symbol sections and custom audio microcode mapped for the uncompressed ROM; Yay0-compressed overlays still outstanding |
 | Runtime | Native window, RT64 presentation, audio callbacks, input callbacks, and overlays are integrated |
 | Visual milestone | Reached: a live, correctly-rendering title screen, reproduced on the current build (2026-08-13) |
 | Playability | Phase 3 validation is in progress; input handling past the title screen not yet verified |
@@ -47,7 +47,7 @@ and symbol map into a native C++ executable.
 | Phase | Status | Milestone |
 | --- | --- | --- |
 | 0 — Toolchain | Complete | Recompiler tools, submodules, scripts, and the CMake tree |
-| 1 — Symbols and memory map | Complete | Ghidra-derived symbol data, overlays, and RSP findings |
+| 1 — Symbols and memory map | Partial | Ghidra-derived symbols cover the uncompressed ROM; the 28 Yay0-compressed overlays (ROM 0x7C8680-0xA84920, ~5.3 MB decompressed) are not yet disassembled or recompiled |
 | 2 — Boot and title screen | Reached | Native executable boots and reaches a live, correctly-rendering title screen (see 2026-08-13 update below) |
 | 3 — Runtime completion | In progress | Menus, input, audio, configuration, and two-player verification |
 | 4 — Enhancements | Planned | Widescreen, higher internal resolution, high framerate, and modern aiming |
