@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,515 @@
+@@ -567,15 +571,620 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -35,6 +35,7 @@
 +uint8_t* g_rdram_base = nullptr;
 +
 +void recomp_walk_report(long long secs);
++void recomp_phase_report(long long secs);
 +
 +std::atomic<uint64_t> g_gfx_task_count{ 0 };
 +// Non-graphics RSP tasks (audio, in this game). Discriminates "the game's frame
@@ -152,6 +153,7 @@
 +        }
 +
 +        recomp_walk_report((long long)secs);
++        recomp_phase_report((long long)secs);
 +
 +        if (viprobe_target_mq() != 0) {
 +            uint64_t enq = g_viprobe_vi_enq.load(), ok = g_viprobe_send_ok.load();
@@ -471,6 +473,109 @@
 +    }
 +}
 +
++// --- Frame-phase probe (SNP_PHASE=1) ----------------------------------------
++//
++// DIAGNOSTIC (2026-08-18). The draw-list descriptor has two halves maintained by
++// different code: OVERLAY code populates (appends, and zeroes cursor+count at
++// frame start), RESIDENT boot code rewinds by count*4 and sorts. On the START
++// frame the resident half ran and the overlay half did not, so the rewind
++// subtracted a stale count from an unadvanced cursor.
++//
++// Two candidate shapes, needing different fixes:
++//   (a) the reset simply stops being called on the transition frame
++//   (b) it is still called, but AFTER the sort -- a phase-ordering problem
++//
++// A per-frame tally of each phase separates them. `tag` identifies the phase;
++// the counts are printed once per second by the heartbeat thread, plus the last
++// few frames' ordering so the transition frame itself is legible.
++static std::mutex phase_mutex;
++static std::map<std::string, uint64_t> phase_counts;
++static std::vector<std::string> phase_order;
++static std::map<std::string, uint64_t> phase_by_thread;
++
++extern "C" void recomp_phase_probe(uint8_t* rdram, const char* tag) {
++    static const bool enabled = getenv("SNP_PHASE") != nullptr;
++    if (!enabled) {
++        return;
++    }
++    std::lock_guard lock{ phase_mutex };
++    phase_counts[std::string(tag)]++;
++
++    // Per-frame accounting, printed AT THE REWIND rather than once a second.
++    // The crash happens inside the sort that the rewind calls, so a
++    // once-per-second report never survives to describe the fatal frame -- the
++    // t=20 line simply never printed. This fires before the fault.
++    //
++    // Also records the thread: the two halves run on DIFFERENT threads (appends
++    // on 4, rewind/sort on 3), with no synchronisation visible between them, so
++    // "did the producer run before the consumer this frame" is the question.
++    // PER THREAD. Both threads 3 and 4 run all three phases, so a single shared
++    // counter lets one thread's REWIND zero the other's tally -- which produced
++    // 169 bogus "ZERO APPENDS" reports on thread 4 in the first version, every
++    // one of them with a previous-frame history of all zeros (the tell).
++    static std::map<int32_t, uint64_t> appends_by_thread;
++    static std::map<int32_t, std::vector<uint64_t>> recent_by_thread;
++    int32_t tid = ultramodern::is_game_thread()
++        ? TO_PTR(OSThread, ultramodern::this_thread())->id
++        : -1;
++
++    phase_by_thread[std::string(tag) + ":t" + std::to_string(tid)]++;
++    uint64_t& appends_this_frame = appends_by_thread[tid];
++    std::vector<uint64_t>& recent = recent_by_thread[tid];
++    if (strcmp(tag, "APPEND") == 0) {
++        appends_this_frame++;
++    }
++    else if (strcmp(tag, "REWIND") == 0) {
++        if (appends_this_frame == 0) {
++            fprintf(stderr, "[phase] !!! REWIND on thread %d with ZERO APPENDS this frame"
++                            " (prev frames:", tid);
++            for (uint64_t n : recent) {
++                fprintf(stderr, " %llu", (unsigned long long)n);
++            }
++            fprintf(stderr, ")\n");
++        }
++        recent.push_back(appends_this_frame);
++        if (recent.size() > 8) {
++            recent.erase(recent.begin());
++        }
++        appends_this_frame = 0;
++    }
++    static std::set<std::string> seen_tid;
++    std::string key = std::string(tag) + ":" + std::to_string(tid);
++    if (seen_tid.insert(key).second) {
++        fprintf(stderr, "[phase] %s runs on thread %d\n", tag, tid);
++    }
++    // Keep a short rolling window of the actual call ORDER. A tally alone
++    // cannot distinguish "not called" from "called too late", which is the
++    // entire question.
++    phase_order.push_back(tag);
++    if (phase_order.size() > 24) {
++        phase_order.erase(phase_order.begin());
++    }
++}
++
++void recomp_phase_report(long long secs) {
++    if (getenv("SNP_PHASE") == nullptr) {
++        return;
++    }
++    std::lock_guard lock{ phase_mutex };
++    fprintf(stderr, "[phase] t=%llds", secs);
++    for (const auto& [tag, n] : phase_counts) {
++        fprintf(stderr, "  %s=%llu", tag.c_str(), (unsigned long long)n);
++    }
++    // Per-thread totals. The global tally hid that the two threads play
++    // completely different roles -- one drives every frame, the other runs the
++    // same functions only a handful of times in a whole run.
++    for (const auto& [key, n] : phase_by_thread) {
++        fprintf(stderr, "  [%s]=%llu", key.c_str(), (unsigned long long)n);
++    }
++    fprintf(stderr, "\n[phase]   order:");
++    for (const auto& t : phase_order) {
++        fprintf(stderr, " %s", t.c_str());
++    }
++    fprintf(stderr, "\n");
++}
++
 +void recomp_walk_report(long long secs) {
 +    if (getenv("SNP_WALK") == nullptr) {
 +        return;
@@ -528,7 +633,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +1089,20 @@
+@@ -585,9 +1194,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
