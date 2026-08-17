@@ -42,6 +42,11 @@ LOG_FILE="${3:-/tmp/ares_watch.log}"
 # currently-unused stack and polling it costs nothing and answers the same
 # question: if the value survives, the game never reached that depth.
 CANARY="${4:-}"
+# Positive control: a block of RDRAM that a RUNNING game must churn (thread 3's
+# stack, per SNP_STACKS). Sampled every poll purely to prove the emulator is
+# executing -- see the VERDICT section. Overridable for a different game state.
+CONTROL="${SNP_CONTROL_ADDR:-0x80067000}"
+CONTROL_WORDS="${SNP_CONTROL_WORDS:-64}"
 ROM="$(pwd)/rom/Tsumi to Batsu - Hoshi no Keishousha (Japan).z64"
 PORT=9123
 
@@ -76,32 +81,40 @@ fi
 sleep 3
 
 GDB_SCRIPT="$(mktemp /tmp/ares_watch_XXXXXX.gdb)"
-cat > "$GDB_SCRIPT" << EOF
+# QUOTED delimiter. With an unquoted 'EOF' the shell expands the body, and a
+# backtick pair inside a COMMENT becomes command substitution: the two
+# `continue` mentions below ran as shell builtins ("continue: only meaningful in
+# a for/while/until loop") and were deleted from the generated script. Harmless
+# by luck here -- they were comments -- but the same expansion would silently
+# mangle any $ or backtick in the gdb/Python body. Values are substituted
+# explicitly via sed below instead. Same family as the heredoc trap in the
+# playbook.
+cat > "$GDB_SCRIPT" << 'EOF'
 set pagination off
 set confirm off
 set architecture mips:4000
-target remote localhost:${PORT}
+target remote localhost:__PORT__
 
 echo \n===== INITIAL VALUE =====\n
-x/1xw ${VRAM}
+x/1xw __VRAM__
 
 python
 import threading, gdb, os, signal
 def deadline():
     import time
-    time.sleep(${DEADLINE})
+    time.sleep(__DEADLINE__)
     os.killpg(os.getpgid(0), signal.SIGKILL)
 threading.Thread(target=deadline, daemon=True).start()
 end
 
 echo \n===== CANARY =====\n
 python
-canary = "${CANARY}".strip()
+canary = "__CANARY__".strip()
 if canary:
     import gdb
-    gdb.execute("set *(unsigned int *) ${VRAM} = %s" % canary)
-    print("[ares] planted %s at ${VRAM}" % canary, flush=True)
-    print(gdb.execute("x/1xw ${VRAM}", to_string=True).strip(), flush=True)
+    gdb.execute("set *(unsigned int *) __VRAM__ = %s" % canary)
+    print("[ares] planted %s at __VRAM__" % canary, flush=True)
+    print(gdb.execute("x/1xw __VRAM__", to_string=True).strip(), flush=True)
 end
 
 echo \n===== POLLING =====\n
@@ -123,25 +136,83 @@ def interrupter():
         gdb.post_event(lambda: gdb.execute("interrupt", to_string=True))
 threading.Thread(target=interrupter, daemon=True).start()
 
+def read_words(addr, count):
+    out = []
+    for line in gdb.execute("x/%dxw %s" % (count, addr), to_string=True).splitlines():
+        parts = line.split(":", 1)
+        if len(parts) == 2:
+            out.extend(parts[1].split())
+    return out
+
+# POSITIVE CONTROL, sampled every poll alongside the watched address.
+#
+# Without it, "the watched word never changed" is unfalsifiable: a HALTED
+# emulator produces exactly that reading, and so does a running one that simply
+# never writes there. This is the failure that voided the 2026-08-17 run -- a
+# 0xDEADBEEF canary survived 86 seconds at 0x8007AF0C, which cannot happen while
+# the game is live (that word is a function pointer the callback pump dispatches
+# through), and gdb reported PC = 0xffffffff at every stop.
+#
+# The control is a block of thread 3's stack. A running game hammers its stacks
+# continuously, so if not one word here changes across the whole run, ares was
+# not executing and every number the run produced is void.
+control_prev = None
+control_changes = 0
+polls = 0
+pcs = set()
+
 prev = None
 start_t = time.time()
-while time.time() - start_t < ${DEADLINE} - 15:
+while time.time() - start_t < __DEADLINE__ - 15:
     try:
         gdb.execute("continue", to_string=True)
     except gdb.error:
         pass
     try:
-        val = gdb.execute("x/1xw ${VRAM}", to_string=True).split()[-1]
-    except gdb.error as e:
+        val = read_words("__VRAM__", 1)[-1]
+        control = read_words("__CONTROL__", __CONTROL_WORDS__)
+    except (gdb.error, IndexError) as e:
         print("[ares] read failed: %s" % e, flush=True)
         break
+    polls += 1
+    try:
+        pcs.add(str(gdb.parse_and_eval("$pc")))
+    except gdb.error:
+        pass
+    if control_prev is not None and control != control_prev:
+        control_changes += 1
+    control_prev = control
     tag = "   <<< CHANGED" if prev is not None and val != prev else ""
-    print("[ares] t=%5.1fs ${VRAM} = %s%s" % (time.time() - start_t, val, tag),
-          flush=True)
+    print("[ares] t=%5.1fs __VRAM__ = %s%s  [control %d/%d]"
+          % (time.time() - start_t, val, tag, control_changes, polls), flush=True)
     prev = val
+
+print("\n===== VERDICT =====", flush=True)
+print("[ares] polls=%d  control block __CONTROL__ changed in %d of them"
+      % (polls, control_changes), flush=True)
+print("[ares] distinct PC values seen: %s" % (sorted(pcs)[:4] or "none"), flush=True)
+if polls and control_changes * 4 >= polls:
+    print("[ares] CONTROL OK -- ares was executing; the __VRAM__ result is meaningful.",
+          flush=True)
+else:
+    print("[ares] CONTROL FAILED -- RDRAM was static, so ares was NOT running the",
+          flush=True)
+    print("[ares] game. This run proves NOTHING about __VRAM__. Do not use it.",
+          flush=True)
 end
 quit
 EOF
+
+# Substitute values into the quoted heredoc. Placeholders are __NAME__ rather
+# than ${NAME} so nothing in the body can be expanded by accident.
+sed -i \
+    -e "s|__PORT__|${PORT}|g" \
+    -e "s|__VRAM__|${VRAM}|g" \
+    -e "s|__DEADLINE__|${DEADLINE}|g" \
+    -e "s|__CANARY__|${CANARY}|g" \
+    -e "s|__CONTROL_WORDS__|${CONTROL_WORDS}|g" \
+    -e "s|__CONTROL__|${CONTROL}|g" \
+    "$GDB_SCRIPT"
 
 setsid stdbuf -oL -eL gdb-multiarch -batch -x "$GDB_SCRIPT" >> "$LOG_FILE" 2>&1
 

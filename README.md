@@ -183,8 +183,31 @@ Useful development instrumentation:
 | `SNP_TRACE=1` | Logs runtime, audio, and input activity |
 | `SNP_AUDIO_DUMP=/tmp/snp_audio.raw` | Dumps queued stereo samples for offline inspection |
 | `SP_INPUT_SCRIPT=/path/to/script` | Feeds timed synthetic controller, stick, or mouse-delta input |
+| `SP_WINDOW_SIZE=WxH` | Window size; defaults to 640x480, the N64's own hi-res output |
 
 These hooks are for development and validation; they are not release UX.
+
+### Debugging harness
+
+`scripts/` carries the tooling built while chasing boot and attract-mode
+defects: `run_game.sh` (the supported way to launch a run with instrumentation),
+`freeze_check.sh` and `boot_screen_check.sh` (scripted capture and
+black-frame checks), `gdb_watch.sh` and `gdb_threads.sh` (watchpoints and
+thread state on the native build), `ares_watch.sh` (compare against
+hardware-accurate ares), `resolve_bt.sh` and `probe_stubs.py`.
+
+Deeper runtime instrumentation — per-queue message census, RSP-task heartbeat,
+memory watches, scene-walk depth, thread stack layout — lives in
+`patches/debug/` rather than in the build, and is applied by hand when needed.
+See `patches/debug/README.md` for the switches and for the probe discipline
+these scripts assume.
+
+> [!NOTE]
+> Any measurement taken through one of these tools needs a positive control
+> before a negative result means anything. A probe that never fires and a probe
+> that was never reached look identical, and an emulator that has silently
+> halted produces the same "nothing ever changed" reading as a running one that
+> genuinely never writes.
 
 ## Repository map
 
@@ -197,6 +220,8 @@ src/game/                 Game-specific integration (currently being expanded)
 rsp/                      RSPRecomp configs; generated .cpp files are ignored
 include/                  Port-facing headers and generated interfaces
 patches/                  Port patch helpers and UI integration headers
+patches/upstream/         Fixes to pinned submodules, applied by bootstrap.sh
+patches/debug/            Opt-in diagnostic instrumentation; NOT applied by bootstrap
 lib/                      Pinned RT64, runtime, and frontend submodules
 external/N64Recomp/       Pinned N64Recomp toolchain submodule
 README.md                 Public project status, build notes, and contribution rules
