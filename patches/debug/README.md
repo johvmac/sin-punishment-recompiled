@@ -29,6 +29,7 @@ re-apply the VI null-mode patch (that one is a real fix and must stay).
 | `SNP_WATCH=0xA[,0xB][,0xA+0xLEN]` | sample game memory once per second; the `BASE+LEN` form watches a word range and reports only what changed |
 | `SNP_WALK=1` | per-thread scene-walk depth, stack low-water mark, child-list length. **Needs the toml hook below.** |
 | `SNP_STACKS=1` | every thread's stack top, priority and entry point, logged at `osCreateThread` |
+| `SNP_STACK_RELOC=<id>[,<id>]` | hands the named threads a 256KB stack in unused high RDRAM instead of the game's. **Hides a defect rather than fixing it** — see below. |
 | `SNP_TASK_BT=1` | one resolvable backtrace per distinct sender to a queue (resolve with `scripts/resolve_bt.sh`) |
 | `SNP_VI_PROBE=1` | per-queue send/recv/wake/full counters; `=0xADDR` targets another queue |
 | `SNP_TRACE=1` | verbose per-event queue tracing. Loud enough to perturb timing — prefer `SNP_CENSUS`. |
@@ -56,6 +57,26 @@ Put it **inside** the `BEGIN/END SCRATCH DEBUG HOOKS` markers.
 `scripts/strip_scratch_hooks.sh` only removes what is between them, and a hook
 placed after `END` survives into a commit — which is exactly what happened on
 2026-08-17.
+
+### `SNP_STACK_RELOC` is a diagnostic, not a fix
+
+It answers "is this really a stack overflow?" by moving the stack somewhere the
+overflow cannot hurt anything. The walk still descends exactly as far — it just
+lands in dead memory. **Do not leave it on to make something work.**
+
+Measured 2026-08-18, `SNP_STACK_RELOC=4`:
+
+| | baseline | thread 4 relocated |
+|---|---|---|
+| gfx tasks at t=42s | 1240, then +0 forever | 1240, +30 and climbing |
+| gfx tasks at t=89s | 1240 (47s stalled) | 2650, still +30/sec |
+
+The arena is `0x80700000` upward, 256KB per relocated thread. That region was
+chosen by measurement, not assumption: RDRAM is 8MB here, the highest stack the
+game allocates itself was observed at `0x80376160`, and a 55s run watching
+`0x80400000` / `0x80600000` / `0x80700000` / `0x807F0000` recorded no changes in
+any of them. **Re-run that survey before trusting a result from this switch in a
+later game state** — a level load may well reach higher than the attract loop.
 
 ## Probe discipline
 

@@ -666,10 +666,10 @@ index a22f747..1b5e0e2 100644
  }
  
 diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
-index 6e3ed18..b46033c 100644
+index 6e3ed18..0e6ee52 100644
 --- a/ultramodern/src/threads.cpp
 +++ b/ultramodern/src/threads.cpp
-@@ -249,6 +249,18 @@ extern "C" void osStartThread(RDRAM_ARG PTR(OSThread) t_) {
+@@ -249,6 +249,67 @@ extern "C" void osStartThread(RDRAM_ARG PTR(OSThread) t_) {
  }
  
  extern "C" void osCreateThread(RDRAM_ARG PTR(OSThread) t_, OSId id, PTR(thread_func_t) entrypoint, PTR(void) arg, PTR(void) sp, OSPri pri) {
@@ -683,6 +683,55 @@ index 6e3ed18..b46033c 100644
 +    if (getenv("SNP_STACKS") != nullptr) {
 +        fprintf(stderr, "[stack] thread %d pri %d stack_top=0x%08X entry=0x%08X\n",
 +            (int)id, (int)pri, (uint32_t)sp, (uint32_t)entrypoint);
++    }
++
++    // --- Stack relocation (SNP_STACK_RELOC=<id>[,<id>...]) ------------------
++    //
++    // DIAGNOSTIC (2026-08-18), NOT A FIX. Hands the named threads a much larger
++    // stack in unused high RDRAM instead of the one the game allocated.
++    //
++    // The attract freeze at gfx task 1240 is modelled as thread 4 running its
++    // recursive scene walk off the bottom of its 8KB stack (floor 0x8007AF38)
++    // and writing 4x4 matrix floats over the callback table at 0x8007AF0C,
++    // 0x2C below that floor. If that model is right, a stack whose floor is
++    // nowhere near anything live makes the freeze go away and the attract
++    // sequence runs past 1240. If the freeze happens anyway, the model is
++    // wrong and the whole chain needs re-deriving.
++    //
++    // This HIDES the defect rather than fixing it -- the walk still descends
++    // just as far, it just lands somewhere harmless -- so it stays env-gated
++    // and off by default.
++    //
++    // The arena is 0x80700000 upward. RDRAM is 8MB here (osMemSize reports
++    // 8MB), the highest stack the game itself allocates was measured at
++    // 0x80376160, and a 55s run with SNP_WATCH over 0x80400000 / 0x80600000 /
++    // 0x80700000 / 0x807F0000 recorded zero changes in any of them. Verify
++    // that survey still holds before trusting a result from this switch.
++    if (const char* reloc = getenv("SNP_STACK_RELOC")) {
++        constexpr uint32_t arena_base = 0x80700000u;
++        constexpr uint32_t slot_size  = 0x40000u;   // 256KB each, 32x the original
++        static std::atomic<uint32_t> next_slot{ 0 };
++
++        bool match = false;
++        for (const char* p = reloc; *p != '\0'; ) {
++            if ((OSId)strtol(p, nullptr, 0) == id) {
++                match = true;
++                break;
++            }
++            const char* comma = strchr(p, ',');
++            if (comma == nullptr) {
++                break;
++            }
++            p = comma + 1;
++        }
++
++        if (match) {
++            uint32_t slot = next_slot.fetch_add(1);
++            uint32_t new_top = arena_base + (slot + 1) * slot_size;
++            fprintf(stderr, "[reloc] thread %d stack 0x%08X -> 0x%08X (%u KB, floor 0x%08X)\n",
++                (int)id, (uint32_t)sp, new_top, slot_size / 1024, new_top - slot_size);
++            sp = (PTR(void))new_top;
++        }
 +    }
 +
      debug_printf("[os] Create Thread %d\n", id);
