@@ -55,7 +55,13 @@ fi
 
 GDB_SCRIPT="$(mktemp /tmp/gdb_watch_XXXXXX.gdb)"
 
-cat > "$GDB_SCRIPT" << EOF
+# QUOTED delimiter: with an unquoted EOF the shell expands the body, and the
+# backticks inside the COMMENTS below run as commands -- `rdram` and `bt 20`
+# both executed and vanished from the generated script ("bt: command not
+# found"). Harmless only by luck. Values are substituted by sed afterwards, via
+# __NAME__ placeholders that nothing can expand by accident. Same bug and same
+# fix as scripts/ares_watch.sh.
+cat > "$GDB_SCRIPT" << 'EOF'
 set pagination off
 set confirm off
 
@@ -63,11 +69,11 @@ python
 import threading, gdb
 def arm():
     import time
-    time.sleep(${ARM_AFTER})
+    time.sleep(__ARM_AFTER__)
     gdb.post_event(lambda: gdb.execute("interrupt"))
 def deadline():
     import time, os, signal
-    time.sleep(${DEADLINE})
+    time.sleep(__DEADLINE__)
     # Hard stop. gdb.execute("quit") from a thread can itself block if the
     # inferior is running, so kill the process group outright.
     os.killpg(os.getpgid(0), signal.SIGKILL)
@@ -95,12 +101,12 @@ except gdb.error as e:
 if not base:
     print("FAILED: g_rdram_base is null -- armed before init_events ran?")
 else:
-    vram = int(${VRAM})
+    vram = int(__VRAM__)
     addr = base + (vram - 0x80000000)
     cur = int(gdb.parse_and_eval("*(unsigned int*)0x%x" % addr))
     print("rdram=0x%x vram=0x%x -> host 0x%x" % (base, vram, addr))
     print("current value = 0x%08x" % cur)
-    cond = """${WATCH_COND}"""
+    cond = """__WATCH_COND__"""
     cmd = "watch *(unsigned int *) 0x%x" % addr
     if cond.strip():
         # gdb evaluates the condition on each hardware trigger; the watched
@@ -126,6 +132,13 @@ x/12i \$pc-40
 info registers rip rax rbx rcx rdx rsi rdi
 quit
 EOF
+
+sed -i \
+    -e "s|__ARM_AFTER__|${ARM_AFTER}|g" \
+    -e "s|__DEADLINE__|${DEADLINE}|g" \
+    -e "s|__VRAM__|${VRAM}|g" \
+    -e "s|__WATCH_COND__|${WATCH_COND}|g" \
+    "$GDB_SCRIPT"
 
 echo "launching $BIN under gdb; arm at ${ARM_AFTER}s, hard deadline ${DEADLINE}s..."
 SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 \
