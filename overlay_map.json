@@ -1,0 +1,985 @@
+{
+ "base": 2150237040,
+ "cursor_start": 2150318080,
+ "files": 73,
+ "scenes": [
+  {
+   "scene": 1,
+   "init": 2148421240,
+   "entries": [
+    {
+     "file": 69,
+     "rom": 11021392,
+     "comp": 7376,
+     "size": 18352,
+     "vram": 2150218688,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 2,
+   "init": 2148421428,
+   "entries": [
+    {
+     "file": 70,
+     "rom": 11028768,
+     "comp": 32976,
+     "size": 80032,
+     "vram": 2150157008,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 3,
+   "init": 2148435544,
+   "entries": [
+    {
+     "file": 48,
+     "rom": 10787536,
+     "comp": 45296,
+     "size": 143104,
+     "vram": 2150093936,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 4,
+   "init": 2148424956,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150171664,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150149696,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 0,
+     "rom": 8160896,
+     "comp": 109600,
+     "size": 166768,
+     "vram": 2149982928,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 5,
+   "init": 2148421980,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150171664,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150149696,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 3,
+     "rom": 8272736,
+     "comp": 250480,
+     "size": 541536,
+     "vram": 2149608160,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 6,
+   "init": 2148432040,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150171664,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 59,
+     "rom": 10923280,
+     "comp": 21024,
+     "size": 34800,
+     "vram": 2150136864,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150114896,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 6,
+     "rom": 8529552,
+     "comp": 175872,
+     "size": 346048,
+     "vram": 2149768848,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 7,
+   "init": 2148436392,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150155616,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150131104,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150109136,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 9,
+     "rom": 8711632,
+     "comp": 200688,
+     "size": 375280,
+     "vram": 2149733856,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 8,
+   "init": 2148435288,
+   "entries": [
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150212528,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150173296,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 59,
+     "rom": 10923280,
+     "comp": 21024,
+     "size": 34800,
+     "vram": 2150138496,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150116528,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 63,
+     "rom": 10959200,
+     "comp": 22080,
+     "size": 37264,
+     "vram": 2150079264,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 12,
+     "rom": 8914976,
+     "comp": 201792,
+     "size": 409696,
+     "vram": 2149669568,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 9,
+   "init": 2148428496,
+   "entries": [
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150196480,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150157248,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150135280,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 63,
+     "rom": 10959200,
+     "comp": 22080,
+     "size": 37264,
+     "vram": 2150098016,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 15,
+     "rom": 9121792,
+     "comp": 248080,
+     "size": 465904,
+     "vram": 2149632112,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 10,
+   "init": 2148426152,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150155616,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150116384,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 65,
+     "rom": 10982224,
+     "comp": 11680,
+     "size": 20544,
+     "vram": 2150095840,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 18,
+     "rom": 9376512,
+     "comp": 335712,
+     "size": 658112,
+     "vram": 2149437728,
+     "yay0": true,
+     "code": false,
+     "prologues": 1
+    }
+   ]
+  },
+  {
+   "scene": 11,
+   "init": 2148420436,
+   "entries": [
+    {
+     "file": 67,
+     "rom": 10994336,
+     "comp": 26064,
+     "size": 44112,
+     "vram": 2150192928,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150153696,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150131728,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 21,
+     "rom": 9719152,
+     "comp": 162736,
+     "size": 304112,
+     "vram": 2149827616,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 12,
+   "init": 2148421860,
+   "entries": [
+    {
+     "file": 67,
+     "rom": 10994336,
+     "comp": 26064,
+     "size": 44112,
+     "vram": 2150192928,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150153696,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150131728,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 24,
+     "rom": 9886144,
+     "comp": 230704,
+     "size": 447520,
+     "vram": 2149684208,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 13,
+   "init": 2148419600,
+   "entries": [
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150196480,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 67,
+     "rom": 10994336,
+     "comp": 26064,
+     "size": 44112,
+     "vram": 2150152368,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150113136,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150091168,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 27,
+     "rom": 10123488,
+     "comp": 38704,
+     "size": 65680,
+     "vram": 2150025488,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 14,
+   "init": 2148423240,
+   "entries": [
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150212528,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150190560,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 63,
+     "rom": 10959200,
+     "comp": 22080,
+     "size": 37264,
+     "vram": 2150153296,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 30,
+     "rom": 10162800,
+     "comp": 169088,
+     "size": 332304,
+     "vram": 2149820992,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 15,
+   "init": 2148425468,
+   "entries": [
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150196480,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150157248,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150135280,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 33,
+     "rom": 10334464,
+     "comp": 47360,
+     "size": 83856,
+     "vram": 2150051424,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 16,
+   "init": 2148419776,
+   "entries": [
+    {
+     "file": 48,
+     "rom": 10787536,
+     "comp": 45296,
+     "size": 143104,
+     "vram": 2150093936,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 17,
+   "init": 2148420176,
+   "entries": [
+    {
+     "file": 48,
+     "rom": 10787536,
+     "comp": 45296,
+     "size": 143104,
+     "vram": 2150093936,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 18,
+   "init": 2148420140,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 36,
+     "rom": 10382608,
+     "comp": 62096,
+     "size": 187568,
+     "vram": 2150008608,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 19,
+   "init": 2148420592,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150171664,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150149696,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 3,
+     "rom": 8272736,
+     "comp": 250480,
+     "size": 541536,
+     "vram": 2149608160,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 20,
+   "init": 2148419608,
+   "entries": [
+    {
+     "file": 51,
+     "rom": 10837488,
+     "comp": 23856,
+     "size": 40864,
+     "vram": 2150196176,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 55,
+     "rom": 10884304,
+     "comp": 14320,
+     "size": 24512,
+     "vram": 2150171664,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 59,
+     "rom": 10923280,
+     "comp": 21024,
+     "size": 34800,
+     "vram": 2150136864,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150114896,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 39,
+     "rom": 10448000,
+     "comp": 184896,
+     "size": 325552,
+     "vram": 2149789344,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 21,
+   "init": 2148429104,
+   "entries": [
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150196480,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 67,
+     "rom": 10994336,
+     "comp": 26064,
+     "size": 44112,
+     "vram": 2150152368,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150113136,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150091168,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 65,
+     "rom": 10982224,
+     "comp": 11680,
+     "size": 20544,
+     "vram": 2150070624,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 42,
+     "rom": 10635968,
+     "comp": 102928,
+     "size": 196464,
+     "vram": 2149874160,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 22,
+   "init": 2148431992,
+   "entries": [
+    {
+     "file": 53,
+     "rom": 10862352,
+     "comp": 20864,
+     "size": 40560,
+     "vram": 2150196480,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 67,
+     "rom": 10994336,
+     "comp": 26064,
+     "size": 44112,
+     "vram": 2150152368,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 57,
+     "rom": 10899104,
+     "comp": 23232,
+     "size": 39232,
+     "vram": 2150113136,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 61,
+     "rom": 10945152,
+     "comp": 13520,
+     "size": 21968,
+     "vram": 2150091168,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 65,
+     "rom": 10982224,
+     "comp": 11680,
+     "size": 20544,
+     "vram": 2150070624,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    },
+    {
+     "file": 42,
+     "rom": 10635968,
+     "comp": 102928,
+     "size": 196464,
+     "vram": 2149874160,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  },
+  {
+   "scene": 23,
+   "init": 2148430308,
+   "entries": [
+    {
+     "file": 48,
+     "rom": 10787536,
+     "comp": 45296,
+     "size": 143104,
+     "vram": 2150093936,
+     "yay0": true,
+     "code": false,
+     "prologues": 0
+    }
+   ]
+  }
+ ]
+}
