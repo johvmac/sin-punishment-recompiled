@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,635 @@
+@@ -567,15 +571,643 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -533,8 +533,16 @@
 +    }
 +    else if (strcmp(tag, "REWIND") == 0) {
 +        if (tid == 3) {
-+            fprintf(stderr, "[phase] thread3 REWIND #%llu since last:",
-+                (unsigned long long)phase_by_thread["REWIND:t3"]);
++            // D_80068A97 is the transition state: 0 normal, 2 just-triggered,
++            // 1 = loading, during which func_80026288 takes its NO-DRIVER
++            // branch. If the driver is running, this must not be 1 -- so its
++            // value here says whether the game's own guard was active.
++            uint32_t gate = 0xFF;
++            if (rdram != nullptr) {
++                gate = rdram[(0x80068A97u ^ 3u) - 0x80000000u];
++            }
++            fprintf(stderr, "[phase] thread3 REWIND #%llu D_80068A97=%u since last:",
++                (unsigned long long)phase_by_thread["REWIND:t3"], gate);
 +            for (const auto& [k, n] : since_rewind[tid]) {
 +                fprintf(stderr, " %s=%llu", k.c_str(), (unsigned long long)n);
 +            }
@@ -648,7 +656,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +1209,20 @@
+@@ -585,9 +1217,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
