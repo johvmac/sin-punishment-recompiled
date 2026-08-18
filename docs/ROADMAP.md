@@ -6,23 +6,33 @@ rather than *being investigated*.
 
 ## Now — the one open root cause
 
-**A40 — a stack leak, not runaway recursion.** Corrected 2026-08-18: the node
-we blamed for eighty levels of re-entry (`0x801028EC`) turns out to have a
-**NULL child list** — it is a leaf, and the walker cannot recurse from it at
-all. Its ancestors are identical and all-distinct at every sample.
+**A66 — a triggered stack leak, isolated to one function.** Updated 2026-08-18.
 
-What is actually happening: the same bounded traversal runs repeatedly over
-static data while the emulated `$sp` is **not fully restored** — one frame per
-traversal leaks `0x18` bytes. It fits every measurement (`0x18` and 23 calls per
-"level" = one leak per complete 23-node traversal; a falling stack low-water
-over static data; no zero child index anywhere). Eventually it overruns the
-dispatch table at `0x8007AF0C`, which causes **both** remaining symptoms: the
-attract freeze and the post-START stall.
+The graphics thread loses `0x18` bytes of stack per frame until it overruns the
+table of per-frame function pointers; once that is corrupt the thread still wakes
+on schedule, finds nothing to call, and stops drawing. Both remaining symptoms —
+the attract freeze and the post-START stall — are that one overrun.
 
-So this is a **recompiler-level defect**, not game logic — a function whose
-epilogue does not restore `$sp`. Next step: compare `ctx->r29` at entry and exit
-for each function on the traversal path, or diff generated prologue/epilogue
-pairs for a `-0x18` with no matching restore.
+What is now pinned down:
+
+* The leaking call sits in `main_func_800BA1A4`, which runs **exactly once per
+  frame** (its call count tracks the game's own frame counter precisely).
+* That function is itself **balanced** (`-0x18` then `+0x18`, one return), so the
+  leak is in one of its **11 direct callees** or its single **indirect** call.
+* It is **triggered, not constant**: entry `sp` is exactly stable for **991
+  frames**, then falls by exactly `0x18` on every frame from **992** onward.
+* **No state global explains the onset** — scene, gate, selected render group and
+  attract state are all unchanged across the frame it begins.
+
+Ruled out along the way, each with a control: runaway recursion; a cycle in the
+scene graph; a function that never restores the stack; an early return that skips
+the restore; dispatch running off either lookup table; and an unresolved indirect
+call (which would exit the process loudly, not leak).
+
+**Next:** entry-`sp` probes cannot discriminate further, because once the parent
+drifts every callee drifts with it. Measure entry-vs-exit per callee by hooking
+each one's **epilogue instruction address** — `before_vram` at that address gives
+an exit hook, which the tooling otherwise lacks.
 
 `SNP_STACK_RELOC=4` masks it. It is a diagnostic, not a fix, and must not ship.
 
