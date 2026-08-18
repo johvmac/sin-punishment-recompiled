@@ -621,6 +621,26 @@ of the two things you've already characterized.
 
 ### Caching a known-good build for fast comparison
 
+**Snapshot on every state you might want to A/B later, not only on milestones
+(added 2026-08-18).** The rule above says "milestone", and following it that
+literally cost a control: on 2026-08-18 several builds ran healthy for 90s at
+`+30/s`, later builds stalled at t~20s (A86), and by then **every healthy binary
+had been overwritten by the next `cmake --build`** — so "is it the build or the
+environment?" became unanswerable. An older cached binary was no substitute: it
+predated the heartbeat probe, so it had no comparable liveness signal at all.
+
+Cheap rule: before a build that changes anything you might want to compare
+against, copy `build/SinPunishmentRecompiled`, `sinpunishment.toml` **and**
+`symbols/sinpunishment.syms.toml` into `known_good_builds/` with a dated name.
+~24MB each, the directory is gitignored, and a snapshot is far cheaper than
+re-deriving a lost baseline. Name non-milestones `DIAGNOSTIC` so the label never
+implies a verified state — a milestone still requires the user confirming on
+screen.
+
+**A cached binary is only a control if it carries the same instruments.**
+Snapshot the probe set with it, or the comparison it was kept for cannot be
+made.
+
 `known_good_builds/` (gitignored) holds verified-working binaries + their
 matching `sinpunishment.toml`, so comparing current behavior against a known
 baseline doesn't require a full `recompile.sh` + `cmake --build` cycle each
