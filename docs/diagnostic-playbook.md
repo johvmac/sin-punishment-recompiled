@@ -537,6 +537,33 @@ prepend the include to the affected generated file(s) after `recompile.sh`
 and before `cmake --build` (fine for a one-off — `RecompiledFuncs/` is
 gitignored and regenerated every time anyway).
 
+### A probe set ships with its controls, or it costs a second build (added 2026-08-18)
+
+`recompile.sh` + `cmake --build` is ~3 minutes, and a probe run that must reach
+frame 992 is another **5 minutes**. So a probe that has to be revised because it
+lacked a control costs roughly one working cycle, every time.
+
+On 2026-08-18 three cycles were spent on one question and **one was pure
+waste**: the first probe set had ARM lines but no *heartbeat*, so a 60s run came
+back completely silent. That silence was unreadable — a true negative and a
+probe that never reached its frame gate look identical (T16, and defect class
+I1). The second cycle added four characters' worth of heartbeat and nothing
+else.
+
+**Before building, every probe set gets all four:**
+
+1. **ARM line** — one print on first execution. Proves the probe is live.
+2. **Heartbeat** — a periodic print of the gating variable (frame counter),
+   from at least one probe. Proves the gate was *reached*, which is a different
+   claim from "the probe ran".
+3. **`static _Thread_local`** on all probe state (I4/I5/I8 — three defects of
+   this one class).
+4. **A run length that reaches the gate.** ~300s to pass frame 1024 here. The
+   habitual 20-45s run does not get there, and its silence means nothing.
+
+Batch every probe you can foresee needing into **one** hook set. Hooks are
+cheap per-probe and expensive per-build: 14 probes cost the same as 1.
+
 ### Reverting a multi-file change: revert every piece together, not one at a time
 
 **A real bug, caught by the user watching directly, not by any tooling**:

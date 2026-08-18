@@ -70,7 +70,32 @@ setsid bash -c "
 " < /dev/null > /dev/null 2>&1 &
 WATCHDOG=$!
 
-sleep "$SECS"
+# Wait up to SECS, but NOTICE if the game exits on its own. The old version
+# slept unconditionally and then reported "ran ${SECS}s" either way -- so a
+# crash at frame 18 of a 300s run looked exactly like a healthy full-length
+# run, and the probe log just looked mysteriously short. An early exit is a
+# RESULT; report it, with the exit code, and say how far it got.
+EARLY=""
+RC=""
+for (( i = 0; i < SECS; i++ )); do
+    if ! kill -0 "$PID" 2>/dev/null; then
+        wait "$PID" 2>/dev/null
+        RC=$?
+        EARLY=$i
+        break
+    fi
+    sleep 1
+done
+
+if [[ -n "$EARLY" ]]; then
+    printf '[run_game] GAME EXITED ON ITS OWN after %ss of %ss (exit code %s) -- the run did NOT reach its deadline\n' \
+        "$EARLY" "$SECS" "$RC" >&2
+    case "$RC" in
+        139) echo "[run_game]   rc=139 is SIGSEGV" >&2 ;;
+        134) echo "[run_game]   rc=134 is SIGABRT" >&2 ;;
+        136) echo "[run_game]   rc=136 is SIGFPE"  >&2 ;;
+    esac
+fi
 
 # Kill the process group (game + any children), by PID. SIGKILL only.
 kill -9 -- "-$PID" 2>/dev/null || kill -9 "$PID" 2>/dev/null
