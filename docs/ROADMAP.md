@@ -6,7 +6,7 @@ rather than *being investigated*.
 
 ## Now — the one open root cause
 
-**A66 — a triggered stack leak, isolated to one function.** Updated 2026-08-18.
+**A66 — RESOLVED 2026-08-18.** ~~A triggered stack leak.~~ The premise was refuted (A67/A77) and the real cause found and fixed: a truncated symbol, `ovlfile20_func_800E5634` (L7, user-confirmed).
 
 The graphics thread loses `0x18` bytes of stack per frame until it overruns the
 table of per-frame function pointers; once that is corrupt the thread still wakes

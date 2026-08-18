@@ -84,3 +84,18 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - I3: no evidence recorded. Say what was observed and when.
   - I4: no evidence recorded. Say what was observed and when.
 
+## Audit #2 — since bb390251
+- ledger: 192 entries (+22 this window), 26 withdrawn
+- rolls: 5 this window; runs: 38 (4 exited early, 3 contaminated)
+- **10 thing(s) to look at:**
+  - T30: rests on ONE run (daily_push.log). Repeat it or say why one is enough.
+  - A98: rests on ONE run (tt1-3.log). Repeat it or say why one is enough.
+  - A100: rests on ONE run (bt2.log). Repeat it or say why one is enough.
+  - A92: rests on ONE run (scene.log). Repeat it or say why one is enough.
+  - A100: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A86: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A95: no evidence recorded. Say what was observed and when.
+  - A91: no evidence recorded. Say what was observed and when.
+  - A86: no evidence recorded. Say what was observed and when.
+  - runs: 3/38 had controller input -- not comparable to clean runs (T23).
+
