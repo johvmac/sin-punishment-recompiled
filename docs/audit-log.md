@@ -99,3 +99,10 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A86: no evidence recorded. Say what was observed and when.
   - runs: 3/38 had controller input -- not comparable to clean runs (T23).
 
+## Audit #3 — since 9165bc48
+- ledger: 197 entries (+5 this window), 28 withdrawn
+- rolls: 2 this window; runs: 5 (5 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - A101: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A101: created and withdrawn within one audit window. What made it look right?
+
