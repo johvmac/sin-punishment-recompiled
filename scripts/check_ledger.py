@@ -154,6 +154,12 @@ def main():
     if roadmap.exists():
         known |= set(re.findall(r"^\*\*([ABTIL]\d{1,3}[a-z]?)\s+—",
                                 roadmap.read_text(), re.M))
+    # Archived entries still exist -- they just live elsewhere. Counting them as
+    # known is what makes archiving safe; without this the first archive pass
+    # would manufacture dozens of dangling citations (T21).
+    for arch in LEDGER.parent.glob("findings-archive-*.md"):
+        known |= set(re.findall(r"^\|\s*([ABTIL]\d{1,3}[a-z]?)\s*\|",
+                                arch.read_text(), re.M))
     ref_re = re.compile(r"(?<![\w./])([ABTIL]\d{1,3}[a-z]?)(?![\w./])")
     # An entry that RECORDS a dangling reference has to name it; don't flag that.
     names_gap = re.compile(r"(does not exist|never existed|has never existed|dangling)", re.I)
@@ -174,6 +180,23 @@ def main():
     # block a push -- that conflates "you owe a routing roll" with "the ledger
     # is malformed", and the fix for the former is not to edit the ledger.
     reminders = []
+
+    # Ledger size. The file is meant to be read IN FULL at session start, so its
+    # cost is paid every time; past ~30k words that starts crowding out the work
+    # it exists to serve. Measured 2026-08-18 at 194 entries / 18.9k words, with
+    # the A-series (a now-resolved investigation, closed by L7) accounting for
+    # 62% of it -- so the first archive pass is cheap and obvious.
+    # NOT a structural problem, so it stays out of `problems` and cannot block
+    # daily_push.sh: "the ledger is long" is not "the ledger is malformed".
+    words = len(text.split())
+    if words >= 35000:
+        reminders.append(f"SIZE: {words:,} words — well past the 30k archive "
+                         f"threshold. Archive a resolved investigation now.")
+    elif words >= 30000:
+        reminders.append(f"SIZE: {words:,} words — past the 30k threshold. "
+                         f"Archive the supporting entries of a CLOSED investigation "
+                         f"to docs/findings-archive-<topic>.md, leaving one index "
+                         f"line. Never archive WITHDRAWN, I-series or T-series rows.")
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
         since = len(rows) - state.get("last_entry_count", 0)
