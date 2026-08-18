@@ -48,9 +48,11 @@ RULES = [
      "Use `scripts/run_game.sh <secs> <log> [ENV=v...]`."),
 ]
 
-# Read-only inspection of the binary is fine -- it is only *running* it that
-# bypasses the watchdog.
-SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|readelf|du)\b")
+# Inspecting the binary is fine -- it is only *running* it unsupervised that
+# bypasses the watchdog. A debugger session is deliberate and supervised, so
+# gdb is allowed through: blocking it would push debugging outside the tooling
+# rather than into it, which is the opposite of the point.
+SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|readelf|du|gdb)\b")
 
 
 def main():

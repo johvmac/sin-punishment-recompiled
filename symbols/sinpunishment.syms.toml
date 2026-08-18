@@ -1511,11 +1511,11 @@ vram = 0x800E4780
 size = 0x860
 
 functions = [
-    { name = "ovlfile02_func_800E4780", vram = 0x800E4780, size = 0x40 },
-    { name = "ovlfile02_func_800E47B4", vram = 0x800E47B4, size = 0x128 },
-    { name = "ovlfile02_func_800E4E14", vram = 0x800E4E14, size = 0x28 },
+    { name = "ovlfile02_func_800E4780", vram = 0x800E4780, size = 0x34 },
+    { name = "ovlfile02_func_800E47B4", vram = 0x800E47B4, size = 0x660 },
+    { name = "ovlfile02_func_800E4E14", vram = 0x800E4E14, size = 0x18 },
     { name = "ovlfile02_func_800E4E2C", vram = 0x800E4E2C, size = 0x38 },
-    { name = "ovlfile02_func_800E4E64", vram = 0x800E4E64, size = 0x30 },
+    { name = "ovlfile02_func_800E4E64", vram = 0x800E4E64, size = 0x98 },
     { name = "ovlfile02_func_800E4EFC", vram = 0x800E4EFC, size = 0x38 },
     { name = "ovlfile02_func_800E4F34", vram = 0x800E4F34, size = 0x8C },
     { name = "ovlfile02_func_800E4FC0", vram = 0x800E4FC0, size = 0x20 },

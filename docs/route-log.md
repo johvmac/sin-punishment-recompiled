@@ -33,3 +33,4 @@ A gap in the numbering means a roll was skipped.
 - roll #27: **EXPLOIT** (drew 0.349 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends
 - roll #28: **EXPLOIT** (drew 0.722 vs eps 0.2) -> `A86` — BLOCKER: an EARLY gfx stall now prevents reaching the drift onset at all. Trajectory of a degrad
 - roll #29: **EXPLOIT** (drew 0.987 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends
+- roll #30: **EXPLOIT** (drew 0.903 vs eps 0.2) -> `A95` — THE FRONTIER: the transition to the title screen emits no graphics tasks. Established: the white
