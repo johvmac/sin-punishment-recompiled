@@ -29,3 +29,4 @@ A gap in the numbering means a roll was skipped.
 - roll #23: **EXPLORE** (drew 0.111 vs eps 0.2) -> `B36` — Validate B35's derived unpack addresses against a running build before relying on them
 - roll #24: **EXPLOIT** (drew 0.239 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends
 - roll #25: **EXPLOIT** (drew 0.662 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends
+- roll #26: **EXPLOIT** (drew 0.499 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends

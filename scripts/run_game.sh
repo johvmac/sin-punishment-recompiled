@@ -110,8 +110,21 @@ kill "$WATCHDOG" 2>/dev/null || true   # normal path won; retire the watchdog
 # command line, which is how a "leftover" can be reported that does not exist.
 LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
 
-printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s\n' \
-    "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT"
+# Controller input CONTAMINATES a run: the window takes focus when it appears,
+# and the frontend binds ordinary letters (A/S/D/W/E/I/J/K/L/Q/R/SPACE/RETURN),
+# so typing anywhere while a run is up can press N64 buttons. Verified 2026-08-18:
+# injected input made a run SIGSEGV. A run with input in it is not comparable to
+# one without, so say so loudly rather than leaving it to be noticed.
+INPUT=$(grep -c '^\[input\] runtime' "$OUT" 2>/dev/null || echo 0)
+
+printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events=%s\n' \
+    "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT" "$INPUT"
+
+if [[ "$INPUT" -gt 0 ]]; then
+    echo "[run_game] WARNING: $INPUT controller-input event(s) during this run -- it was NOT clean." >&2
+    grep -m3 '^\[input\] runtime' "$OUT" | sed 's/^/[run_game]   /' >&2
+    echo "[run_game]   Treat this run as contaminated and repeat it." >&2
+fi
 
 if [[ "$LEFT" -gt 0 ]]; then
     echo "[run_game] WARNING: $LEFT process(es) survived SIGKILL -- investigate" >&2
