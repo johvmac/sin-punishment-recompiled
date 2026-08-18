@@ -26,3 +26,4 @@ A gap in the numbering means a roll was skipped.
 - roll #20: **EXPLORE** (drew 0.087 vs eps 0.2) -> `B31` — Add Yay0 segments to tsumitobatsu.yaml, re-run splat, extend the symbol map. Phase-1 scope, not 
 - roll #21: **EXPLOIT** (drew 0.862 vs eps 0.2) -> `A18` — NOW THE FRONTIER, with a concrete target (A74): node 0x801028EC. A72 settles the mechanism — +1 
 - roll #22: **EXPLOIT** (drew 0.403 vs eps 0.2) -> `A80` — THE LIVE QUESTION, restated after A77/A78. Standing measurements: the walker's entry sp descends
+- roll #23: **EXPLORE** (drew 0.111 vs eps 0.2) -> `B36` — Validate B35's derived unpack addresses against a running build before relying on them

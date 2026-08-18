@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -557,15 +561,696 @@
+@@ -557,15 +561,714 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -235,6 +235,13 @@
 +    uint32_t deepest_node = 0;   // the node sitting at that depth
 +    // A18 (2026-08-18): root of each top-level descent. See the probe body.
 +    uint32_t last_frame = 0xFFFFFFFFu; // SNP_WALK_FRAMED: frame of the live descent
++    // A80 (2026-08-18): per-FRAME sp extremes, reset with the frame. min_sp/max_sp
++    // above are cumulative over the whole run, which is why `depth` was never a
++    // per-frame depth (A78). These two are.
++    uint32_t f_max_sp = 0;
++    uint32_t f_min_sp = 0xFFFFFFFFu;
++    uint32_t p_max_sp = 0;       // previous frame's values, held for reporting
++    uint32_t p_min_sp = 0;
 +    uint32_t root = 0;           // most recent top-level node
 +    uint64_t roots = 0;          // top-level descents seen
 +    uint32_t root_changes = 0;   // times that root differed from the previous
@@ -352,7 +359,17 @@
 +        if (fr != s.last_frame) {
 +            s.last_frame = fr;
 +            s.path.clear();
++            // A80: freeze the frame just completed so the reporter sees a whole
++            // frame rather than a partial one.
++            if (s.f_max_sp != 0) {
++                s.p_max_sp = s.f_max_sp;
++                s.p_min_sp = s.f_min_sp;
++            }
++            s.f_max_sp = 0;
++            s.f_min_sp = 0xFFFFFFFFu;
 +        }
++        if (sp > s.f_max_sp) s.f_max_sp = sp;
++        if (sp < s.f_min_sp) s.f_min_sp = sp;
 +    }
 +    while (!s.path.empty() && s.path.back().first <= sp) {
 +        s.path.pop_back();
@@ -658,11 +675,12 @@
 +    std::lock_guard lock{ walk_mutex };
 +    for (const auto& [id, v] : walk_stats) {
 +        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u types=%zu maxtype=0x%X "
-+                        "levels=%u deepest_node=0x%08X root=0x%08X roots=%llu rootchg=%u cycles=%llu%s\n",
++                        "levels=%u deepest_node=0x%08X root=0x%08X roots=%llu rootchg=%u fmax=0x%08X fmin=0x%08X fdepth=%u cycles=%llu%s\n",
 +            secs, id, (unsigned long long)v.calls,
 +            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.types.size(),
 +            v.types.empty() ? 0u : *v.types.rbegin(),
 +            v.max_path, v.deepest_node, v.root, (unsigned long long)v.roots, v.root_changes,
++            v.p_max_sp, v.p_min_sp, (v.p_max_sp && v.p_min_sp) ? v.p_max_sp - v.p_min_sp : 0,
 +            (unsigned long long)v.cycles,
 +            v.cycles ? "   <<< CYCLE" : "");
 +        if (v.cycles != 0) {
@@ -709,7 +727,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -575,9 +1260,20 @@
+@@ -575,9 +1278,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
