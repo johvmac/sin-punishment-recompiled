@@ -1,5 +1,11 @@
 # Findings ledger — the VISITED SET
 
+> **Session handoff (local, gitignored, not in this directory):**
+> `/home/joh/Documents/sin_and_punishment/sin-punishment-recompiled/HANDOFF-2026-08-18.md`
+> It holds the perishable state — git position, which build is current, what is
+> mid-flight — that this file deliberately does not.
+
+
 **Read this file in full before expanding any node. It is deliberately short.**
 
 `boot-debugging-2026-08-13.md` is a *journal* — chronological, 5,000+ lines,
