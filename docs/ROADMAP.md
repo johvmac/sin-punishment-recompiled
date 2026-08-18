@@ -38,7 +38,7 @@ an exit hook, which the tooling otherwise lacks.
 
 ## Next — capability, cheap and high leverage
 
-**A26 — add the `.main` segment to splat.** ROM `0x3E850`, vram `0x800A7070`,
+**A26 — add the `.main` segment to splat.** *(Config lives in the sibling repo `/home/joh/Documents/sin_and_punishment/splat-project/`, not here — T19.)* ROM `0x3E850`, vram `0x800A7070`,
 size `0x2EA00`, ~620 functions. Today `scripts/decomp.sh` cannot see any of the
 mid-level engine, and that blind spot already caused one confidently wrong
 "dead code" conclusion. One segment entry plus a splat re-run — pure CPU.

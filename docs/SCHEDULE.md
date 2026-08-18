@@ -17,7 +17,7 @@ each checkpoint. Tick the box when done.
       without a stated repro** — a maintainer should not have to take your word
       for a race. Then branch off upstream `main`, one commit, PR body =
       symptom / cause / fix / repro. Upstream is `N64Recomp/N64ModernRuntime`.
-- [ ] **2026-08-20** — **A26**: add the `.main` segment to `tsumitobatsu.yaml`
+- [ ] **2026-08-20** — **A26**: add the `.main` segment to `tsumitobatsu.yaml` **in the sibling splat repo `/home/joh/Documents/sin_and_punishment/splat-project/` — it is NOT in this repo (T19)**
       (ROM `0x3E850`, vram `0x800A7070`, size `0x2EA00`). Verify the existing
       `asm/` files come back byte-identical **before** relying on anything, then
       confirm `scripts/decomp.sh main_func_800B4CE8` works. ~620 functions of

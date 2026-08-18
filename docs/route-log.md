@@ -23,3 +23,4 @@ A gap in the numbering means a roll was skipped.
 - roll #17: **EXPLOIT** (drew 0.286 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
 - roll #18: **EXPLOIT** (drew 0.642 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
 - roll #19: **EXPLOIT** (drew 0.277 vs eps 0.2) -> `A53` — Re-cost after A51/A56. Both static leak models and the vtable-overrun idea are now ruled out. Re
+- roll #20: **EXPLORE** (drew 0.087 vs eps 0.2) -> `B31` — Add Yay0 segments to tsumitobatsu.yaml, re-run splat, extend the symbol map. Phase-1 scope, not 
