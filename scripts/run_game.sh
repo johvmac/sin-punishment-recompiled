@@ -52,6 +52,38 @@ if [[ -n "$STALE" ]]; then
     sleep 1
 fi
 
+# --- Display isolation (default ON) ----------------------------------------
+# The session is Wayland + GNOME Shell, so the game runs under XWayland, and
+# mutter THROTTLES FRAME CALLBACKS for an unfocused or occluded window. That
+# produces the exact signature that wasted a large part of 2026-08-18: gfx_tasks
+# collapse to +1..3/s while `other` holds a perfect +30/s, because the game's
+# own threads are fine and only PRESENTATION is being starved. Measured, with
+# the user deliberately unfocusing the window to confirm it.
+#
+# Effect on measurement (3 runs per arm):
+#   real display, unfocused : 770 / 1734 / 307 gfx  -- all DEGRADED
+#   nested Xephyr           : 1302 / 1301 / 1301    -- all CLEAN
+# A spread of 1 versus a spread of 1427. Every build-to-build comparison made
+# on the real display is suspect for this reason.
+#
+# So isolation is the default: a measurement run must not depend on where the
+# user's mouse is. Pass SNP_VISIBLE=1 when the run is meant to be WATCHED --
+# milestone confirmation has to happen on the real display.
+XEPHYR_PID=""
+if [[ -z "${SNP_VISIBLE:-}" ]] && command -v Xephyr >/dev/null 2>&1; then
+    ISO_DISPLAY=":${SNP_ISO_DISPLAY:-7}"
+    Xephyr "$ISO_DISPLAY" -screen 1280x720 -nolisten tcp > /dev/null 2>&1 &
+    XEPHYR_PID=$!
+    sleep 2
+    if kill -0 "$XEPHYR_PID" 2>/dev/null; then
+        export DISPLAY="$ISO_DISPLAY"
+        echo "[run_game] isolated on $ISO_DISPLAY (Xephyr pid $XEPHYR_PID) -- pass SNP_VISIBLE=1 to watch it instead" >&2
+    else
+        XEPHYR_PID=""
+        echo "[run_game] WARNING: Xephyr failed to start; running on the real display, which is throttled when unfocused" >&2
+    fi
+fi
+
 env SP_AUTOSTART=1 "$@" "$BIN" > "$OUT" 2>&1 &
 PID=$!
 
@@ -109,6 +141,12 @@ kill "$WATCHDOG" 2>/dev/null || true   # normal path won; retire the watchdog
 # Count by `comm`, not `pgrep -f`: the latter also matches this script's own
 # command line, which is how a "leftover" can be reported that does not exist.
 LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
+
+# Kill the nested server by PID, same discipline as the game itself.
+if [[ -n "$XEPHYR_PID" ]]; then
+    kill -9 "$XEPHYR_PID" 2>/dev/null || true
+    wait "$XEPHYR_PID" 2>/dev/null
+fi
 
 # Controller input CONTAMINATES a run: the window takes focus when it appears,
 # and the frontend binds ordinary letters (A/S/D/W/E/I/J/K/L/Q/R/SPACE/RETURN),
