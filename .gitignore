@@ -42,6 +42,16 @@ symbols/sinpunishment.syms.toml.orig
 scripts/*.log
 
 
-# Public tree: keep the landing page; development Markdown stays local.
-*.md
-!README.md
+# Public tree. The development notes ARE published -- the findings ledger and the
+# diagnostic playbook are the most interesting artifacts in this repo, and hiding
+# them left the landing page as the only visible work.
+#
+# Two exceptions stay local:
+#   * session handoffs -- working scratch, no value to a reader
+#   * the raw journal -- 5,500 chronological lines that still record several
+#     conclusions later overturned, WITHOUT marking which. The ledger exists
+#     precisely because that file cannot be read safely. Publishing it would
+#     hand a reader confident statements that are known to be wrong.
+HANDOFF-*.md
+docs/boot-debugging-*.md
+docs/.route-state.json

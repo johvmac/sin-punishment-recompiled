@@ -145,3 +145,29 @@ Learned the hard way; the long form is in the diagnostic playbook.
   A probe that never fires and a probe that was never reached look identical.
 - **Measure rates, not samples.** A thread that wakes 30x/sec is "blocked" in
   almost every backtrace.
+
+### Hook statics are SHARED BETWEEN THREADS — use `_Thread_local`
+
+A `[[patches.hook]]` body is an ordinary function body, so a `static` inside it
+is one variable for the whole process. Several threads call the same game
+function (both thread 3 and thread 4 walk the scene graph), so any per-thread
+tally, shadow stack or low-water mark silently mixes them.
+
+This has now caused **three** of the seven instrument defects on this project
+(I4, I5, I8). It is the single most common probe bug here.
+
+The fix is free — the generated functions are built as C17:
+
+```c
+static _Thread_local unsigned depth = 0;   /* per thread, as intended */
+```
+
+Two related traps from the same session:
+
+* **Don't key per-thread state on `OSThread->id`.** Two different threads report
+  **id 3** on this game (entries `0x80025E44` and `0x80052064`, different
+  priorities and stacks). `_Thread_local` keys on the real thread.
+* **Byte access to RDRAM needs `^3`**; word access does not. A probe that read
+  `rdram[addr]` directly printed every 4-byte group reversed, which read as a
+  child index of `0` — the exact bug being hunted. Caught only by cross-checking
+  against another probe that had printed the same address.

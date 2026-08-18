@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Force the explore/exploit decision instead of leaving it to judgement.
+
+WHY
+---
+Cheapest-path routing assumes edge costs are KNOWN. Ours are estimates, and the
+estimates have a bad track record -- which is exactly the condition where greedy
+search underperforms and exploration pays.
+
+There is direct evidence on this project. The largest result of 2026-08-18 (two
+apparently separate bugs collapsing into one) came from an off-path jab: taking
+the attract freeze's workaround and trying it against the START stall for no
+better reason than "it is cheap". One 30s run closed a whole problem. Over the
+same period the disciplined cheapest-path chain produced four wrong conclusions.
+
+The second failure this fixes is subtler: **cost estimates go stale.** A finding
+can slash the cost of an unrelated open problem, but only the current frontier
+ever gets re-costed, so the bargain is never noticed. Weighting the explore pick
+by staleness attacks that directly.
+
+Why a script rather than a rule: a rule that says "occasionally try something
+else" is applied by the same judgement that mis-costs everything, and can be
+rationalised away silently. A roll cannot. Every roll is appended to
+docs/route-log.md, so skipping one is visible.
+
+Usage:
+    scripts/route.py                # roll, record, print the decision
+    scripts/route.py --status       # show open items + staleness, do NOT roll
+    scripts/route.py --history      # past decisions
+    SNP_ROUTE_EPS=0.25 scripts/route.py     # override epsilon (default 0.20)
+"""
+import json
+import os
+import random
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+LEDGER = ROOT / "docs" / "findings-ledger.md"
+STATE = ROOT / "docs" / ".route-state.json"
+LOG = ROOT / "docs" / "route-log.md"
+EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.20"))
+
+
+def open_items():
+    """OPEN rows from the ledger, in file order."""
+    items = []
+    for line in LEDGER.read_text().split("\n"):
+        m = re.match(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|", line)
+        if m and "OPEN" in m.group(2).upper():
+            body = re.sub(r"[*`~]", "", m.group(3))
+            items.append((m.group(1), body[:96]))
+    return items
+
+
+def entry_count():
+    return len(re.findall(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", LEDGER.read_text(), re.M))
+
+
+def load():
+    if STATE.exists():
+        return json.loads(STATE.read_text())
+    return {"roll": 0, "last_entry_count": 0, "last_seen": {}}
+
+
+def main():
+    if not LEDGER.exists():
+        print("[route] no ledger", file=sys.stderr)
+        return 1
+    st = load()
+    items = open_items()
+
+    if "--history" in sys.argv:
+        print(LOG.read_text() if LOG.exists() else "[route] no history yet")
+        return 0
+
+    if not items:
+        print("[route] nothing OPEN — nothing to route.")
+        return 0
+
+    if "--status" in sys.argv:
+        print(f"[route] {len(items)} open, last roll #{st['roll']}, "
+              f"entries at last roll {st['last_entry_count']} (now {entry_count()})")
+        for i, (eid, body) in enumerate(items):
+            stale = st["roll"] - st["last_seen"].get(eid, 0)
+            print(f"  {'FRONTIER' if i == 0 else '        '} {eid:5s} "
+                  f"stale={stale:2d}  {body}")
+        return 0
+
+    st["roll"] += 1
+    draw = random.random()
+    frontier = items[0][0]
+    explore = draw < EPS and len(items) > 1
+
+    picks = []
+    if explore:
+        # Second RNG draw picks WHICH open item. Weighted by staleness: an item
+        # untouched for many rolls is exactly the one whose cost estimate is
+        # most likely out of date. --uniform makes it a flat draw instead.
+        cands = [x for x in items if x[0] != frontier]
+        if "--uniform" in sys.argv:
+            weights = [1] * len(cands)
+        else:
+            weights = [1 + (st["roll"] - st["last_seen"].get(e, 0)) for e, _ in cands]
+        total = sum(weights)
+        pick = random.random()
+        acc, target, body = 0.0, cands[-1][0], cands[-1][1]
+        for (e, b), w in zip(cands, weights):
+            acc += w / total
+            if pick <= acc:
+                target, body = e, b
+                break
+        picks = [(e, w, w / total) for (e, _), w in zip(cands, weights)]
+        verdict = "EXPLORE"
+        note = ("ONE bounded check, hard budget. Record the outcome either way — "
+                "'still expensive, because X' is itself a costing improvement.")
+    else:
+        target, body = items[0]
+        verdict = "EXPLOIT"
+        note = "Continue the cheapest frontier item."
+
+    st["last_seen"][target] = st["roll"]
+    st["last_entry_count"] = entry_count()
+    STATE.write_text(json.dumps(st, indent=1))
+
+    line = (f"- roll #{st['roll']}: **{verdict}** (drew {draw:.3f} vs eps {EPS}) "
+            f"-> `{target}` — {body}")
+    if not LOG.exists():
+        LOG.write_text("# Routing log\n\nEvery explore/exploit decision, machine-rolled.\n"
+                       "A gap in the numbering means a roll was skipped.\n\n")
+    with LOG.open("a") as f:
+        f.write(line + "\n")
+
+    print(f"[route] roll #{st['roll']} — {verdict}  (drew {draw:.3f}, eps {EPS})")
+    print(f"        target: {target} — {body}")
+    print(f"        {note}")
+    if explore:
+        print(f"        chosen by a second draw over the frontier {frontier}:")
+        for e, w, p in picks:
+            mark = "<-- picked" if e == target else ""
+            print(f"          {e:5s} weight {w:2d}  p={p:.2f} {mark}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -37,8 +37,38 @@ if [[ ! -x "$BIN" ]]; then
     exit 1
 fi
 
+# --- Reap strays before starting -------------------------------------------
+# A previous run whose PARENT was killed (session ended, credits ran out, Ctrl-C)
+# leaves the game running forever, because the deadline used to live only in
+# this script's `sleep`. On 2026-08-18 that orphaned a process for 2h36m and
+# nothing reported it. `comm` is truncated to 15 chars by the kernel, so match
+# "SinPunishmentRe" -- and note this can never match our own shell, unlike
+# `pkill -f`, which kills the very command line running it.
+STALE=$(ps -eo pid,comm --no-headers | awk '$2=="SinPunishmentRe"{print $1}')
+if [[ -n "$STALE" ]]; then
+    echo "[run_game] reaping stale game process(es): $STALE" >&2
+    # shellcheck disable=SC2086
+    kill -9 $STALE 2>/dev/null || true
+    sleep 1
+fi
+
 env SP_AUTOSTART=1 "$@" "$BIN" > "$OUT" 2>&1 &
 PID=$!
+
+# --- Detached hard-deadline watchdog ---------------------------------------
+# `setsid` puts this in its OWN session, so killing this script -- or the whole
+# terminal, or the agent session -- does not take it with us. It is the only
+# guarantee that survives the parent dying, which is the failure mode that
+# actually happened. It re-checks `comm` before firing so a recycled PID is
+# never killed by mistake.
+HARD=$(( SECS + 15 ))
+setsid bash -c "
+    sleep $HARD
+    if [ \"\$(ps -o comm= -p $PID 2>/dev/null)\" = 'SinPunishmentRe' ]; then
+        kill -9 -- -$PID 2>/dev/null || kill -9 $PID 2>/dev/null
+    fi
+" < /dev/null > /dev/null 2>&1 &
+WATCHDOG=$!
 
 sleep "$SECS"
 
@@ -49,7 +79,11 @@ sleep 1
 
 # Read-only verification. pgrep never kills, so matching our own argv here is
 # harmless -- subtract this script's own shell from the count.
-LEFT=$(pgrep -f 'SinPunishmentRecompiled' 2>/dev/null | grep -v "^$$\$" | wc -l)
+kill "$WATCHDOG" 2>/dev/null || true   # normal path won; retire the watchdog
+
+# Count by `comm`, not `pgrep -f`: the latter also matches this script's own
+# command line, which is how a "leftover" can be reported that does not exist.
+LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
 
 printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s\n' \
     "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT"
