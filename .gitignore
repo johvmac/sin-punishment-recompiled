@@ -29,7 +29,11 @@ known_good_builds/
 .vscode/
 .idea/
 .DS_Store
-.claude/
+.claude/*
+!.claude/settings.json
+# ^ the hook config is the enforcement layer (check_ledger + guard_bash);
+#   without it a clone has the scripts but nothing that runs them.
+
 
 # Local state
 config/rt64.*.json

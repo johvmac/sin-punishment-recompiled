@@ -206,6 +206,20 @@ def main():
     except Exception:
         reminders.append("routing: no roll recorded yet — run scripts/route.py.")
 
+    # 4b. the L1 audit had NO trigger at all -- it fired only when someone
+    # remembered, which is precisely the failure mode the audit exists to catch.
+    # Every discipline left to memory on this project has failed at least once
+    # (T26), so hang it off the one hook that always runs.
+    try:
+        ast_ = json.loads((LEDGER.parent / ".audit-state.json").read_text())
+        st_ = json.loads((LEDGER.parent / ".route-state.json").read_text())
+        due = st_.get("roll", 0) - ast_.get("last_roll", 0)
+        if due >= 10:
+            reminders.append(f"audit: {due} rolls since audit #{ast_.get('audits', 0)} "
+                             f"— run scripts/audit.py (due every ~10).")
+    except Exception:
+        reminders.append("audit: no audit recorded yet — run scripts/audit.py.")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "
