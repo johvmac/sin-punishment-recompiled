@@ -13,3 +13,4 @@ A gap in the numbering means a roll was skipped.
 - roll #7: **EXPLOIT** (drew 0.533 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer
 - roll #8: **EXPLOIT** (drew 0.275 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer
 - roll #9: **EXPLOIT** (drew 0.445 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer
+- roll #10: **EXPLOIT** (drew 0.585 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
