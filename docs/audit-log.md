@@ -1,0 +1,86 @@
+# Audit log
+
+Level-1 discipline audits. The daily review reads THIS file, not the raw data.
+
+## Audit #1 — since start
+- ledger: 170 entries (+170 this window), 26 withdrawn
+- rolls: 26 this window; runs: 1 (0 exited early, 0 contaminated)
+- **77 thing(s) to look at:**
+  - A84: rests on ONE run (seq.log). Repeat it or say why one is enough.
+  - A82: rests on ONE run (cb.log). Repeat it or say why one is enough.
+  - A81: rests on ONE run (fsp.log). Repeat it or say why one is enough.
+  - A77: rests on ONE run (framed2.log). Repeat it or say why one is enough.
+  - A73: rests on ONE run (dep.log). Repeat it or say why one is enough.
+  - A6: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A21: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A23: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I6: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A25: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I7: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A31: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I8: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A32: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A33: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A35: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A40: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A48: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I9: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A67: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I11: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T22: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A78: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I13: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I10: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T15: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A53: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A66: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A18: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - B24: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I5: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A4: created and withdrawn within one audit window. What made it look right?
+  - A27: created and withdrawn within one audit window. What made it look right?
+  - A36: created and withdrawn within one audit window. What made it look right?
+  - A40: created and withdrawn within one audit window. What made it look right?
+  - I14: created and withdrawn within one audit window. What made it look right?
+  - A75: created and withdrawn within one audit window. What made it look right?
+  - A72: created and withdrawn within one audit window. What made it look right?
+  - A74: created and withdrawn within one audit window. What made it look right?
+  - A68: created and withdrawn within one audit window. What made it look right?
+  - A49: created and withdrawn within one audit window. What made it look right?
+  - A55: created and withdrawn within one audit window. What made it look right?
+  - A45: created and withdrawn within one audit window. What made it look right?
+  - A39: created and withdrawn within one audit window. What made it look right?
+  - A66: created and withdrawn within one audit window. What made it look right?
+  - A7: created and withdrawn within one audit window. What made it look right?
+  - B12: created and withdrawn within one audit window. What made it look right?
+  - B41: created and withdrawn within one audit window. What made it look right?
+  - B46: created and withdrawn within one audit window. What made it look right?
+  - B47: created and withdrawn within one audit window. What made it look right?
+  - B43: created and withdrawn within one audit window. What made it look right?
+  - B42: created and withdrawn within one audit window. What made it look right?
+  - B21: created and withdrawn within one audit window. What made it look right?
+  - B22: created and withdrawn within one audit window. What made it look right?
+  - B3: created and withdrawn within one audit window. What made it look right?
+  - B64: created and withdrawn within one audit window. What made it look right?
+  - T3: created and withdrawn within one audit window. What made it look right?
+  - A37: no evidence recorded. Say what was observed and when.
+  - A44: no evidence recorded. Say what was observed and when.
+  - A62: no evidence recorded. Say what was observed and when.
+  - A18: no evidence recorded. Say what was observed and when.
+  - A10: no evidence recorded. Say what was observed and when.
+  - B6: no evidence recorded. Say what was observed and when.
+  - B24: no evidence recorded. Say what was observed and when.
+  - B52: no evidence recorded. Say what was observed and when.
+  - B56: no evidence recorded. Say what was observed and when.
+  - B31: no evidence recorded. Say what was observed and when.
+  - T1: no evidence recorded. Say what was observed and when.
+  - T2: no evidence recorded. Say what was observed and when.
+  - T4: no evidence recorded. Say what was observed and when.
+  - T5: no evidence recorded. Say what was observed and when.
+  - T6: no evidence recorded. Say what was observed and when.
+  - T7: no evidence recorded. Say what was observed and when.
+  - I1: no evidence recorded. Say what was observed and when.
+  - I2: no evidence recorded. Say what was observed and when.
+  - I3: no evidence recorded. Say what was observed and when.
+  - I4: no evidence recorded. Say what was observed and when.
+

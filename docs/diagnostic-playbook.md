@@ -564,6 +564,40 @@ else.
 Batch every probe you can foresee needing into **one** hook set. Hooks are
 cheap per-probe and expensive per-build: 14 probes cost the same as 1.
 
+### The audit ladder (added 2026-08-18)
+
+26 of 170 ledger entries were withdrawn in one session, and in-the-moment
+discipline caught almost none of them. What caught them: the user spotting two,
+random EXPLORE rolls landing on stale items, and one audit. So review is the
+mechanism that works here — but only if it is cheap enough to actually happen.
+
+**The rule that keeps it cheap: each level reads the level below's OUTPUT, never
+the raw data.** Nothing ever trawls the journal.
+
+| level | when | reads | output |
+|---|---|---|---|
+| L0 | every checkpoint | — | `check_ledger.py` hook + `route.py` roll |
+| **L1** | every ~10 rolls | ledger table, `run-log.tsv`, `route-log.md`, git | `scripts/audit.py` -> `docs/audit-log.md`, <=15 lines |
+| **L2** | daily | **only the L1 blocks** in `audit-log.md` | group defects by class; did the fix for class X hold?; list the day's load-bearing claims + falsifiers for the user to scan |
+| L3 | weekly | **only the L2 blocks** | is the withdrawal rate falling? which classes recur despite tooling? |
+
+`audit.py` checks **leading indicators**, never findings themselves —
+re-verifying a claim costs what producing it cost, and an audit that expensive
+gets skipped. Each check maps to a failure that really happened: single-run
+claims (T22), probes with no control (I1, I13), entries created and withdrawn
+in one window (I14), explore ratio below eps (T14), missing evidence (the
+A24/B35 dangling-citation class), contaminated runs (T23).
+
+**Kill criterion, so this cannot become theatre:** three consecutive quiet
+audits -> halve the frequency. Two quiet L2s -> drop to weekly. An audit that
+never fires is a cost, not a control. `audit.py` tracks the quiet streak itself.
+
+**Known limit.** Mechanical checks catch structure, not "this claim is broader
+than its evidence" unless it leaves a trace — and both errors the user caught
+were of exactly that kind. L2's real product is therefore a digest short enough
+for the user to scan in 30 seconds, not a verdict from the same judgement that
+made the error.
+
 ### Reverting a multi-file change: revert every piece together, not one at a time
 
 **A real bug, caught by the user watching directly, not by any tooling**:

@@ -1,0 +1,2 @@
+ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	log	env
+2026-08-18T18:38:10+10:00	8	8	0	0	0	191	28	rl.log	SNP_HEARTBEAT=1

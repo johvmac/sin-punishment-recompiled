@@ -115,7 +115,8 @@ LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
 # so typing anywhere while a run is up can press N64 buttons. Verified 2026-08-18:
 # injected input made a run SIGSEGV. A run with input in it is not comparable to
 # one without, so say so loudly rather than leaving it to be noticed.
-INPUT=$(grep -c '^\[input\] runtime' "$OUT" 2>/dev/null || echo 0)
+INPUT=$(grep -c '^\[input\] runtime' "$OUT" 2>/dev/null || true)
+INPUT=${INPUT:-0}
 
 printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events=%s\n' \
     "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT" "$INPUT"
@@ -129,4 +130,23 @@ fi
 if [[ "$LEFT" -gt 0 ]]; then
     echo "[run_game] WARNING: $LEFT process(es) survived SIGKILL -- investigate" >&2
 fi
+
+# --- Append one line per run to docs/run-log.tsv ---------------------------
+# Every field below was already computed and then thrown away, which is exactly
+# why "how many runs support this claim?" was unanswerable all through
+# 2026-08-18 (T22: run-to-run variance misattributed three times, to run length,
+# probe cost, and an env var that was a no-op). With this, that question is a
+# grep. gfx rate is the per-run validity filter: a healthy attract run holds
+# +30/s, and a run that does not is not comparable to one that does.
+GFX_LINE=$(grep '^\[heartbeat\]' "$OUT" 2>/dev/null | tail -1)
+GFX_TOTAL=$(sed -nE 's/.*gfx_tasks=([0-9]+).*/\1/p' <<< "$GFX_LINE")
+GFX_RATE=$(sed -nE 's/.*gfx_tasks=[0-9]+ +\+([0-9]+).*/\1/p' <<< "$GFX_LINE")
+RUNLOG="$(dirname "$0")/../docs/run-log.tsv"
+if [[ ! -f "$RUNLOG" ]]; then
+    printf 'ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\tgfx_total\tgfx_rate\tlog\tenv\n' > "$RUNLOG"
+fi
+printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$(date -Iseconds)" "$SECS" "${EARLY:-$SECS}" "${RC:-0}" "$INPUT" "$LEFT" \
+    "${GFX_TOTAL:-NA}" "${GFX_RATE:-NA}" "$(basename "$OUT")" "${*:-none}" >> "$RUNLOG"
+
 exit 0
