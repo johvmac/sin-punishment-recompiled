@@ -621,6 +621,20 @@ change, not just the most obviously-changed one. A partial revert can be
 harder to diagnose than either full state, because it doesn't match either
 of the two things you've already characterized.
 
+### Where captures live (added 2026-08-18)
+
+Screenshots do **not** stay in the scratchpad. One ares session at 2s sampling
+produced 106 PNGs plus 14MB of `.xwd` intermediates, on a root filesystem at 92%.
+
+- **Keep** the handful of frames that are *reference behaviour* — what the real
+  game does — in `/media/joh/extra/sin-punishment-archive/reference-captures/`,
+  with a README naming each. That set is 308KB and re-deriving it costs a whole
+  ares session.
+- **Delete** every `.xwd` intermediate (~700KB each, regenerable in one command)
+  and every frame that only re-confirms what a kept frame already shows.
+- **Never** leave a copied binary in the scratchpad. `build.sh` snapshots builds
+  to the archive drive, so a stray `cur.bin` is 23MB of pure duplication.
+
 ### Caching a known-good build for fast comparison
 
 **Snapshot on every state you might want to A/B later, not only on milestones
