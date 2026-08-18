@@ -70,7 +70,16 @@ fi
 # user's mouse is. Pass SNP_VISIBLE=1 when the run is meant to be WATCHED --
 # milestone confirmation has to happen on the real display.
 XEPHYR_PID=""
-if [[ -z "${SNP_VISIBLE:-}" ]] && command -v Xephyr >/dev/null 2>&1; then
+# SNP_VISIBLE arrives as an ARGUMENT (an env assignment forwarded to `env`),
+# not in this script's own environment -- so "${SNP_VISIBLE:-}" never saw it,
+# and a run the user had been asked to WATCH silently went to the nested server
+# instead. Check both places.
+WANT_VISIBLE="${SNP_VISIBLE:-}"
+for a in "$@"; do
+    case "$a" in SNP_VISIBLE=*) WANT_VISIBLE="${a#SNP_VISIBLE=}" ;; esac
+done
+
+if [[ -z "$WANT_VISIBLE" || "$WANT_VISIBLE" == "0" ]] && command -v Xephyr >/dev/null 2>&1; then
     ISO_DISPLAY=":${SNP_ISO_DISPLAY:-7}"
     Xephyr "$ISO_DISPLAY" -screen 1280x720 -nolisten tcp > /dev/null 2>&1 &
     XEPHYR_PID=$!
