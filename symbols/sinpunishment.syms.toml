@@ -6759,7 +6759,7 @@ functions = [
     { name = "ovlfile20_func_800E50C4", vram = 0x800E50C4, size = 0x28 },
     { name = "ovlfile20_func_800E50EC", vram = 0x800E50EC, size = 0x30 },
     { name = "ovlfile20_func_800E511C", vram = 0x800E511C, size = 0x518 },
-    { name = "ovlfile20_func_800E5634", vram = 0x800E5634, size = 0x54 },
+    { name = "ovlfile20_func_800E5634", vram = 0x800E5634, size = 0x118 },
     { name = "ovlfile20_func_800E574C", vram = 0x800E574C, size = 0x8C },
     { name = "ovlfile20_func_800E57D8", vram = 0x800E57D8, size = 0x38 },
     { name = "ovlfile20_func_800E5810", vram = 0x800E5810, size = 0x64 },
