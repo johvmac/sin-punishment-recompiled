@@ -124,7 +124,7 @@ def main():
     # skip when the citing text says so -- otherwise every correction we make
     # trips its own alarm.
     supersedes = re.compile(
-        r"(supersed|replaces|corrects|retract|too coarse|withdraw|~~)", re.I)
+        r"(supersed|replaces|corrects|refut|retract|too coarse|withdraw|~~)", re.I)
     for eid, (tag, body, n) in rows.items():
         if "WD" in tag or supersedes.search(body):
             continue
