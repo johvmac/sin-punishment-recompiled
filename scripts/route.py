@@ -64,6 +64,34 @@ def load():
     return {"roll": 0, "last_entry_count": 0, "last_seen": {}}
 
 
+def schedule():
+    """Anything due or overdue in docs/SCHEDULE.md.
+
+    Dated side-tasks (upstreaming, triage, writeups) are the ones that quietly
+    never happen -- the root-cause work needs no reminder because it is the
+    default. Surfaced here because this is the tool consulted at every
+    checkpoint, so a due item cannot sit unnoticed.
+    """
+    import datetime
+    sched = ROOT / "docs" / "SCHEDULE.md"
+    if not sched.exists():
+        return [], []
+    today = datetime.date.today().isoformat()
+    due, upcoming = [], []
+    for line in sched.read_text().split("\n"):
+        m = re.match(r"- \[( |x)\] \*\*(\d{4}-\d{2}-\d{2})\*\* — (.*)", line)
+        if not m:
+            continue
+        done, when, what = m.group(1) == "x", m.group(2), re.sub(r"[*`]", "", m.group(3))
+        if done:
+            continue
+        if when <= today:
+            due.append((when, what))
+        else:
+            upcoming.append((when, what))
+    return due, upcoming[:1]
+
+
 def main():
     if not LEDGER.exists():
         print("[route] no ledger", file=sys.stderr)
@@ -131,6 +159,16 @@ def main():
                        "A gap in the numbering means a roll was skipped.\n\n")
     with LOG.open("a") as f:
         f.write(line + "\n")
+
+    due, upcoming = schedule()
+    for when, what in due:
+        tag = "OVERDUE" if when < __import__("datetime").date.today().isoformat() else "DUE TODAY"
+        print(f"[sched] {tag} {when}: {what[:100]}")
+    for when, what in upcoming:
+        print(f"[sched] next    {when}: {what[:100]}")
+    if due:
+        print("        (scheduled work comes first — the roll below covers the"
+              " root-cause investigation)")
 
     print(f"[route] roll #{st['roll']} — {verdict}  (drew {draw:.3f}, eps {EPS})")
     print(f"        target: {target} — {body}")

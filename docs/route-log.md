@@ -10,3 +10,6 @@ A gap in the numbering means a roll was skipped.
 - roll #4: **EXPLOIT** (drew 0.286 vs eps 0.2) -> `A18` — The live question, now sharply framed: static data + no depth limit (A11) + genuinely deeper rec
 - roll #5: **EXPLOIT** (drew 0.674 vs eps 0.2) -> `A18` — The live question, now sharply framed: static data + no depth limit (A11) + genuinely deeper rec
 - roll #6: **EXPLOIT** (drew 0.749 vs eps 0.2) -> `A18` — The live question, now sharply framed: static data + no depth limit (A11) + genuinely deeper rec
+- roll #7: **EXPLOIT** (drew 0.533 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer
+- roll #8: **EXPLOIT** (drew 0.275 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer
+- roll #9: **EXPLOIT** (drew 0.445 vs eps 0.2) -> `A37` — Next, and narrow: at a depth record, dump the ancestor chain and 0x801028EC's child-list pointer

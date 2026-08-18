@@ -78,7 +78,7 @@ git commit -q -m "Daily sync ${DATE}: ${FILES} file(s)
 Automated by scripts/daily_push.sh (allow-list staging; session handoffs and
 the raw journal are excluded by design).
 
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>" || die "commit failed"
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>" || die "commit failed"
 
 say "committed $(git rev-parse --short HEAD)"
 
