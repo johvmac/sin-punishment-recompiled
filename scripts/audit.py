@@ -28,6 +28,8 @@ failure that really happened:
   4. explore ratio below eps    -> T14, rolls skipped in unattended stretches
   5. entries with no evidence   -> the A24/B35 dangling-citation class
   6. contaminated runs          -> T23, input can silently wreck a run
+  7. the 18:30 cron push        -> its log almost always says "nothing to
+                                   commit", so a real failure looks the same
 
 It reads STRUCTURED data only: the ledger table, docs/run-log.tsv,
 docs/route-log.md, git. It never opens the journal. Cost is a couple of
@@ -153,6 +155,29 @@ def main():
     crashed = [r for r in recent if r[3] not in ("0", "")]
     if dirty:
         findings.append(f"runs: {len(dirty)}/{len(recent)} had controller input -- not comparable to clean runs (T23).")
+
+    # 7. the 18:30 cron push. Because every checkpoint pushes manually, this
+    # almost always logs "nothing to commit" -- so its log is a monotonous
+    # success message that nobody reads, and a real failure (drive unmounted,
+    # key expired, a refusal triggered) would look much the same at a glance.
+    # That is the same shape as the defects this whole session was spent fixing:
+    # a signal with no reader. Cheap to check here, where there IS a reader.
+    import datetime as _dt
+    push_log = ROOT / "scripts" / "daily_push.log"
+    _now_dt = _dt.datetime.now()
+    if not push_log.exists():
+        findings.append("cron: scripts/daily_push.log missing — the 18:30 push has never run.")
+    else:
+        age_days = (_now_dt - _dt.datetime.fromtimestamp(push_log.stat().st_mtime)).days
+        last = [l for l in push_log.read_text().strip().split("\n") if l.strip()]
+        last = last[-1] if last else ""
+        # Before 18:30 the freshest possible log is yesterday's, so only a log
+        # older than that is evidence of a miss.
+        stale_limit = 0 if _now_dt.hour > 18 or (_now_dt.hour == 18 and _now_dt.minute >= 35) else 1
+        if age_days > stale_limit:
+            findings.append(f"cron: daily_push.log is {age_days}d old — the 18:30 push may not be running.")
+        if "REFUSING" in last or "error" in last.lower() or "fatal" in last.lower():
+            findings.append(f"cron: last push ended in a refusal/error — {last[:90]}")
 
     lines = [f"## Audit #{st['audits'] + 1} — since {since[:8] or 'start'}",
              f"- ledger: {len(now)} entries (+{len(added)} this window), "
