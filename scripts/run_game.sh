@@ -32,6 +32,23 @@ shift 2 2>/dev/null || true
 cd "$(dirname "$0")/.." || exit 1
 BIN=./build/SinPunishmentRecompiled
 
+# --- Source/binary drift ---------------------------------------------------
+# Twice now a source change has been made and the binary left stale, so the run
+# measured the OLD code: I10 (a toml stripped after the build) and 2026-08-19 (a
+# submodule patch reverted for a repro, restored in source, never rebuilt --
+# leaving a crashing binary behind a fixed tree). Both times the disagreement
+# was invisible at run time. Cheap to detect: if any tracked source is newer
+# than the binary, say so.
+if [[ -x "$BIN" ]]; then
+    NEWER=$(find sinpunishment.toml symbols lib/N64ModernRuntime/ultramodern/src \
+                 lib/N64ModernRuntime/librecomp/src -newer "$BIN" -type f 2>/dev/null | head -3)
+    if [[ -n "$NEWER" ]]; then
+        echo "[run_game] WARNING: source is NEWER than the binary -- this run may measure stale code:" >&2
+        echo "$NEWER" | sed 's/^/[run_game]   /' >&2
+        echo "[run_game]   Rebuild with scripts/build.sh, or the result is about the old build." >&2
+    fi
+fi
+
 if [[ ! -x "$BIN" ]]; then
     echo "[run_game] ERROR: $BIN not found or not executable" >&2
     exit 1
