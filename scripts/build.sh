@@ -49,6 +49,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# --- 0. milestone guard ----------------------------------------------------
+# Standing rule: a milestone / known-good / "best build" is never declared
+# alone -- the user confirms it on screen first. That rule lived only in prose,
+# so this makes the label itself require the confirmation.
+if [[ "$LABEL" == *MILESTONE* && -z "${SNP_USER_CONFIRMED:-}" ]]; then
+    echo "[build] REFUSING to label a build MILESTONE without user confirmation." >&2
+    echo "[build]   A milestone means the user watched it work. Ask them, then re-run" >&2
+    echo "[build]   with SNP_USER_CONFIRMED=1 once they have confirmed on screen." >&2
+    exit 1
+fi
+
 # --- 1. lint the probes BEFORE spending a build ----------------------------
 echo "==> linting scratch hooks"
 scripts/lint_hooks.py || true

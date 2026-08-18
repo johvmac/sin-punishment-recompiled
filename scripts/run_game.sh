@@ -118,8 +118,35 @@ LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
 INPUT=$(grep -c '^\[input\] runtime' "$OUT" 2>/dev/null || true)
 INPUT=${INPUT:-0}
 
-printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events=%s\n' \
-    "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT" "$INPUT"
+# --- Validity verdict ------------------------------------------------------
+# T22: run-to-run variance dominates, and three separate mechanisms were blamed
+# for it before that was recognised. The one reliable per-run filter is the gfx
+# rate -- a healthy attract run holds +30/s, and every anomalous run so far has
+# shown it collapsed. Deciding this by eye, run by run, is exactly the kind of
+# judgement that gets skipped when in a hurry, so the script decides it.
+#
+# A DEGRADED run is not evidence about a build. It is not comparable to a CLEAN
+# one and must not be cited as though it were.
+GFX_LINE=$(grep '^\[heartbeat\]' "$OUT" 2>/dev/null | tail -1)
+GFX_TOTAL=$(sed -nE 's/.*gfx_tasks=([0-9]+).*/\1/p' <<< "$GFX_LINE")
+GFX_RATE=$(sed -nE 's/.*gfx_tasks=[0-9]+ +\+([0-9]+).*/\1/p' <<< "$GFX_LINE")
+
+VERDICT="CLEAN"
+if   [[ "$INPUT" -gt 0 ]];                     then VERDICT="CONTAMINATED"
+elif [[ -n "$EARLY" ]];                        then VERDICT="CRASHED"
+elif [[ -z "$GFX_LINE" ]];                     then VERDICT="UNKNOWN(no SNP_HEARTBEAT)"
+elif [[ "${GFX_RATE:-0}" -lt 25 ]];            then VERDICT="DEGRADED"
+fi
+
+printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events=%s  VERDICT=%s\n' \
+    "$SECS" "$PID" "$OUT" "$(wc -l < "$OUT" 2>/dev/null || echo 0)" "$LEFT" "$INPUT" "$VERDICT"
+
+case "$VERDICT" in
+  DEGRADED)
+    echo "[run_game] NOT COMPARABLE: gfx ended at +${GFX_RATE:-?}/s (healthy holds +30). This run is not evidence about the build (T22)." >&2 ;;
+  "UNKNOWN(no SNP_HEARTBEAT)")
+    echo "[run_game] No liveness signal — pass SNP_HEARTBEAT=1 or the run cannot be judged valid (T22)." >&2 ;;
+esac
 
 if [[ "$INPUT" -gt 0 ]]; then
     echo "[run_game] WARNING: $INPUT controller-input event(s) during this run -- it was NOT clean." >&2
@@ -138,15 +165,12 @@ fi
 # probe cost, and an env var that was a no-op). With this, that question is a
 # grep. gfx rate is the per-run validity filter: a healthy attract run holds
 # +30/s, and a run that does not is not comparable to one that does.
-GFX_LINE=$(grep '^\[heartbeat\]' "$OUT" 2>/dev/null | tail -1)
-GFX_TOTAL=$(sed -nE 's/.*gfx_tasks=([0-9]+).*/\1/p' <<< "$GFX_LINE")
-GFX_RATE=$(sed -nE 's/.*gfx_tasks=[0-9]+ +\+([0-9]+).*/\1/p' <<< "$GFX_LINE")
 RUNLOG="$(dirname "$0")/../docs/run-log.tsv"
 if [[ ! -f "$RUNLOG" ]]; then
-    printf 'ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\tgfx_total\tgfx_rate\tlog\tenv\n' > "$RUNLOG"
+    printf 'ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\tgfx_total\tgfx_rate\tverdict\tlog\tenv\n' > "$RUNLOG"
 fi
-printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$(date -Iseconds)" "$SECS" "${EARLY:-$SECS}" "${RC:-0}" "$INPUT" "$LEFT" \
-    "${GFX_TOTAL:-NA}" "${GFX_RATE:-NA}" "$(basename "$OUT")" "${*:-none}" >> "$RUNLOG"
+    "${GFX_TOTAL:-NA}" "${GFX_RATE:-NA}" "$VERDICT" "$(basename "$OUT")" "${*:-none}" >> "$RUNLOG"
 
 exit 0
