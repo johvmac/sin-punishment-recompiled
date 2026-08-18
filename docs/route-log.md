@@ -16,3 +16,4 @@ A gap in the numbering means a roll was skipped.
 - roll #10: **EXPLOIT** (drew 0.585 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
 - roll #11: **EXPLOIT** (drew 0.226 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
 - roll #12: **EXPLOIT** (drew 0.723 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not
+- roll #13: **EXPLOIT** (drew 0.564 vs eps 0.2) -> `A40` — Next: find the frame that leaks 0x18. One call per traversal decrements $sp by 0x18 and does not

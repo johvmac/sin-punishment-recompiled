@@ -143,16 +143,19 @@ def main():
     # 4. routing decision overdue. This is what makes the explore/exploit roll
     # actually happen: findings accumulate constantly, so the nag surfaces on
     # its own rather than depending on remembering to roll.
+    # Kept OUT of `problems`: this is a reminder, not a structural defect, and
+    # --strict is used by daily_push.sh as a publish gate. A nag must never
+    # block a push -- that conflates "you owe a routing roll" with "the ledger
+    # is malformed", and the fix for the former is not to edit the ledger.
+    reminders = []
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
         since = len(rows) - state.get("last_entry_count", 0)
         if since >= 6:
-            problems.append(
-                (1, f"routing: {since} entries added since roll "
-                    f"#{state.get('roll', 0)} — run scripts/route.py before "
-                    f"choosing what to do next."))
+            reminders.append(f"routing: {since} entries added since roll "
+                             f"#{state.get('roll', 0)} — run scripts/route.py.")
     except Exception:
-        problems.append((1, "routing: no roll recorded yet — run scripts/route.py."))
+        reminders.append("routing: no roll recorded yet — run scripts/route.py.")
 
     # 5. duplicate ids
     for eid, n, first in dupes:
@@ -160,6 +163,8 @@ def main():
                             f"Merge; one ID, one current status."))
 
     out = sys.stderr if hook else sys.stdout
+    for r in reminders:
+        print(f"[ledger] note — {r}", file=out)
     if not problems:
         print(f"[ledger] OK — {len(rows)} entries, {len(lb)} load-bearing, "
               f"{len(withdrawn)} withdrawn.", file=out)
