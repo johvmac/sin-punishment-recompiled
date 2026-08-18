@@ -27,7 +27,7 @@ Usage:
     scripts/route.py                # roll, record, print the decision
     scripts/route.py --status       # show open items + staleness, do NOT roll
     scripts/route.py --history      # past decisions
-    SNP_ROUTE_EPS=0.25 scripts/route.py     # override epsilon (default 0.20)
+    SNP_ROUTE_EPS=0.25 scripts/route.py     # override epsilon (default 0.30)
 """
 import json
 import os
