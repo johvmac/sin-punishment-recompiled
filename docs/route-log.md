@@ -36,3 +36,4 @@ A gap in the numbering means a roll was skipped.
 - roll #30: **EXPLOIT** (drew 0.903 vs eps 0.2) -> `A95` — THE FRONTIER: the transition to the title screen emits no graphics tasks. Established: the white
 - roll #31: **EXPLOIT** (drew 0.662 vs eps 0.2) -> `A95` — THE FRONTIER: the transition to the title screen emits no graphics tasks. Established: the white
 - roll #32: **EXPLOIT** (drew 0.968 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
+- roll #33: **EXPLOIT** (drew 0.712 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
