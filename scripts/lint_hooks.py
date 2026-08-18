@@ -87,6 +87,15 @@ def main():
             warns.append(f"{where}: per-call RDRAM read on a hot path. "
                          f"That is what I13 measured at ~15x slowdown.")
 
+        # A probe that fires near a crash MUST flush. A process killed by SIGSEGV
+        # loses buffered stderr, so the most important line -- the one printed
+        # microseconds before the fault -- is exactly the one that vanishes. On
+        # 2026-08-18 that made a correct probe read as a clean negative and sent
+        # the investigation off for two extra build cycles (A101).
+        if "fprintf" in body and "fflush" not in body:
+            warns.append(f"{where}: prints without fflush(stderr). If this fires "
+                         f"near a crash the last line is LOST (A101).")
+
         # A hook that neither prints nor calls out is doing nothing observable.
         if "fprintf" not in body and "recomp_" not in body:
             warns.append(f"{where}: no fprintf and no runtime call -- "

@@ -36,7 +36,7 @@ RULES = [
      "Kill by PID (`kill -9 <pid>`), or let scripts/run_game.sh own the lifetime. "
      "To match the game by name use `comm` = 'SinPunishmentRe' (15-char truncation)."),
 
-    (re.compile(r"cmake\s+--build\s+build"),
+    (re.compile(r"cmake\s+--build\s+build(?![\w-])"),
      "Building directly skips scripts/build.sh, which lints the probes BEFORE "
      "spending the cycle and snapshots the binary it is about to overwrite (T25/T26).",
      "Use `scripts/build.sh` (add --no-recomp for C++-only changes)."),
