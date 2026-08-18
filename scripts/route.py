@@ -43,15 +43,44 @@ LOG = ROOT / "docs" / "route-log.md"
 EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.20"))
 
 
+COST_RE = re.compile(r"\[cost=(\d+)\]")
+
+
 def open_items():
-    """OPEN rows from the ledger, in file order."""
+    """OPEN rows, CHEAPEST FIRST.
+
+    This used to return them in file order and the caller called items[0] "the
+    cheapest frontier item". It was nothing of the kind -- it was whichever OPEN
+    row happened to sit highest in the document, and the ledger is append-ish, so
+    that mostly meant "the oldest open question". 15 of the first 19 rolls were
+    EXPLOIT decisions steered by that, and on 2026-08-18 it pointed at A53 (a
+    re-costing chore whose premise had just been demolished) while the actual
+    frontier was A18. Calling document order a cost ranking is exactly the
+    claim-broader-than-evidence failure this ledger exists to prevent, so the
+    ordering is now explicit or it is not claimed at all.
+
+    Annotate an OPEN row with `[cost=N]` -- N is a rough relative price (build
+    cycles, run minutes, tokens; the scale only has to be consistent). Rows
+    without one sort last and are reported as unpriced.
+    """
     items = []
     for line in LEDGER.read_text().split("\n"):
         m = re.match(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|", line)
         if m and "OPEN" in m.group(2).upper():
-            body = re.sub(r"[*`~]", "", m.group(3))
-            items.append((m.group(1), body[:96]))
+            raw = m.group(3)
+            # the marker may sit in the status cell (`| A18 | OPEN [cost=2] |`)
+            # or in the body; accept either
+            c = COST_RE.search(m.group(2)) or COST_RE.search(raw)
+            cost = int(c.group(1)) if c else None
+            body = re.sub(r"[*`~]", "", COST_RE.sub("", raw)).strip()
+            items.append((m.group(1), body[:96], cost))
+    # None sorts last; ties keep file order (sort is stable)
+    items.sort(key=lambda x: (x[2] is None, x[2] if x[2] is not None else 0))
     return items
+
+
+def unpriced(items):
+    return [e for e, _, c in items if c is None]
 
 
 def entry_count():
@@ -110,10 +139,14 @@ def main():
     if "--status" in sys.argv:
         print(f"[route] {len(items)} open, last roll #{st['roll']}, "
               f"entries at last roll {st['last_entry_count']} (now {entry_count()})")
-        for i, (eid, body) in enumerate(items):
+        for i, (eid, body, cost) in enumerate(items):
             stale = st["roll"] - st["last_seen"].get(eid, 0)
-            print(f"  {'FRONTIER' if i == 0 else '        '} {eid:5s} "
-                  f"stale={stale:2d}  {body}")
+            cs = f"cost={cost:<3d}" if cost is not None else "cost=?  "
+            print(f"  {'CHEAPEST' if i == 0 and cost is not None else '        '} {eid:5s} "
+                  f"{cs} stale={stale:2d}  {body}")
+        if unpriced(items):
+            print(f"  [route] UNPRICED (sorted last, not ranked): {', '.join(unpriced(items))}")
+            print("          add [cost=N] to those rows or the ordering is not a ranking")
         return 0
 
     st["roll"] += 1
@@ -130,23 +163,25 @@ def main():
         if "--uniform" in sys.argv:
             weights = [1] * len(cands)
         else:
-            weights = [1 + (st["roll"] - st["last_seen"].get(e, 0)) for e, _ in cands]
+            weights = [1 + (st["roll"] - st["last_seen"].get(e, 0)) for e, _, _ in cands]
         total = sum(weights)
         pick = random.random()
         acc, target, body = 0.0, cands[-1][0], cands[-1][1]
-        for (e, b), w in zip(cands, weights):
+        for (e, b, _c), w in zip(cands, weights):
             acc += w / total
             if pick <= acc:
                 target, body = e, b
                 break
-        picks = [(e, w, w / total) for (e, _), w in zip(cands, weights)]
+        picks = [(e, w, w / total) for (e, _, _), w in zip(cands, weights)]
         verdict = "EXPLORE"
         note = ("ONE bounded check, hard budget. Record the outcome either way — "
                 "'still expensive, because X' is itself a costing improvement.")
     else:
-        target, body = items[0]
+        target, body, cost = items[0]
         verdict = "EXPLOIT"
-        note = "Continue the cheapest frontier item."
+        note = ("Continue the cheapest OPEN item (cost=%s)." % cost if cost is not None
+                else "WARNING: no OPEN row carries [cost=N], so this is NOT a cost "
+                     "ranking -- it is document order. Price the rows before trusting it.")
 
     st["last_seen"][target] = st["roll"]
     st["last_entry_count"] = entry_count()
