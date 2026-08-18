@@ -40,7 +40,19 @@ ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "findings-ledger.md"
 STATE = ROOT / "docs" / ".route-state.json"
 LOG = ROOT / "docs" / "route-log.md"
-EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.20"))
+# Raised 0.20 -> 0.30 on 2026-08-18, on 31 rolls of evidence rather than taste.
+# Observed rate was 13% (4 of 31) against a nominal 20%, with a longest EXPLOIT
+# streak of 12 -- and the four explores yielded three closures or tooling fixes
+# (A44 closed; B31 closed as not-worth-doing, which also surfaced T19, a wrong
+# path that would have broken the next day's scheduled task; B36 surfaced T21,
+# three ledger IDs cited but never written). The 27 exploits produced the
+# headline fix, but per roll the explores paid better, which is exactly what the
+# docstring above predicts when cost estimates are unreliable -- and today they
+# repeatedly were (A80 stayed "frontier" for four rolls after being answered;
+# A96 and A97 were not even on the list).
+# Revisit after ~20 rolls: audit.py reports the ratio, and if frontier progress
+# stalls this is the first thing to put back.
+EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.30"))
 
 
 COST_RE = re.compile(r"\[cost=(\d+)\]")
