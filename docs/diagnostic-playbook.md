@@ -311,7 +311,9 @@ several already do.
 ### Standard loop
 
 ```bash
-./scripts/recompile.sh && cmake --build build
+./scripts/build.sh          # NOT recompile.sh + cmake directly:
+                            # build.sh lints the probes first and snapshots the
+                            # binary it is about to overwrite (T25/T26)
 ./scripts/boot_screen_check.sh 60 /tmp/check.png
 ```
 

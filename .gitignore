@@ -55,3 +55,5 @@ scripts/*.log
 HANDOFF-*.md
 docs/boot-debugging-*.md
 docs/.route-state.json
+# Build snapshots live on the second drive (see scripts/build.sh); this is a symlink.
+known_good_builds
