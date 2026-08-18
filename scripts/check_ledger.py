@@ -129,16 +129,42 @@ def main():
         if "WD" in tag or supersedes.search(body):
             continue
         for w in sorted(withdrawn):
-            if re.search(rf"\b{w}\b", body):
+            if re.search(rf"(?<![\w./]){w}(?![\w./])", body):
                 problems.append(
                     (n, f"{eid}: cites {w}, which is WITHDRAWN. "
                         f"Re-check whether {eid} still stands on its own."))
     for lid, d in lb.items():
         joined = "\n".join(d["body"])
         for w in sorted(withdrawn):
-            if re.search(rf"\b{w}\b", joined):
+            if re.search(rf"(?<![\w./]){w}(?![\w./])", joined):
                 problems.append(
                     (d["line"], f"{lid}: load-bearing claim cites WITHDRAWN {w}."))
+
+    # 3b. citing an entry that DOES NOT EXIST.
+    # B36 rested on "B35's derived unpack addresses" for its whole life; the only
+    # occurrence of B35 in the ledger was that citation. A dangling reference is
+    # worse than a withdrawn one -- a withdrawn entry at least records what was
+    # believed and why it fell, whereas this looks like support and is nothing.
+    # Bare IDs only (A12, B7, T3, I9, L2); anything with other text around it,
+    # like a hex address, is left alone.
+    # ROADMAP.md defines its own IDs (A26, B31, T11 ...) and the ledger legitimately
+    # cross-references them, so those are not dangling.
+    known = set(rows) | set(lb)
+    roadmap = LEDGER.parent / "ROADMAP.md"
+    if roadmap.exists():
+        known |= set(re.findall(r"^\*\*([ABTIL]\d{1,3}[a-z]?)\s+—",
+                                roadmap.read_text(), re.M))
+    ref_re = re.compile(r"(?<![\w./])([ABTIL]\d{1,3}[a-z]?)(?![\w./])")
+    # An entry that RECORDS a dangling reference has to name it; don't flag that.
+    names_gap = re.compile(r"(does not exist|never existed|has never existed|dangling)", re.I)
+    for eid, (tag, body, n) in rows.items():
+        if names_gap.search(body):
+            continue
+        for ref in set(ref_re.findall(body)):
+            if ref != eid and ref not in known:
+                problems.append(
+                    (n, f"{eid}: cites {ref}, which DOES NOT EXIST in this ledger. "
+                        f"Either the entry was never written or the ID is wrong."))
 
     # 4. routing decision overdue. This is what makes the explore/exploit roll
     # actually happen: findings accumulate constantly, so the nag surfaces on
