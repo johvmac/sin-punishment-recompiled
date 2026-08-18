@@ -12,7 +12,7 @@
  
  #include "blockingconcurrentqueue.h"
  
-@@ -567,15 +571,643 @@
+@@ -557,15 +561,696 @@
      return events_context.vi.get_cur_state()->framebuffer;
  }
  
@@ -233,6 +233,11 @@
 +    std::vector<std::pair<uint32_t, uint32_t>> path;
 +    uint32_t max_path = 0;       // deepest recursion level reached
 +    uint32_t deepest_node = 0;   // the node sitting at that depth
++    // A18 (2026-08-18): root of each top-level descent. See the probe body.
++    uint32_t last_frame = 0xFFFFFFFFu; // SNP_WALK_FRAMED: frame of the live descent
++    uint32_t root = 0;           // most recent top-level node
++    uint64_t roots = 0;          // top-level descents seen
++    uint32_t root_changes = 0;   // times that root differed from the previous
 +    uint64_t cycles = 0;         // descents that revisited a node
 +    uint32_t cycle_node = 0;     // first node caught repeating
 +    uint32_t cycle_depth = 0;    // level it repeated at
@@ -320,9 +325,56 @@
 +    // a known-healthy walk pinned at 640 bytes (8 levels), and the first version
 +    // claimed 37 levels and 23 cycles there. A parent is never popped by its own
 +    // child's arrival, because the child's recorded sp is strictly smaller.
++    // SNP_WALK_FRAMED=1 (2026-08-18, A78): clear the shadow stack whenever the
++    // game's frame counter moves, making `levels` a strictly WITHIN-FRAME depth.
++    //
++    // Why this control exists. The pop rule below drops entries whose recorded
++    // sp is at or below the current one. That is correct within a single
++    // descent, but the walker's entry sp itself falls 0x18 per frame (A72), so
++    // LAST frame's entries sit at a HIGHER sp and can never be popped. They
++    // accumulate, one per frame -- which would grow `levels` by exactly +1 per
++    // frame and make every new descent look like it revisited an ancestor,
++    // producing precisely the numbers A72/A74/A75 rest on. That is the same
++    // shape as I2, where a pop comparison manufactured phantom depth and
++    // phantom cycles in a known-healthy window.
++    //
++    // If `levels` still grows with this enabled, the recursion is genuinely
++    // deepening. If it pins at 9, the growth was an artifact of this probe and
++    // the drift is something other than depth.
++    static const bool framed = getenv("SNP_WALK_FRAMED") != nullptr;
++    if (framed) {
++        // NOT the game's frame counter in RDRAM. Reading that per call is the
++        // one ingredient I13 identified as slowing the walk path ~15x, and the
++        // first version of this control reproduced exactly that (gfx 2653 ->
++        // 420, onset never reached). g_gfx_task_count is an in-process atomic
++        // that already ticks once per frame and the probe already reads it.
++        uint32_t fr = (uint32_t)g_gfx_task_count.load();
++        if (fr != s.last_frame) {
++            s.last_frame = fr;
++            s.path.clear();
++        }
++    }
 +    while (!s.path.empty() && s.path.back().first <= sp) {
 +        s.path.pop_back();
 +    }
++    // A18 (2026-08-18): DEEPER FROM A NEW ROOT, or RE-ENTERING THE SAME NODES?
++    // A72 established the mechanism (+1 recursion level per frame at 0x18 per
++    // level) but not the driver. After the pop loop above, an empty path means
++    // nothing from a previous descent is still live, so this call IS the
++    // top-level entry and `node` is the walk's root.
++    //
++    // Tracked here rather than in a toml hook for a measured reason: I13 found
++    // that ANY extra code in that hook slows the game ~15x and suppresses the
++    // bug outright (147,266 walker calls -> 1,120, levels 1345 -> 9). This
++    // costs three integer ops inside a lock we already hold.
++    if (s.path.empty()) {
++        s.roots++;
++        if (node != s.root) {
++            s.root_changes++;
++            s.root = node;
++        }
++    }
++
 +    for (const auto& [frame_sp, frame_node] : s.path) {
 +        if (frame_node == node) {
 +            if (s.cycles++ == 0) {
@@ -606,11 +658,12 @@
 +    std::lock_guard lock{ walk_mutex };
 +    for (const auto& [id, v] : walk_stats) {
 +        fprintf(stderr, "[walk] t=%llds thread=%d calls=%llu low_sp=0x%08X high_sp=0x%08X depth=%u types=%zu maxtype=0x%X "
-+                        "levels=%u deepest_node=0x%08X cycles=%llu%s\n",
++                        "levels=%u deepest_node=0x%08X root=0x%08X roots=%llu rootchg=%u cycles=%llu%s\n",
 +            secs, id, (unsigned long long)v.calls,
 +            v.min_sp, v.max_sp, v.max_sp - v.min_sp, v.types.size(),
 +            v.types.empty() ? 0u : *v.types.rbegin(),
-+            v.max_path, v.deepest_node, (unsigned long long)v.cycles,
++            v.max_path, v.deepest_node, v.root, (unsigned long long)v.roots, v.root_changes,
++            (unsigned long long)v.cycles,
 +            v.cycles ? "   <<< CYCLE" : "");
 +        if (v.cycles != 0) {
 +            fprintf(stderr, "[walk]   first cycle: node 0x%08X revisited at level %u (gfx task %llu)\n",
@@ -656,7 +709,7 @@
          events_context.sp_task_queue.enqueue(task);
      }
  }
-@@ -585,9 +1217,20 @@
+@@ -575,9 +1260,20 @@
  }
  
  void ultramodern::init_events(RDRAM_ARG ultramodern::renderer::WindowHandle window_handle) {
@@ -677,8 +730,6 @@
      events_context.sp.gfx_thread = std::thread{ gfx_thread_func, rdram, &gfx_thread_ready, window_handle };
      events_context.sp.task_thread = std::thread{ task_thread_func, rdram, &task_thread_ready };
  
-diff --git a/librecomp/src/overlays.cpp b/librecomp/src/overlays.cpp
-index 8c8e5d1..0de988b 100644
 --- a/librecomp/src/overlays.cpp
 +++ b/librecomp/src/overlays.cpp
 @@ -198,6 +198,19 @@ extern "C" void load_overlays(uint32_t rom, int32_t ram_addr, uint32_t size) {
@@ -701,8 +752,6 @@ index 8c8e5d1..0de988b 100644
      // Load the overlays that were found
      for (auto it = lower; it != upper; ++it) {
          load_overlay(std::distance(&sections_info.code_sections[0], it), it->rom_addr - rom + ram_addr);
-diff --git a/ultramodern/src/input.cpp b/ultramodern/src/input.cpp
-index 23228c7..3606b14 100644
 --- a/ultramodern/src/input.cpp
 +++ b/ultramodern/src/input.cpp
 @@ -1,5 +1,7 @@
@@ -732,8 +781,6 @@ index 23228c7..3606b14 100644
          if (got_response) {
              convert_to_n64_range(x, y, data[controller].stick_x, data[controller].stick_y);
  
-diff --git a/ultramodern/src/mesgqueue.cpp b/ultramodern/src/mesgqueue.cpp
-index 9944a02..a479cc6 100644
 --- a/ultramodern/src/mesgqueue.cpp
 +++ b/ultramodern/src/mesgqueue.cpp
 @@ -1,5 +1,16 @@
@@ -979,8 +1026,6 @@ index 9944a02..a479cc6 100644
      // If any threads were blocked on sending to this message queue, pop the first one and schedule it.
      PTR(PTR(OSThread)) blocked_queue = GET_MEMBER(OSMesgQueue, mq_, blocked_on_send);
      if (!ultramodern::thread_queue_empty(PASS_RDRAM blocked_queue)) {
-diff --git a/ultramodern/src/scheduling.cpp b/ultramodern/src/scheduling.cpp
-index a22f747..1b5e0e2 100644
 --- a/ultramodern/src/scheduling.cpp
 +++ b/ultramodern/src/scheduling.cpp
 @@ -1,3 +1,7 @@
@@ -1019,8 +1064,6 @@ index a22f747..1b5e0e2 100644
      }
  }
  
-diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
-index 6e3ed18..0e6ee52 100644
 --- a/ultramodern/src/threads.cpp
 +++ b/ultramodern/src/threads.cpp
 @@ -249,6 +249,67 @@ extern "C" void osStartThread(RDRAM_ARG PTR(OSThread) t_) {
