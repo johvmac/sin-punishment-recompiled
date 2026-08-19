@@ -47,17 +47,50 @@ BLACK = 16  # a channel value at or below this counts as black
 # stricter in practice than the threshold implies.
 
 
+def _ff(args):
+    return subprocess.run(["ffprobe", "-v", "error"] + args,
+                          capture_output=True, text=True).stdout.strip()
+
+
 def probe_size(path):
-    out = subprocess.run(
-        ["ffprobe", "-v", "error", "-select_streams", "v:0",
-         "-show_entries", "stream=width,height,duration", "-of", "csv=p=0", str(path)],
-        capture_output=True, text=True).stdout.strip()
+    """Width, height, duration. Duration is tried THREE ways and may be None.
+
+    The lossless matroska masters written by a SIGINT-stopped ffmpeg carry NO
+    stream duration (`N/A`). The first version fell back to 0.0, and verify()
+    then sampled seconds 0..N-1 -- the first few seconds only -- while STILL
+    printing "across the whole file". A control that silently narrows its own
+    scope and reports the wide one is worse than no control: it is exactly the
+    A93/A161 failure, inside the tool built to prevent it.
+
+    So: stream duration, else FORMAT duration (which matroska does carry), else
+    frames/rate. If all three fail, return None and let the caller REFUSE
+    rather than quietly checking the opening seconds.
+    """
+    out = _ff(["-select_streams", "v:0", "-show_entries",
+               "stream=width,height,duration", "-of", "csv=p=0", str(path)])
     parts = out.split(",")
     w, h = int(parts[0]), int(parts[1])
+    dur = None
     try:
         dur = float(parts[2])
     except (IndexError, ValueError):
-        dur = 0.0
+        pass
+    if not dur or dur <= 0:
+        try:
+            dur = float(_ff(["-show_entries", "format=duration", "-of", "csv=p=0", str(path)]))
+        except ValueError:
+            dur = None
+    if not dur or dur <= 0:
+        try:
+            n = float(_ff(["-count_frames", "-select_streams", "v:0", "-show_entries",
+                           "stream=nb_read_frames", "-of", "csv=p=0", str(path)]))
+            rate = _ff(["-select_streams", "v:0", "-show_entries",
+                        "stream=avg_frame_rate", "-of", "csv=p=0", str(path)])
+            num, den = (rate.split("/") + ["1"])[:2]
+            fps = float(num) / float(den or 1)
+            dur = n / fps if fps > 0 else None
+        except (ValueError, ZeroDivisionError):
+            dur = None
     return w, h, dur
 
 
@@ -137,13 +170,19 @@ def main():
         print(f"proposed crop {cw}x{ch}+{cx}+{cy} does not fit in {W}x{H}", file=sys.stderr)
         return 2
 
+    if dur is None:
+        print(f"REFUSING   : cannot determine the duration of {src.name}, so frames "
+              f"cannot be sampled across it. Verifying only the opening seconds "
+              f"while claiming otherwise is the failure this check exists to "
+              f"prevent.", file=sys.stderr)
+        return 1
     print(f"source     : {src.name}  {W}x{H}  {dur:.1f}s  {src.stat().st_size/1e6:.1f} MB")
     print(f"proposed   : {cw}x{ch} at +{cx}+{cy}"
           + ("  (centred, no WM under Xvfb)" if not a.geom else "  (explicit)"))
 
     worst, at = verify(src, geom, a.frames, dur)
     ok = worst <= BLACK
-    print(f"verify     : sampled {a.frames} frames across the whole file; "
+    print(f"verify     : sampled {a.frames} frames over 0-{dur:.1f}s; "
           f"brightest pixel OUTSIDE the crop = {worst}"
           + (f" at x={at[0]} y={at[1]} t={at[2]}s" if at else ""))
     if not ok:

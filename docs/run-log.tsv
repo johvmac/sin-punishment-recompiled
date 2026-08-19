@@ -85,3 +85,6 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	log	env
 2026-08-19T22:50:02+10:00	25	25	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	crop_integration.log	none
 2026-08-19T22:52:16+10:00	25	25	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	fmt_test.log	none
 2026-08-19T22:56:01+10:00	25	25	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	newfmt.log	none
+2026-08-19T23:04:13+10:00	30	30	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	timing.log	none
+2026-08-19T23:07:23+10:00	165	158	139	0	0	NA	NA	CRASHED	timing_long.log	none
+2026-08-19T23:08:51+10:00	20	20	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	dur.log	none

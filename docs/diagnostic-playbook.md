@@ -2197,6 +2197,18 @@ window manager), so most of every frame is black padding. Measured effect:
 **recordings land at 27-40% of their uncropped size** — the day's four files went
 46 MB -> 14 MB. `SNP_REC_CROP=0` disables it.
 
+**Finalize cost, measured (not extrapolated):** 2.4 s for a 30 s run (83 MB
+master), **6.5 s for a 165 s run (454 MB master)** — sub-linear, it parallelises
+to ~660% CPU. The old lossy-source crop took 4.9 s on a comparable run, so
+lossless capture costs about **1.5 s** despite a 20x larger source. The master is
+transient: ~2.7 MB/s, deleted as soon as the final file exists.
+
+**The masters carry NO stream duration** (matroska written by a SIGINT-stopped
+ffmpeg). `crop_recording.py` falls back to format duration, then frames/rate, and
+**REFUSES if all three fail** — because sampling only the opening seconds while
+reporting "across the whole file" is precisely the failure the check exists to
+prevent, and it did exactly that until 2026-08-19 (T89).
+
 **Cost, measured on real runs, and the first estimate was LOW.** Uncropped, a
 20 s run gave 1.2 MB (~60 KB/s) but a 160 s gdb run gave **20 MB** — about
 125 KB/s, roughly double, because a longer run shows more varied content and
@@ -2321,6 +2333,12 @@ below is installed and verified working.
 | Ghidra projects | `../tools/ghidra-projects` | **`ovl1` only**, 0-byte `.gpr` (killed, not closed). Boot-segment work needs a fresh import |
 | **gdb / gdb-multiarch** | system | `scripts/gdb_watch.sh`, `gdb_threads.sh` |
 | **python-xlib** | system python3 (0.33) | window minimizing; no longer venv-only |
+| **ffmpeg / ffprobe** | system, `x11grab` device present | run recording (T83), cropping, frame extraction |
+| `scripts/crop_recording.py` | repo | crop + compress a lossless run master in ONE pass. **REFUSES unless everything outside the crop is black** — `--check` to verify only, `--finalize` for the capture pipeline |
+| `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
+| `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
+| `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
+| **scene reference frames** | `<archive>/scene-refs/*.png` | labelled 640x480 frames from OUR build. **Never build these from the ares captures** — different renderer, ~240p + VI filtering (T88) |
 | **PIL, numpy** | system python3 | `scripts/shrink_shot.py`, capture analysis |
 
 **No MIPS toolchain is installed, and none is needed.** m2c parses assembly as
