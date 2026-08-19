@@ -75,7 +75,20 @@ def main():
     if gained:
         fails.append(f"FAIL: anchoring ADDED rows, which it cannot legitimately do: {sorted(gained)}")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 1
+    # The checkpoint-closing requirement must survive in the roll output. It is
+    # a standing user instruction (2026-08-19), and the reason it lives in a
+    # tool rather than in a note is that notes are applied by the same judgement
+    # that forgets them. Asserted here so that deleting it fails the FIRST FIVE
+    # MINUTES rather than going unnoticed for a dozen checkpoints.
+    req = getattr(route, "CLOSING_REQUIREMENT", "")
+    src = (Path(__file__).resolve().parent / "route.py").read_text()
+    if "plain-language sentence" not in req.lower():
+        fails.append("FAIL: route.CLOSING_REQUIREMENT missing or reworded past recognition")
+    elif "print(CLOSING_REQUIREMENT)" not in src:
+        fails.append("FAIL: CLOSING_REQUIREMENT is defined but never printed — "
+                     "a reminder nothing emits is not a reminder (cf. T56)")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 2
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -87,7 +100,8 @@ def main():
     for f in fails:
         print(f)
     print(f"\n{total - len(fails)}/{total} correct "
-          f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination)")
+          f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
+          f"1 closing-requirement)")
     return 1 if fails else 0
 
 

@@ -249,6 +249,33 @@ def main():
                 (n, f"{eid}: OPEN but carries no [cost=N], so route.py cannot rank "
                     f"it and sorts it last. Price it, or the ordering is not a ranking."))
 
+    # 3b. entries that cannot be indexed.
+    #
+    # Since T67 the ledger is READ VIA `scripts/ledger.py --index` -- 198 entries
+    # for ~8.5k tokens instead of 83k. That only works while every entry yields a
+    # claim that stands on its own, so an entry whose claim collapses to a topic
+    # heading ("UN-WITHDRAWN", "G6 / ares comparison") is INVISIBLE in the only
+    # view anyone reads end to end. Flagged at write time, because the index
+    # rotting is silent by construction: the entry is still there, still correct,
+    # and simply says nothing.
+    try:
+        import importlib.util
+        _s = importlib.util.spec_from_file_location(
+            "_ledger", Path(__file__).resolve().parent / "ledger.py")
+        _m = importlib.util.module_from_spec(_s)
+        _s.loader.exec_module(_m)
+        for eid, (tag, body, n) in rows.items():
+            c = _m.claim_of(tag, body)
+            if len(c.split()) < 5 and not c.upper().startswith("MERGED INTO"):
+                problems.append(
+                    (n, f"{eid}: indexes to {c!r}, which asserts nothing. "
+                        f"scripts/ledger.py --index is how this file is read now; "
+                        f"an entry that indexes to a heading is invisible there. "
+                        f"Put the claim in the status column, or add **CLAIM:** to the body."))
+    except Exception as e:  # never fail closed -- this runs as a git hook
+        problems.append((0, f"could not run the index check ({e.__class__.__name__}: {e}); "
+                            f"scripts/ledger.py may be broken"))
+
     # 4. routing decision overdue. This is what makes the explore/exploit roll
     # actually happen: findings accumulate constantly, so the nag surfaces on
     # its own rather than depending on remembering to roll.

@@ -72,6 +72,19 @@ COST_RE = re.compile(r"\[cost=(\d+)\]")
 # asserts the discrimination, using A124's literal status string as the negative.
 OPEN_RE = re.compile(r"\s*\**OPEN\b", re.I)
 
+# Printed at the end of EVERY roll, because a roll is how a checkpoint starts and
+# skipping one leaves a gap in docs/route-log.md. Requested by the user
+# 2026-08-19 and deliberately NOT left to a memory file or to habit: this
+# project's whole method is that a discipline applied by judgement is a
+# discipline that gets rationalised away silently. `test_route.py` asserts this
+# string survives, so deleting it fails a check in the FIRST FIVE MINUTES.
+CLOSING_REQUIREMENT = (
+    "\n[route] CLOSE THIS CHECKPOINT WITH ONE PLAIN-LANGUAGE SENTENCE\n"
+    "        saying what it achieved. No hex, no entry IDs, no tool names.\n"
+    "        If the honest answer is 'nothing moved forward, I fixed a\n"
+    "        measuring instrument' -- say that. Exposing it is the point."
+)
+
 
 def open_items():
     """OPEN rows, CHEAPEST FIRST.
@@ -262,6 +275,7 @@ def main():
         for e, w, p in picks:
             mark = "<-- picked" if e == target else ""
             print(f"          {e:5s} weight {w:2d}  p={p:.2f} {mark}")
+    print(CLOSING_REQUIREMENT)
     return 0
 
 
