@@ -176,7 +176,23 @@ def main():
     print(f"{'ok  ' if disclosed else 'FAIL'}  last line discloses the {n_notes} reminder(s) above it")
     bad += not disclosed
 
-    total = len(CASES) + 4
+    # ...and it must disclose FINDINGS too, not only reminders.
+    #
+    # This check used to cover notes alone, and it passed for weeks because the
+    # summary line WAS the last line. The moment the ledger held both notes and
+    # findings, the summary moved up, the "(warnings, not errors)" trailer became
+    # last, and `check_ledger | tail -1` hid a finding as well as three notes.
+    # A disclosure rule that covers one kind of message is not a disclosure rule.
+    n_probs = 0
+    for l in lines:
+        m = re.search(r"\[ledger\] (\d+) thing\(s\) to look at", l)
+        if m:
+            n_probs = int(m.group(1))
+    probs_disclosed = (n_probs == 0) or ("thing(s)" in last and "above" in last)
+    print(f"{'ok  ' if probs_disclosed else 'FAIL'}  last line discloses the {n_probs} finding(s) above it")
+    bad += not probs_disclosed
+
+    total = len(CASES) + 5
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 

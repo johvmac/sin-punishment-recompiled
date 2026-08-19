@@ -81,3 +81,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	log	env
 2026-08-19T21:13:14+10:00	170	158	139	0	0	NA	NA	CRASHED	roll87-yieldfix-run1.log	none
 2026-08-19T21:16:30+10:00	170	158	139	0	0	NA	NA	CRASHED	roll87-yieldfix-run2.log	none
 2026-08-19T21:19:12+10:00	170	158	139	0	0	NA	NA	CRASHED	roll87-yieldfix-run3.log	none
+2026-08-19T22:06:30+10:00	20	20	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	rec_integration.log	none

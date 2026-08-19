@@ -482,7 +482,22 @@ def main():
           f"({len(rows)} entries, {len(lb)} load-bearing){note}:", file=out)
     for n, msg in sorted(problems):
         print(f"  {LEDGER.name}:{n}: {msg}", file=out)
-    print("  (warnings, not errors — judgement stays with the reader)", file=out)
+
+    # THE TRAILER MUST DISCLOSE TOO -- it is the genuinely last line on this
+    # path, and the disclosure above it is not.
+    #
+    # T76 was fixed by putting "N note(s) above" on the summary line, and that
+    # worked only while the summary WAS the last line. As soon as the ledger had
+    # both notes and findings, the summary moved up and this trailer became the
+    # last line, disclosing nothing -- so `check_ledger | tail -1` hid 3 notes
+    # AND a finding. It did exactly that to me on 2026-08-19 before being found.
+    # The lesson is not "put the count on the summary line", it is "whatever line
+    # is LAST must account for everything above it".
+    tail = f" — {len(problems)} thing(s)"
+    if reminders:
+        tail += f" + {len(reminders)} note(s)"
+    tail += " above"
+    print(f"  (warnings, not errors — judgement stays with the reader){tail}", file=out)
 
     if hook:
         return 2      # surfaces the report back to Claude

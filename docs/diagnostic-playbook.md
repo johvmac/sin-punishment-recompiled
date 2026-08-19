@@ -2175,6 +2175,79 @@ deadline to discover.
 
 ---
 
+## Scene identity: RECORD, never sample (added 2026-08-19, T83)
+
+**Every isolated run is now recorded to video, automatically.** `display_isolate.sh`
+starts `ffmpeg -f x11grab` as soon as the isolated display is up and stops it in
+`snp_display_cleanup`, so all five runners — `run_game.sh`, `gdb_fault.sh`,
+`gdb_watch.sh`, `gdb_trace.sh`, `boot_screen_check.sh` — inherit it with no
+per-caller change. Output goes to that day's archive evidence directory (T47).
+
+```
+SNP_REC=0        disable
+SNP_REC_DIR=...  output directory
+SNP_REC_FPS=N    default 30
+SNP_REC_MAX=N    hard cap in seconds, default 400
+```
+
+**Cost, measured:** 1.2 MB for a 20 s run at 1280x720x30 — about 60 KB/s, so a
+full 160 s run is ~10 MB and the 400 s cap is ~24 MB. At 73 GB free that is
+thousands of runs. Note the game window is 640x480 inside a 1280x720 screen, so
+most of each frame is black padding; that is why the files are so small.
+
+### Why this exists — three wrong answers from sampled stills
+
+Scene identity was read off sampled frames three times and was wrong three times:
+
+* **A93** — 10 s sampling interval skipped both the white fade and the title
+  screen, and concluded the destination was the gameplay demo. The user caught it.
+* **A161** — "our build never reaches the title screen", from TWO frames. The
+  user caught it. Withdrawn the same day.
+* the **"title scene"** label on A99, inherited and cited by A120, which nobody
+  had ever measured at all.
+
+The title screen is up for only a few seconds. **Any sampler can miss it, and no
+sample can ever support "X never happened."**
+
+### What each channel can and cannot support
+
+| channel | resolution | can it support an ABSENCE claim? |
+|---|---|---|
+| still captures (`boot_screen_check.sh`) | whenever you fire them | **no** |
+| `SNP_WATCH` scene byte | **1 s poll** — see `events.cpp`, it samples | **no** |
+| the recording | every frame, ~33 ms | **yes**, down to one frame |
+| `gdb_watch.sh` hardware watchpoint | every write | **yes** |
+
+**`SNP_WATCH` is itself a 1 Hz sampler.** It was very nearly recommended as the
+cure for a sampling error. A92's "`0x02` at t=145" therefore means "by t=145
++/-1 s", and any state shorter than a second can pass through it unseen. Check
+the sampling rate of the instrument you are proposing as the fix.
+
+### The rule
+
+**Presence may come from a sample. ABSENCE requires a continuous channel.** This
+is the ledger's existing scope rule applied to time: a negative from sampled
+frames has scope "at these N instants", never "ever". Say which.
+
+When you make a scene-identity claim, **cite the recording and a timestamp in
+it**, not a still. Extract the frame if you want one in the ledger:
+
+```bash
+ffmpeg -ss 147 -i <run>.mp4 -frames:v 1 frame.png
+```
+
+### Still open: the scene byte has never been calibrated
+
+A92 measured `0x80068A94` going `0x01` -> `0x14` (t=7) -> `0x02` (t=145) and
+said plainly what was NOT established: **that `0x02` is the menu. No byte value
+has ever been tied to a named scene.** Until that table exists, scene identity
+stays a judgement about artwork rather than a lookup. Building it is one
+instrumented run cross-referencing the recording against the byte transitions —
+and it is much cheaper now that a START press reaches the title screen in ~40 s
+(A162).
+
+---
+
 ## Tool inventory (added 2026-08-18) — check here before building anything
 
 Half of one session's friction was not knowing what already existed. Everything

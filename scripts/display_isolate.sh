@@ -34,12 +34,91 @@
 #   SNP_ISO=real    -> no isolation
 #   otherwise       -> Xvfb, falling back to Xephyr, then real, with a warning
 #
-# The caller must call `snp_display_cleanup` on exit (all three do so via trap).
+# The caller must call `snp_display_cleanup` on exit (all callers do so via trap).
+#
+# RECORDING (2026-08-19, T83)
+# Every isolated run is RECORDED to a video by default -- every frame, not a
+# sampled still. Scene identity had been read off stills three times and been
+# wrong three times (A93, A161, and the inherited "title scene" label on A99):
+# the title screen is up for a few seconds, so any sampler can miss it, and a
+# sample can never support "X never happened". A recording can.
+#
+#   SNP_REC=0        disable
+#   SNP_REC_DIR=...  output directory (default: today's archive evidence dir)
+#   SNP_REC_FPS=N    default 30
+#   SNP_REC_MAX=N    hard cap in seconds (default 400) so a runaway cannot fill
+#                    the drive -- ffmpeg stops itself even if cleanup never runs
+#
+# NEVER records in `real` mode. There the display is the USER'S DESKTOP, and
+# recording it would capture whatever else they have on screen. That is not a
+# tunable; it is why snp_start_recording checks the mode first.
 
 SNP_ISO_PID=""
 SNP_ISO_MODE=""
+SNP_REC_PID=""
+SNP_REC_FILE=""
+SNP_ISO_GEOM_WH=""
+
+# Start recording the ISOLATED display. Returns 0 always: a missing recorder
+# must never fail a run, but it must never be silent either -- an absent
+# artifact that nobody was told about is indistinguishable from one nobody
+# looked at.
+snp_start_recording() {
+    local label="${1:-run}"
+    [ "${SNP_REC:-1}" = "0" ] && return 0
+    # THE CONTROL THAT MATTERS. `real` means the user's own desktop.
+    if [ "$SNP_ISO_MODE" = "real" ]; then
+        echo "[$label] NOT recording: mode is 'real' and that display is the user's desktop" >&2
+        return 0
+    fi
+    if ! command -v ffmpeg >/dev/null 2>&1; then
+        echo "[$label] WARNING: ffmpeg absent -- this run is NOT recorded" >&2
+        return 0
+    fi
+    local dir="${SNP_REC_DIR:-/media/joh/extra/sin-punishment-archive/evidence/$(date +%Y-%m-%d)}"
+    if ! mkdir -p "$dir" 2>/dev/null; then
+        # T47: evidence goes to the archive drive, never /tmp. If the drive is
+        # not there, say so rather than quietly writing somewhere that will not
+        # survive the session.
+        echo "[$label] WARNING: cannot write $dir -- this run is NOT recorded (T47)" >&2
+        return 0
+    fi
+    SNP_REC_FILE="$dir/${label}-$(date +%H%M%S).mp4"
+    ffmpeg -nostdin -loglevel error -y \
+        -f x11grab -framerate "${SNP_REC_FPS:-30}" -video_size "${SNP_ISO_GEOM_WH:-1280x720}" \
+        -i "$DISPLAY" -t "${SNP_REC_MAX:-400}" \
+        -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p \
+        "$SNP_REC_FILE" > /tmp/snp_rec_ffmpeg.log 2>&1 &
+    SNP_REC_PID=$!
+    sleep 0.5
+    if ! kill -0 "$SNP_REC_PID" 2>/dev/null; then
+        echo "[$label] WARNING: recorder died immediately; see /tmp/snp_rec_ffmpeg.log" >&2
+        SNP_REC_PID=""; SNP_REC_FILE=""
+        return 0
+    fi
+    echo "[$label] recording -> $SNP_REC_FILE" >&2
+    return 0
+}
 
 snp_display_cleanup() {
+    # STOP THE RECORDER FIRST, and with SIGINT not SIGKILL: ffmpeg needs to
+    # write the moov atom or the file is unplayable. Killing the X server out
+    # from under a live grab produces a truncated file that looks like evidence
+    # and is not.
+    if [ -n "${SNP_REC_PID:-}" ]; then
+        kill -INT "$SNP_REC_PID" 2>/dev/null
+        local i=0
+        while [ $i -lt 40 ] && kill -0 "$SNP_REC_PID" 2>/dev/null; do
+            sleep 0.1; i=$((i + 1))
+        done
+        kill -9 "$SNP_REC_PID" 2>/dev/null
+        SNP_REC_PID=""
+        if [ -n "${SNP_REC_FILE:-}" ] && [ -s "$SNP_REC_FILE" ]; then
+            echo "[rec] $SNP_REC_FILE ($(du -h "$SNP_REC_FILE" | cut -f1))" >&2
+        elif [ -n "${SNP_REC_FILE:-}" ]; then
+            echo "[rec] WARNING: $SNP_REC_FILE is empty" >&2
+        fi
+    fi
     [ -n "${SNP_ISO_PID:-}" ] && kill "$SNP_ISO_PID" 2>/dev/null
     SNP_ISO_PID=""
     return 0
@@ -67,10 +146,17 @@ snp_isolate_display() {
     # keyboard exposure this file exists to prevent. Caught by the A/B, whose
     # Xephyr arm reported the real display in its own banner.
     local geom="${SNP_ISO_GEOM:-1280x720x24}"
+    SNP_ISO_GEOM_WH="${geom%x24}"
 
     if [ "$want" = "1" ] || [ "$mode" = "real" ]; then
         SNP_ISO_MODE="real"
         echo "[$label] on the REAL display -- your keystrokes reach the game (T23)" >&2
+        # Called DELIBERATELY on the path that must not record. The refusal then
+        # comes from the guard inside snp_start_recording rather than from the
+        # call merely being absent -- so the protection is exercised on every
+        # real-mode run, and the self-test can prove it fires. An untested
+        # safeguard on a privacy boundary is not a safeguard.
+        snp_start_recording "$label"
         return 0
     fi
 
@@ -84,6 +170,7 @@ snp_isolate_display() {
             export DISPLAY="$disp"
             SNP_ISO_MODE="xvfb"
             echo "[$label] HEADLESS on $disp (Xvfb pid $SNP_ISO_PID) -- no window, no input. SNP_ISO=xephyr to watch it" >&2
+            snp_start_recording "$label"
             return 0
         fi
         SNP_ISO_PID=""
@@ -98,6 +185,7 @@ snp_isolate_display() {
             export DISPLAY="$disp"
             SNP_ISO_MODE="xephyr"
             echo "[$label] nested on $disp (Xephyr pid $SNP_ISO_PID) -- input isolated, but a WINDOW IS SHOWN" >&2
+            snp_start_recording "$label"
             return 0
         fi
         SNP_ISO_PID=""
