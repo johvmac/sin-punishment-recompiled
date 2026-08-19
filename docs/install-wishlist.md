@@ -10,31 +10,23 @@ and add a row here. I do not interrupt work for it.
 
 ---
 
-## 1. `rr` — record & replay debugging  ·  INSTALLED 2026-08-19, **blocked on one sysctl**
+## 1. `rr` — INSTALLED 2026-08-19, then MEASURED AS UNUSABLE. Do not retry casually.
 
-> `rr check` reports: needs `kernel.perf_event_paranoid <= 1`, this machine is **4**.
-> ```bash
-> sudo sysctl -w kernel.perf_event_paranoid=1
-> ```
-> Persist with `echo 'kernel.perf_event_paranoid = 1' | sudo tee /etc/sysctl.d/10-rr.conf`.
-> That loosens a kernel hardening setting machine-wide (unprivileged perf events), so it is
-> a judgement call, not a formality. `rr record -n` works without it but is much slower.
+**The wishlist's own worked example of why "install it and see" needs a
+measurement step.** It was the biggest predicted win here; it does not work on
+this target, and that took one wrapper and two runs to establish rather than a
+week of intermittent frustration.
 
-**The single biggest win available.** Most of this project's hard questions are
-"who wrote this word, and when" — and `rr` answers them by running the program
-backwards from the fault.
-
-* **What it cost us on 2026-08-19 alone:** finding the writer of `0x8013C278`
-  took a static derivation across five ledger entries (A113, A114, A115, A118,
-  A122), one refuted mechanism, and **four ~4-minute runs**. With `rr` it is one
-  recording, then `watch -l *addr` + `reverse-continue`.
-* It also removes the arming problem entirely. `gdb_watch.sh` has to guess when
-  to arm — too early and the watchpoint floods, too late and the write already
-  happened. Under `rr` you set the watchpoint *after* the crash and run backwards.
-* Caveat worth knowing before it disappoints: `rr` needs a CPU performance
-  counter and serialises threads. This game is heavily threaded, so timing WILL
-  change — the 158s crash may move or not reproduce. **Test it against the known
-  158s repro before trusting it**, exactly as we A/B'd Xvfb.
+* `rr` aborts on ioctls it does not model. SDL's HID probe was disableable
+  (`SDL_JOYSTICK_HIDAPI=0`); `DMA_BUF_IOCTL_EXPORT_SYNC_FILE` from the
+  Vulkan/RT64 path is not.
+* Independently, the gfx rate collapsed to `+0`/`+1` versus a normal `+30`, so
+  the timing-anchored 158s repro is unreachable under recording regardless.
+* Every attempt raises an apport crash dialog. `scripts/rr_record.sh` refuses by
+  default; `SNP_RR_FORCE=1` to retry — **worth doing after an rr upgrade**,
+  since the ioctl gap is the kind of thing upstream fixes.
+* The sysctl it needed (`kernel.perf_event_paranoid=1`) is set and harmless to
+  leave.
 
 ## 2. A MIPS binutils  ·  INSTALLED 2026-08-19, validated (T61)
 

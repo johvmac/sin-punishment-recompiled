@@ -315,6 +315,54 @@ frontier. One run of the command above would have said so in seconds.
 what `decomp.sh` is for; a hand-read of `boot_func_8002AA90` on 2026-08-18
 truncated and missed an entire list that m2c emitted in six lines.
 
+### G3.1 — Overlay data: ALWAYS list every copy before quoting a value (added 2026-08-19)
+
+**One command, before you quote any value at a `0x802C`–`0x802E` address:**
+
+```bash
+grep -l '802CE128' /home/joh/Documents/sin_and_punishment/splat-project/asm/*.s
+```
+
+If more than one file defines it, **the value is overlay-dependent** and a
+single reading of it means nothing on its own. Quote all of them, or say which
+overlay you read.
+
+**Why this is here rather than in anyone's memory.** This is A85's trap and it
+has now caught us twice. On 2026-08-19 (A110) the check was run on
+`D_802E1680`, came back with a single definition, and was reported clear. One
+dereference later (A114) the same reasoning quoted a buffer as
+"`.word 0x00000000` in the ROM image, verified by direct lookup" — and that
+address is defined in **three** overlays, `0x00000000` in one and real float
+data in the other two (A119). The lookup was correct. The scope was not.
+
+**Having cleared the trap once is exactly what makes the second instance
+likely** — the check felt spent. It costs one command; run it every time.
+
+### G3.2 — Read the ROM directly with the MIPS toolchain (added 2026-08-19)
+
+`binutils-mips-linux-gnu` is installed. Use it whenever you would otherwise
+compute a ROM offset by hand, and to check splat rather than trusting it.
+
+```bash
+mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
+  --adjust-vma=0x80024C00 --start-address=0x800339C8 --stop-address=0x800339F4 \
+  /home/joh/Documents/sin_and_punishment/splat-project/baserom.z64
+```
+
+* `--adjust-vma` is the vram→ROM delta **as an explicit argument**. That is the
+  point: T49 derived a delta from one misread anchor and produced a clean,
+  plausible, entirely wrong dispatch table. Here a wrong delta shows up
+  immediately as instructions that do not match a known symbol.
+* **The delta is per segment, not global.** `0x80024C00` is right for the boot
+  segment (`asm/1050.s`); overlays have their own. Get it from the `[[section]]`
+  `rom`/`vram` pair in `symbols/sinpunishment.syms.toml`, and T49's two-anchor
+  rule still applies to choosing it.
+* Validated on adoption (T61): the command above reproduces splat's
+  `asm/1050.s` instruction-for-instruction with identical encodings. **Re-run
+  that comparison if you ever doubt the invocation** — it is a positive control
+  on tool, arguments and splat together.
+* `mips-linux-gnu-nm` is also available for the ELF side.
+
 ### Environment hooks already built into the build
 
 | Hook | What it does |
@@ -329,13 +377,17 @@ truncated and missed an entire list that m2c emitted in six lines.
 | Script | Question it answers |
 |---|---|
 | `scripts/boot_screen_check.sh <sec> <out.png>` | "Is the screen black?" — launches, screenshots the *game window* (`xwininfo`+`xwd`+`ffmpeg`), gives a numeric dark-fraction verdict. Window-selection fixed 2026-08-14 to require WM_CLASS `SinPunishmentRecompiled` and exclude `mutter` — it used to match the WM's own decoration/frame window too (same title text) and could silently capture that instead. Check the printed image `size=`: `(1280, 720)` is the real content window; anything else means the wrong window was captured. **A "BLACK" result is no longer trustworthy on its own — see the standing rule below.** |
-| `scripts/gdb_watch.sh` | Hardware watchpoint on an N64 address — breaks at `recomp_entrypoint`, captures rdram base, computes the host address |
+| `scripts/gdb_watch.sh <vram> [arm] [deadline] [log] [bin] [cond]` | Hardware watchpoint on an N64 address — breaks at `recomp_entrypoint`, captures rdram base, computes the host address. **`[cond]` is appended to the `watch` (e.g. `"== 0x02000000"`) — use it or a hot word floods the watchpoint.** Its arm-time print of the current value is the positive control: if the value is already what you are hunting, you armed too late and a null result would be meaningless |
+| `scripts/gdb_fault.sh [deadline] [log] [bin]` | Catches the SIGSEGV and dumps the game-side register file. **Run it against `build-debug/` — `ctx` needs debug info; against `build/` you get frame names only.** There is no core file to inspect instead: `ulimit -c` is 0 and apport owns `core_pattern`, so bash's "(core dumped)" is the signal disposition, not a file |
+| `scripts/display_isolate.sh` | Sourced by the three launchers, never run directly. `xvfb` (default, truly headless) / `SNP_ISO=xephyr` (nested — input isolated but **a window IS shown**) / `SNP_VISIBLE=1` (real display, your typing reaches the game — T23). One copy on purpose: three divergent copies is what let the gdb wrappers run unisolated (T59) |
 | `scripts/xtest_key.py <win_hex> <keysym>…` | Real synthetic keyboard input to an SDL/X11 window. Clicks into the window first (WM click-to-focus) then `xtest.fake_input`. Works against our build *and* the reference recomps |
 | `scripts/xclick.py <win_hex> <x> <y>` | Real synthetic click at a specific point in an X11 window. Reliable against top-level SDL/game-render windows (ours, BanjoRecomp, ares' main window); **not** reliable against native Qt dropdown menus — ask the user to drive those directly instead |
 | `scripts/strip_scratch_hooks.sh` | Removes the scratch-debug-hook block from `sinpunishment.toml` between its BEGIN/END markers — **run before committing** |
 | `scripts/run_game.sh <sec> <log> [ENV=v…]` | **The only correct way to run the game from tooling.** Kills by PID with SIGKILL and reports `leftover=N`. Plain `timeout` does *not* work (SDL2 catches SIGTERM) and `pkill -f` kills its own shell — see the two rules under G3 |
 | `scripts/auto_stub_pass.py`, `auto_label_fix.py`, `fix_dangling_gotos.py`, `fix_zero_writes.py`, `patch_si_stubs.py` | Bulk recompiler-output repairs (class A) |
 | `scripts/rom_info.py` | ROM identification / conversion |
+| `scripts/rom_disasm.py <vram> [end\|+len]` | Disassemble the ROM at a VRAM address. **Looks the vram->ROM delta up from the `[[section]]` blocks rather than taking it as an argument** — deriving it by hand is what produced T49's confident wrong table. REFUSES if no section contains the address, and warns when several do (overlays share vram — A85/G3.1). `--self-check` compares against splat's committed asm: a positive control on tool, invocation and delta at once |
+| `scripts/rr_record.sh` | **Refuses by default — `rr` cannot record this target (G7.1/T62).** Kept for a future `rr` version; `SNP_RR_FORCE=1` overrides |
 
 ### Standard loop
 
@@ -1050,6 +1102,37 @@ once neither is producing output.
 
 ---
 
+### G7.1 — `rr`: TRIED, DOES NOT WORK ON THIS TARGET (2026-08-19)
+
+**Do not spend time on this.** `rr` was installed, the sysctl was set, a wrapper
+was written, and it was measured. It cannot record this program. Recorded here
+so the idea is not re-proposed — it is an attractive one.
+
+**Blocker 1 — rr aborts on ioctls it does not model.** The first was SDL's HID
+gamepad probe (`HIDIOCGVERSION`, type `'H'` nr 1), which *is* disableable with
+`SDL_JOYSTICK_HIDAPI=0`. Past that it hits
+**`DMA_BUF_IOCTL_EXPORT_SYNC_FILE`** (`0xc0086202`, type `'b'` nr 2) from the
+Vulkan/RT64 path, which is not disableable without giving up the renderer.
+
+**Blocker 2, and it is independent — the timing dies anyway.** `rr` serialises
+threads onto one core. Measured gfx rate under recording: **`+0`/`+1`** against
+a normal **`+30`** (T60). The 158s crash is timing-anchored, so even a working
+recording could not reach it.
+
+**Each attempt also raises an Ubuntu apport crash dialog on the user's desktop.**
+`scripts/rr_record.sh` therefore **refuses by default** and prints why;
+`SNP_RR_FORCE=1` overrides, which is worth doing after an `rr` upgrade and not
+otherwise.
+
+**What to use instead:** `scripts/gdb_watch.sh` with a value condition. It found
+A99's writer in one run — see the Scripts table for the arming control, which is
+the part people get wrong.
+
+**Note `rr check` is not a subcommand** in rr 5.7 (`rr help` lists the real
+ones); it fails with `execve failed: 'check'`. The prerequisite it would have
+reported is `kernel.perf_event_paranoid <= 1`, which is now set on this machine.
+
+
 ## EV — The evidence gate (applies to every observation, at every gate)
 
 This is the generalised form of "is this screenshot definitely what I want to
@@ -1673,29 +1756,6 @@ This is not "dumb it down" — it is putting the conclusion where it can be read
 and letting the reader ask for depth rather than mining for it.
 
 ---
-
-## G3.1 — Overlay data: ALWAYS list every copy before quoting a value (added 2026-08-19)
-
-**One command, before you quote any value at a `0x802C`–`0x802E` address:**
-
-```bash
-grep -l '802CE128' /home/joh/Documents/sin_and_punishment/splat-project/asm/*.s
-```
-
-If more than one file defines it, **the value is overlay-dependent** and a
-single reading of it means nothing on its own. Quote all of them, or say which
-overlay you read.
-
-**Why this is here rather than in anyone's memory.** This is A85's trap and it
-has now caught us twice. On 2026-08-19 (A110) the check was run on
-`D_802E1680`, came back with a single definition, and was reported clear. One
-dereference later (A114) the same reasoning quoted a buffer as
-"`.word 0x00000000` in the ROM image, verified by direct lookup" — and that
-address is defined in **three** overlays, `0x00000000` in one and real float
-data in the other two (A119). The lookup was correct. The scope was not.
-
-**Having cleared the trap once is exactly what makes the second instance
-likely** — the check felt spent. It costs one command; run it every time.
 
 ## Free checks — run these before ANY experiment (added 2026-08-18)
 
