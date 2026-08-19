@@ -25,7 +25,18 @@ set -uo pipefail
 
 DEADLINE="${1:-200}"
 LOG_FILE="${2:-/tmp/gdb_fault.log}"
-BIN="${3:-build/SinPunishmentRecompiled}"
+BIN="${3:-build-debug/SinPunishmentRecompiled}"
+
+# DEFAULT IS build-debug, deliberately. This script's own header says `ctx`
+# does not resolve against the release build, and that A122 cost a whole run
+# to exactly that -- yet it defaulted to the release build until 2026-08-19.
+# The result is the worst kind of output: the signature control prints
+#     ok    expected boot_func_80033758
+# which reads as success, while every register line silently says
+#     (unsigned long long)ctx->r16 : No symbol "ctx" in current context.
+# The fault is then IDENTIFIED but not CHARACTERISED, and two faults in the
+# same function cannot be told apart. That is what nearly let A162 be merged
+# into A99 on frame count alone. Pass the release build as $3 to override.
 
 case "${1:-}" in
     --help|-h) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -108,7 +119,16 @@ try:
         host = base + (r16 - 0x80000000)
         print("  word currently at $s0 = 0x%08X" % int(gdb.parse_and_eval("*(unsigned int *)%d" % host)))
 except Exception as e:
-    print("  derivation failed: %s" % e)
+    # LOUD, because the signature control above prints "ok" either way.
+    # Against a non-debug build every ctx lookup raises and the report still
+    # LOOKS like a successful identification -- the fault is named but not
+    # characterised, so two different faults in the same function are
+    # indistinguishable (that is how A162 nearly merged into A99 on frame count
+    # alone). A tool must not report success for a measurement it did not make.
+    print("\n  !! REGISTERS NOT CAPTURED: %s" % e)
+    print("  !! The fault is IDENTIFIED but NOT CHARACTERISED -- $s0/$v0 are unknown,")
+    print("  !! so this log CANNOT distinguish two faults in the same function.")
+    print("  !! Almost certainly a non-debug binary: `ctx` only resolves in build-debug (A122).")
 end
 
 echo \n===== GAME STACK: $s0 PER RECURSION LEVEL (A124) =====\n

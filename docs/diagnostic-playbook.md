@@ -2190,9 +2190,12 @@ SNP_REC_FPS=N    default 30
 SNP_REC_MAX=N    hard cap in seconds, default 400
 ```
 
-**Cost, measured:** 1.2 MB for a 20 s run at 1280x720x30 — about 60 KB/s, so a
-full 160 s run is ~10 MB and the 400 s cap is ~24 MB. At 73 GB free that is
-thousands of runs. Note the game window is 640x480 inside a 1280x720 screen, so
+**Cost, measured on real runs, and the first estimate was LOW.** A 20 s run gave
+1.2 MB (~60 KB/s), but a 160 s gdb run gave **20 MB** and a 75 s one 3.7 MB —
+about **125 KB/s**, roughly double, because a longer run shows more varied
+content and h264 spends bits on change. So budget **~20 MB per full-length run**
+and **~50 MB at the 400 s cap**. At 73 GB free that is still well over a thousand
+runs, but extrapolating the short-run rate would have understated it by half. Note the game window is 640x480 inside a 1280x720 screen, so
 most of each frame is black padding; that is why the files are so small.
 
 ### Why this exists — three wrong answers from sampled stills
