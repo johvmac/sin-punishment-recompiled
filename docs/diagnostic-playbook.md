@@ -2,8 +2,13 @@
 
 > [!IMPORTANT]
 > **READ `docs/findings-ledger.md` FIRST — in full, before any investigation.**
-> It is ~90 lines and it is the **visited set**: every established fact,
+> It is ~178 entries and it is the **visited set**: every established fact,
 > ruled-out hypothesis, *withdrawn* belief and dead tool, one line each.
+>
+> *If that count has grown much past 178, or entries have stopped being one
+> line each, read **T55** before anything else. The ledger is the INDEX layer
+> of this playbook. When it stops being scannable the fix is to move detail
+> back down here and leave one line — not to build a second index.*
 >
 > This file and the journal are 1,700 and 5,000+ lines. Searching them to ask
 > "do we already know X?" costs more than re-deriving X, so without the ledger
