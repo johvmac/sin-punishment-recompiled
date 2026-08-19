@@ -61,3 +61,4 @@ A gap in the numbering means a roll was skipped.
 - roll #42: **EXPLORE** (drew 0.061 vs eps 0.3) -> `B36` — Re-anchored: this cited B35, which has never existed in this ledger (T21). The entry that actual
 - roll #43: **EXPLORE** (drew 0.156 vs eps 0.3) -> `T11` — RE-COSTED 2026-08-19 by roll #36 (was cost=4; EXPLORE, one bounded check) — the "296" was never 
 - roll #44: **EXPLORE** (drew 0.277 vs eps 0.3) -> `A53` — RE-SCOPED once the leak-hunt framing collapsed (see A80). Item (1) "leak is in the runtime/hook 
+- roll #45: **EXPLOIT** (drew 0.688 vs eps 0.3) -> `A99` — >>> READ A106 FIRST (2026-08-19): the framing below is WRONG. This is a ONE-SHOT walk at t157, n
