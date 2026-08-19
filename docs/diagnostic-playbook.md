@@ -2290,6 +2290,33 @@ frame that was solid black.
 
 ---
 
+## A trace condition is scoped to the SITE it was written for (added 2026-08-19, A163)
+
+`:300` and `:436` are both `LOOKUP_FUNC` dispatches inside the same function.
+Reusing `:300`'s condition at `:436` — "the pointer is outside
+`0x80033100`-`0x80033800`, the range containing all 18 handlers" — produced
+**77,058 hits out of 77,058 reaches.** Every dispatch. It looked like a
+spectacular overrun and it meant nothing: `:436` dispatches through a *different
+table*, so that range was never the right one for it.
+
+**The count is not the giveaway. The SHAPE of the targets is.** 17 distinct
+values, 12 of them inside a 0xCFC window and 5 in overlay space, none below
+`0x80060000` — a bounded family of plausible handlers, i.e. a healthy dispatch.
+
+So:
+
+* **Derive the expected range from the site's OWN targets** before treating
+  "outside range" as a defect. Trace unconditionally-but-cheaply first (reach
+  counter plus a wide condition) and look at the distribution.
+* **Judge a dispatch by whether its targets form a bounded family of plausible
+  code addresses**, not by a range borrowed from a neighbour.
+* A condition that fires on 100% of reaches is almost always a wrong condition,
+  not a spectacular finding. Check that before writing it up.
+
+`:598` is still untested and will need its own range on the same basis.
+
+---
+
 ## Falsifiers: RUN the cheap ones, do not merely write them (added 2026-08-19, T86)
 
 Every ledger entry carries a falsifier. That requirement trains you to **write**
