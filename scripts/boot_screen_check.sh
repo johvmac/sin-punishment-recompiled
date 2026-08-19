@@ -52,6 +52,12 @@ sleep 1
 # update the legacy X11 backing store xwd reads under XWayland). Confirmed
 # 2026-08-14: three consecutive captures under a forced-X11 window all came
 # back correct; captures under the default Wayland-backed window did not.
+if [ "${SNP_ISO:-}" != "real" ]; then
+    # shellcheck source=scripts/display_isolate.sh
+    . "$(dirname "$0")/display_isolate.sh"
+    snp_isolate_display boot_screen_check
+    trap 'snp_display_cleanup' EXIT INT TERM
+fi
 SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 ./build/SinPunishmentRecompiled > /tmp/boot_screen_check_run.log 2>&1 &
 GAME_PID=$!
 echo "launched pid $GAME_PID"
@@ -107,6 +113,27 @@ print('dark' if dark / len(pixels) > 0.995 else 'notdark')
     done
     rm -f /tmp/boot_screen_check_poll.xwd /tmp/boot_screen_check_poll.png
     "$PYXLIB" "$(dirname "$0")/minimize_window.py" "$WIN_ID" >/dev/null 2>&1
+fi
+
+if [ -n "${SNP_SEND_KEY:-}" ]; then
+    _at="${SNP_SEND_KEY_AT:-40}"
+    echo "waiting ${_at}s, then sending ${SNP_SEND_KEY}..."
+    sleep "$_at"
+    if ! kill -0 "$GAME_PID" 2>/dev/null; then
+        echo "RESULT: process died at ~${_at}s, BEFORE the key could be sent"
+        tail -20 /tmp/boot_screen_check_run.log
+        exit 2
+    fi
+    if [ -z "$WIN_ID" ] || [ -z "$PYXLIB" ]; then
+        echo "RESULT: cannot send input (WIN_ID='$WIN_ID' PYXLIB='$PYXLIB')"
+        kill -9 "$GAME_PID" 2>/dev/null
+        exit 3
+    fi
+    "$PYXLIB" "$(dirname "$0")/xtest_key.py" "$WIN_ID" $SNP_SEND_KEY
+    _rest=$(( WAIT_SECONDS - _at ))
+    [ "$_rest" -lt 0 ] && _rest=0
+    WAIT_SECONDS="$_rest"
+    echo "key sent; ${WAIT_SECONDS}s remaining before capture"
 fi
 
 echo "waiting ${WAIT_SECONDS}s..."
