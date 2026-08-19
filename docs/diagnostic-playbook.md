@@ -387,6 +387,7 @@ mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
 | `scripts/auto_stub_pass.py`, `auto_label_fix.py`, `fix_dangling_gotos.py`, `fix_zero_writes.py`, `patch_si_stubs.py` | Bulk recompiler-output repairs (class A) |
 | `scripts/rom_info.py` | ROM identification / conversion |
 | `scripts/rom_disasm.py <vram> [end\|+len]` | Disassemble the ROM at a VRAM address. **Looks the vram->ROM delta up from the `[[section]]` blocks rather than taking it as an argument** — deriving it by hand is what produced T49's confident wrong table. REFUSES if no section contains the address, and warns when several do (overlays share vram — A85/G3.1). `--self-check` compares against splat's committed asm: a positive control on tool, invocation and delta at once |
+| `scripts/gdb_trace.sh <file:line> <cond> <printf-args> [arm] [deadline] [log] [bin]` | **Log a function's ENTRY ARGUMENTS at runtime, conditioned so it fires only on the case of interest.** This is how call chains get established now — a stack image cannot do it (T69). **Controls:** a REACH COUNTER breakpoint that never stops but counts every hit, so 0 conditional hits is only meaningful against a non-zero reach count (T56); refusal if any `__PLACEHOLDER__` survives substitution; `SNP_TRACE_DRYRUN=1` to print the generated gdb script without launching. **Use build-debug or `ctx` will not resolve (A122). Mask every register with `& 0xFFFFFFFF` — `ctx->rN` is sign-extended (I17), and an unmasked compare is always false and looks exactly like 'never happened'** |
 | `scripts/ledger.py --index \| --show \| --grep \| --open \| --cited-by` | **How the findings ledger is read now** (T67/T68). `--index` renders every entry for ~8.5k tokens and replaces reading the 83k-token file end to end; `--show` expands verbatim. **The index says WHETHER something was checked, never WHAT it established — expand before relying on anything.** `--cited-by <ID>` is the one to run before trusting an old entry: if it is withdrawn, everything listed needs re-checking. **Run `--self-check` first, every time** — 5 controls, and they fail on a body-dumping index (3/5), a tag-dropping one (4/5) and a parser that silently loses odd-shaped rows (4/5, the bug the first version actually had: 33 of 198 rows) |
 | `scripts/rdram_peek.py <snap> <vram> [n]` | Read game memory out of an RDRAM snapshot — no gdb, no game run. `--stride N` for record arrays, `--regs` for the register file at the fault. **Run `--self-check` first, every time**: it asserts values measured by other means and catches the silent endianness/offset errors that produce plausible byte-reversed output (T64, and I7 for the same fact about byte access) |
 | `scripts/rr_record.sh` | **Refuses by default — `rr` cannot record this target (G7.1/T62).** Kept for a future `rr` version; `SNP_RR_FORCE=1` overrides |
@@ -1952,6 +1953,68 @@ the per-frame reset.
 overlay files with different code. Always resolve which segment an address came
 from before reasoning about it; an xref hit in `file22` says nothing about what
 runs when `file04` is resident.
+
+---
+
+## New tools: three gates before you trust one (added 2026-08-19, T71)
+
+**Requested directly by the user on 2026-08-19, after `gdb_trace.sh` burned a
+300-second run on a `sed` quoting bug that a dry run would have shown in
+milliseconds.** Every new tool clears all three before its output is evidence.
+
+### 1. DRY RUN FIRST — always, no exceptions
+
+If the tool generates a script, a command line or a config, it must be able to
+**print what it would do and exit without doing it**, and you must look at that
+output before the first real invocation.
+
+`gdb_trace.sh` substituted its values with `sed`. In a `sed` replacement `&`
+means "the whole match", so the condition
+
+    ((ctx->r6 & 0xFFFFFFFF) >= 0x8013A000 && ...)
+
+became
+
+    ((ctx->r6 __COND__ 0xFFFFFFFF) >= 0x8013A000 __COND____COND__ ...)
+
+gdb rejected it, the trace never armed, and it cost a full deadline to find out.
+**Any C condition worth tracing contains `&`.** The script now substitutes
+literally in Python, **refuses to launch if any `__PLACEHOLDER__` survives**, and
+supports `SNP_TRACE_DRYRUN=1`.
+
+Cost asymmetry is the whole argument: a dry run is free, and a run against this
+target is 3–5 minutes plus the risk of drawing a conclusion from a broken
+instrument.
+
+### 2. DISCIPLINE-COMPLIANT — carry a control that can fail
+
+A tool that cannot report its own failure will eventually report a confident
+wrong answer; four already have here (T61, T64, T66, and `gdb_trace.sh` itself).
+Minimum bar:
+
+* **A positive control, and it must discriminate.** `gdb_trace.sh` carries a
+  *reach counter* — a second breakpoint at the same line with a huge `ignore`
+  count that never stops but counts every hit. **Zero conditional hits means
+  nothing unless the reach count is non-zero**; if both are zero the instrument
+  never armed (T56). Its first real run reported 15 reaches / 2 hits, which is
+  what makes those 2 hits evidence.
+* **`--self-check` where the tool is a library or a reader**, asserting values
+  measured by other means, and **verified to FAIL when the tool is broken** —
+  not merely to pass when it works (T65). Check the discrimination by
+  deliberately breaking the tool and re-running.
+* **Refuse rather than guess.** `rom_disasm.py` looks the vram→ROM delta up;
+  `rr_record.sh` refuses by default; `gdb_trace.sh` refuses on a leftover
+  placeholder.
+* **Sourced isolation** (`display_isolate.sh`) and a **hard deadline** for
+  anything that launches the game.
+
+### 3. WRITTEN UP HERE — in the same checkpoint
+
+A tool that only exists in a shell history is a tool the next session rebuilds.
+The write-up names **what it is for, its controls, and the incident that
+motivated it** — the incident is what stops it being deleted as ceremony later.
+Add it to the **Tool inventory** table below in the same checkpoint that creates
+it, not "later".
 
 ---
 

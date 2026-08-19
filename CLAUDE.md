@@ -39,6 +39,17 @@ that distinction is the whole point of the sentence. `route.py` prints this
 requirement at the end of every roll and `scripts/test_route.py` asserts it is
 still there.
 
+## New tools — three gates (T71)
+
+Before a new tool's output counts as evidence:
+1. **Dry run first.** If it generates a script or command, it must be able to
+   print what it would do and exit. Look at that before the first real run.
+2. **A control that can fail.** A positive control that discriminates, or a
+   `--self-check` verified to FAIL when the tool is broken — not merely to pass
+   when it works.
+3. **Written up in the playbook in the same checkpoint**, naming its purpose,
+   its controls, and the incident that motivated it.
+
 ## Standing constraints
 
 * **Nothing goes upstream** — not code, not issues (T36/T38).
