@@ -422,13 +422,26 @@ def main():
     out = sys.stderr if hook else sys.stdout
     for r in reminders:
         print(f"[ledger] note — {r}", file=out)
+
+    # The SUMMARY line names how many notes preceded it.
+    #
+    # Reminders print first, so `check_ledger.py | tail -1` shows only this
+    # line -- and that is exactly what the per-checkpoint routine did. The
+    # "audit overdue" reminder fired on every roll from #64 to #77 and was
+    # truncated away all thirteen times; the audit finally ran 13 rolls late
+    # and immediately found real defects (T75). The reminder worked perfectly
+    # and nothing read it, which is T56's shape.
+    #
+    # So the last line must say that there IS something above it. Truncating to
+    # one line can now hide the CONTENT of a reminder but never its EXISTENCE.
+    note = f" — {len(reminders)} note(s) above" if reminders else ""
     if not problems:
         print(f"[ledger] OK — {len(rows)} entries, {len(lb)} load-bearing, "
-              f"{len(withdrawn)} withdrawn.", file=out)
+              f"{len(withdrawn)} withdrawn.{note}", file=out)
         return 0
 
     print(f"[ledger] {len(problems)} thing(s) to look at "
-          f"({len(rows)} entries, {len(lb)} load-bearing):", file=out)
+          f"({len(rows)} entries, {len(lb)} load-bearing){note}:", file=out)
     for n, msg in sorted(problems):
         print(f"  {LEDGER.name}:{n}: {msg}", file=out)
     print("  (warnings, not errors — judgement stays with the reader)", file=out)

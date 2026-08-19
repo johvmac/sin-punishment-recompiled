@@ -163,7 +163,20 @@ def main():
     print(f"\n{'ok  ' if real_clean else 'FAIL'}  real ledger unmodified and free of cost warnings")
     bad += not real_clean
 
-    total = len(CASES) + 3
+    # The LAST line must disclose that reminders precede it. The
+    # per-checkpoint routine pipes this through `tail -1`, which silently ate
+    # the "audit overdue" reminder on every roll from #64 to #77 -- thirteen
+    # times -- so the audit ran 13 rolls late (T76). Truncating to one line may
+    # hide a reminder's CONTENT; it must never hide its EXISTENCE.
+    lines = [l for l in p2.stdout.strip().split("\n") if l.strip()] if (p2 := subprocess.run(
+        [sys.executable, str(CHECKER)], capture_output=True, text=True)) else []
+    n_notes = sum(1 for l in lines if "note —" in l or "note --" in l)
+    last = lines[-1] if lines else ""
+    disclosed = (n_notes == 0) or ("note(s) above" in last)
+    print(f"{'ok  ' if disclosed else 'FAIL'}  last line discloses the {n_notes} reminder(s) above it")
+    bad += not disclosed
+
+    total = len(CASES) + 4
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 
