@@ -88,6 +88,27 @@ def main():
         fails.append("FAIL: CLOSING_REQUIREMENT is defined but never printed — "
                      "a reminder nothing emits is not a reminder (cf. T56)")
 
+    # The OPENING requirement, same shape and for the same reason: announce the
+    # roll BEFORE the work. Standing user instruction 2026-08-19 (roll #85).
+    # It is asserted separately from the closing one so that losing either is a
+    # distinct failure rather than a single "requirements" check that can pass
+    # on half its job.
+    opn = getattr(route, "OPENING_REQUIREMENT", "")
+    if "announce this roll" not in opn.lower():
+        fails.append("FAIL: route.OPENING_REQUIREMENT missing or reworded past recognition")
+    elif "print(OPENING_REQUIREMENT)" not in src:
+        fails.append("FAIL: OPENING_REQUIREMENT is defined but never printed — "
+                     "a reminder nothing emits is not a reminder (cf. T56)")
+    else:
+        # ORDER IS THE POINT. "Announce before the work" is worthless if the
+        # reminder prints below the roll it refers to, so assert it precedes
+        # the roll line in the source rather than merely existing.
+        i_open = src.index("print(OPENING_REQUIREMENT)")
+        i_roll = src.index('print(f"[route] roll #')
+        if i_open > i_roll:
+            fails.append("FAIL: OPENING_REQUIREMENT prints AFTER the roll line — "
+                         "an 'announce first' reminder that appears second")
+
     # A brand-new entry must read as staleness 0, not `roll`. It defaulted to 0
     # in `last_seen`, so B67 was born at roll #74 with staleness 74 and ~90% of
     # the next explore draw -- the exact inverse of what staleness is for.
@@ -122,7 +143,7 @@ def main():
         print("tie-break: NOTE — no cost ties in the current ledger, so this check "
               "is inert right now. The ordering rule still holds.")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 4
+    total = len(POSITIVE) + len(NEGATIVE) + 5
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -135,7 +156,7 @@ def main():
         print(f)
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
-          f"1 closing-requirement, 1 staleness, 1 tie-break)")
+          f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break)")
     return 1 if fails else 0
 
 

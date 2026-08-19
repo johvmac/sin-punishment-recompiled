@@ -91,6 +91,23 @@ CLOSING_REQUIREMENT = (
     "        measuring instrument' -- say that. Exposing it is the point."
 )
 
+# Standing user instruction, 2026-08-19 (roll #85): ANNOUNCE the roll before
+# doing the work, not after.
+#
+# Why this is mechanised rather than remembered: the roll is what makes the
+# routing auditable, and a roll reported only in the write-up is indistinguish-
+# able from a roll rationalised after the fact. The user cannot tell whether the
+# target was drawn or chosen unless the draw is stated BEFORE the work appears.
+# T28's rule applies -- every discipline left to memory on this project has been
+# forgotten -- and this is the twin of CLOSING_REQUIREMENT, which exists for the
+# same reason. test_route.py asserts both are defined and both are printed.
+OPENING_REQUIREMENT = (
+    "\n[route] ANNOUNCE THIS ROLL BEFORE DOING THE WORK -- verdict, draw,\n"
+    "        eps and target, at the TOP of the checkpoint. A roll reported\n"
+    "        only afterwards cannot be told apart from one rationalised\n"
+    "        after the fact, which is the whole thing the roll prevents."
+)
+
 
 def open_items():
     """OPEN rows, CHEAPEST FIRST.
@@ -307,6 +324,7 @@ def main():
         print("        (scheduled work comes first — the roll below covers the"
               " root-cause investigation)")
 
+    print(OPENING_REQUIREMENT)
     print(f"[route] roll #{st['roll']} — {verdict}  (drew {draw:.3f}, eps {EPS})")
     print(f"        target: {target} — {body}")
     print(f"        {note}")

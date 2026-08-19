@@ -39,12 +39,19 @@ invalidated — the ledger check, the roll, and the self-test of any script you
 edited. Re-running the guard pair and the stray-process check when no game ran
 and no hook changed is ceremony, and ceremony makes a real check easy to skip.
 
+**OPEN every checkpoint by announcing the roll** — verdict, draw, eps and
+target — **before doing any of the work.** A roll reported only in the write-up
+cannot be told apart from one rationalised after the fact, and that is the whole
+thing the roll exists to prevent.
+
 **Close every checkpoint with one plain-language sentence saying what it
 achieved** — no hex, no entry IDs, no tool names. If the honest answer is
 "nothing moved forward, I fixed a measuring instrument", say that; exposing
-that distinction is the whole point of the sentence. `route.py` prints this
-requirement at the end of every roll and `scripts/test_route.py` asserts it is
-still there.
+that distinction is the whole point of the sentence.
+
+`route.py` prints both requirements — the opening one above the roll line, the
+closing one at the end — and `scripts/test_route.py` asserts each is defined,
+is printed, and (for the opening one) is printed *before* the roll it refers to.
 
 ## New tools — three gates (T71)
 
