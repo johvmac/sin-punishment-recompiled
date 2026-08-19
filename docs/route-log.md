@@ -105,3 +105,4 @@ A gap in the numbering means a roll was skipped.
 - roll #86: **EXPLOIT** (drew 0.397 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #87: **EXPLOIT** (drew 0.882 vs eps 0.3) -> `A97` — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #88: **EXPLOIT** (drew 0.574 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
+- roll #89: **EXPLOIT** (drew 0.757 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
