@@ -95,7 +95,9 @@ fi
 # So isolation is the default: a measurement run must not depend on where the
 # user's mouse is. Pass SNP_VISIBLE=1 when the run is meant to be WATCHED --
 # milestone confirmation has to happen on the real display.
-XEPHYR_PID=""
+#
+# Isolation itself lives in scripts/display_isolate.sh -- ONE copy, because
+# three divergent copies is what let the gdb wrappers run unisolated (T59).
 # SNP_VISIBLE arrives as an ARGUMENT (an env assignment forwarded to `env`),
 # not in this script's own environment -- so "${SNP_VISIBLE:-}" never saw it,
 # and a run the user had been asked to WATCH silently went to the nested server
@@ -104,20 +106,14 @@ WANT_VISIBLE="${SNP_VISIBLE:-}"
 for a in "$@"; do
     case "$a" in SNP_VISIBLE=*) WANT_VISIBLE="${a#SNP_VISIBLE=}" ;; esac
 done
-
-if [[ -z "$WANT_VISIBLE" || "$WANT_VISIBLE" == "0" ]] && command -v Xephyr >/dev/null 2>&1; then
-    ISO_DISPLAY=":${SNP_ISO_DISPLAY:-7}"
-    Xephyr "$ISO_DISPLAY" -screen 1280x720 -nolisten tcp > /dev/null 2>&1 &
-    XEPHYR_PID=$!
-    sleep 2
-    if kill -0 "$XEPHYR_PID" 2>/dev/null; then
-        export DISPLAY="$ISO_DISPLAY"
-        echo "[run_game] isolated on $ISO_DISPLAY (Xephyr pid $XEPHYR_PID) -- pass SNP_VISIBLE=1 to watch it instead" >&2
-    else
-        XEPHYR_PID=""
-        echo "[run_game] WARNING: Xephyr failed to start; running on the real display, which is throttled when unfocused" >&2
-    fi
-fi
+# SNP_VISIBLE arrives as an ARGUMENT (an env assignment forwarded to `env`),
+# not in this script's own environment, so it is re-exported here before the
+# shared helper reads it.
+export SNP_VISIBLE="${WANT_VISIBLE:-0}"
+# shellcheck source=scripts/display_isolate.sh
+. "$(dirname "$0")/display_isolate.sh"
+snp_isolate_display run_game
+trap snp_display_cleanup EXIT INT TERM
 
 env SP_AUTOSTART=1 "$@" "$BIN" > "$OUT" 2>&1 &
 PID=$!
@@ -177,11 +173,9 @@ kill "$WATCHDOG" 2>/dev/null || true   # normal path won; retire the watchdog
 # command line, which is how a "leftover" can be reported that does not exist.
 LEFT=$(ps -eo comm --no-headers | grep -c '^SinPunishmentRe$' || true)
 
-# Kill the nested server by PID, same discipline as the game itself.
-if [[ -n "$XEPHYR_PID" ]]; then
-    kill -9 "$XEPHYR_PID" 2>/dev/null || true
-    wait "$XEPHYR_PID" 2>/dev/null
-fi
+# The isolated server is torn down by snp_display_cleanup on the EXIT trap.
+# Deliberately NOT also killed here: two cleanup paths for one resource is
+# how the copies drifted apart in the first place.
 
 # Controller input CONTAMINATES a run: the window takes focus when it appears,
 # and the frontend binds ordinary letters (A/S/D/W/E/I/J/K/L/Q/R/SPACE/RETURN),

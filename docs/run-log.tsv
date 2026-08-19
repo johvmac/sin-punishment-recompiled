@@ -75,3 +75,6 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	log	env
 2026-08-19T11:13:33+10:00	40	40	0	0	0	1138	30	CLEAN	audio-now.log	SP_AUTOSTART=1 SNP_HEARTBEAT=1 SNP_AUDIO_DUMP=/tmp/claude-1000/-home-joh-Documents-sin-and-punishment-sin-punishment-recompiled/399da28f-2710-4b1b-a08d-4f436bd8982e/scratchpad/audio-now.raw
 2026-08-19T13:11:51+10:00	175	158	139	0	0	4653	30	CRASHED	ovl1.log	SNP_OVL=1 SNP_HEARTBEAT=1
 2026-08-19T13:16:27+10:00	175	158	139	0	0	4659	30	CRASHED	ovl2.log	SNP_OVL=1 SNP_HEARTBEAT=1
+2026-08-19T14:16:03+10:00	60	60	0	0	0	1752	30	CLEAN	xvfb_a.log	SNP_HEARTBEAT=1
+2026-08-19T14:17:24+10:00	60	60	0	0	0	730	30	CLEAN	xephyr_b.log	SNP_HEARTBEAT=1
+2026-08-19T14:19:05+10:00	60	60	0	0	0	1750	30	CLEAN	xephyr_c.log	SNP_HEARTBEAT=1
