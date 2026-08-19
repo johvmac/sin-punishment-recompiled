@@ -130,6 +130,39 @@ except Exception as e:
     print("  stack walk failed: %s" % e)
 end
 
+echo \n===== RDRAM SNAPSHOT =====\n
+# The USEFUL alternative to a core file. librecomp reserves 4GB and commits
+# 512MB (addresses.hpp), which is why generate-core-file produced 11.8 GB (T63).
+# But every address this project has ever examined -- 0x8013C278, 0x802E1798,
+# 0x80376160 -- is inside the first few MB of RDRAM. So dump THAT: 8MB, about
+# 1/1500th of a core, and it contains everything we actually query.
+#
+# Written alongside it: the ctx register file, so the snapshot is self-contained
+# and can answer "what was $s0" as well as "what was at this address".
+# Read it back with scripts/rdram_peek.py -- no gdb needed.
+python
+import gdb, os, struct
+path = os.environ.get("SNP_RDRAM_DUMP", "")
+if path:
+    try:
+        base = int(gdb.parse_and_eval("*(unsigned long long *)&g_rdram_base"))
+        size = int(os.environ.get("SNP_RDRAM_MB", "8")) * 1024 * 1024
+        gdb.execute("dump binary memory %s %d %d" % (path, base, base + size))
+        regs = []
+        for i in range(32):
+            regs.append(int(gdb.parse_and_eval("(unsigned long long)ctx->r%d" % i)) & 0xFFFFFFFFFFFFFFFF)
+        with open(path + ".ctx", "wb") as f:
+            f.write(struct.pack("<Q", base))
+            for v in regs:
+                f.write(struct.pack("<Q", v))
+        print("  wrote %s (%.1f MB) + .ctx" % (path, os.path.getsize(path) / 1e6))
+        print("  read it with:  scripts/rdram_peek.py %s 0x8013C278" % path)
+    except Exception as e:
+        print("  snapshot FAILED: %s" % e)
+else:
+    print("  skipped -- set SNP_RDRAM_DUMP=<path> (8MB). Prefer this over SNP_CORE.")
+end
+
 echo \n===== CORE FILE =====\n
 # gdb writes the core ITSELF, on demand, at the moment of the fault.
 #

@@ -59,10 +59,16 @@ wrong and it is corrected here rather than quietly removed.**
   filesystem in about three crashes.**
 * The original entry reasoned from the 250 MB binary and attached a disk
   *caution*. A caution is not a measurement — see T63.
-* **What to do instead:** `SNP_CORE=<path> scripts/gdb_fault.sh …` writes one on
-  demand, no sudo and no system setting touched. For this target the answer is
-  still almost always "don't" — re-running `gdb_fault.sh` costs 158 seconds,
-  which is cheaper than 12 GB.
+* **What to do instead — and it is strictly better, not a compromise:**
+  `SNP_RDRAM_DUMP=<path> scripts/gdb_fault.sh …` writes an **8.4 MB** snapshot
+  of game memory plus the register file (T64). Every address this project has
+  ever examined is inside it. Keep as many as you like on the external drive.
+  Read them with `scripts/rdram_peek.py` — no gdb, no game run.
+* It found A126 (node types are rebased `+0x1B` at load) within minutes of
+  existing, by diffing a snapshot against the ROM image — a question nobody had
+  asked, which cost nothing to ask because the crash state was on disk.
+* `SNP_CORE=<path>` still exists for the rare case needing HOST state, and
+  warns about the 11.8 GB first.
 
 ## 4. `xdotool` and `wmctrl`  ·  `sudo apt install xdotool wmctrl`
 
