@@ -33,6 +33,11 @@ WHAT IT CHECKS
    which for `route.py` means consuming a roll, and for `run_game.sh` means
    launching the game. The check for "does it mishandle arguments" must not
    mishandle arguments.
+3. **No script DEFAULTS an evidence path to /tmp** (T47, added after T95).
+   T47 has been a standing constraint since 2026-08-19 and nothing ever checked
+   it: `display_isolate.sh` grew the correct behaviour and nine scripts did not,
+   and no tool compared them. Eleven cited filenames in the ledger are already
+   unrecoverable this way. A constraint with no checker is a preference.
 
 WHAT IT DELIBERATELY DOES NOT FLAG
 ----------------------------------
@@ -48,11 +53,16 @@ exempted silently -- the same failure this script exists to catch.
 
 THE BACKLOG IS REPORTED, NOT HIDDEN
 -----------------------------------
-Most existing scripts predate the inventory rule. That count is printed every
-run as context. It is deliberately NOT a finding: rolling it in would bury the
-one new thing you actually did today. But it is not suppressed either -- a lint
-that quietly narrows its own scope while printing a broad claim is the exact
-defect recorded in T90.
+Most existing scripts predate the inventory rule, and nine predate the T47
+check. Those counts are printed every run as context, and the T47 offenders are
+printed BY NAME. They are deliberately NOT findings: nine permanent findings
+would make `--strict` exit 1 forever, and an alarm that always fires is one
+nobody reads. But they are not suppressed either -- a lint that quietly narrows
+its own scope while printing a broad claim is the exact defect recorded in T90.
+
+The debt set lives in the state file and is rewritten each run from what still
+violates, so fixing a script drops it off with no list to maintain by hand --
+and re-introducing the fault afterwards then counts as the regression it is.
 
 Usage:
     scripts/lint_tools.py             # report, update the baseline, exit 0
@@ -71,6 +81,34 @@ PLAYBOOK = ROOT / "docs" / "diagnostic-playbook.md"
 STATE = ROOT / "docs" / ".lint-tools-state.json"
 
 SUFFIXES = {".py", ".sh"}
+
+# T47: evidence goes to the archive drive, never /tmp. Matches a path being used
+# as a DEFAULT -- a shell positional default, or a literal assignment. It does
+# NOT match /tmp appearing in prose, a comment, or a refusal message, because
+# gdb_trace.sh's own T47 fix talks about /tmp at length and a checker that
+# flagged the fix for describing the bug would be useless.
+TMP_DEFAULT = re.compile(r"""\$\{[0-9]+:-/tmp/ | =\s*["']/tmp/ | \bor\s+["']/tmp/""", re.X)
+
+# Genuine scratch is fine and must not be flagged: a temp file that is deleted
+# in the same run is not evidence. These are the idioms that create one.
+SCRATCH_IDIOMS = ("mktemp", "TemporaryDirectory", "NamedTemporaryFile", "tempfile")
+
+
+def tmp_defaults(text):
+    """Lines that default an OUTPUT path to /tmp. [] if clean.
+
+    Comment lines are skipped entirely. Without that, the very comment
+    explaining a T47 fix trips the check that the fix satisfies.
+    """
+    out = []
+    for i, line in enumerate(text.split("\n"), 1):
+        if line.lstrip().startswith("#"):
+            continue
+        if any(idiom in line for idiom in SCRATCH_IDIOMS):
+            continue
+        if TMP_DEFAULT.search(line):
+            out.append((i, line.strip()))
+    return out
 
 
 def scan(text):
@@ -109,9 +147,18 @@ def load_state():
     return {"known": [], "runs": 0}
 
 
-def findings(paths, playbook_text, known):
-    """(new_undocumented, no_help, backlog). Pure -- so self_check can drive it."""
-    new_undoc, no_help, backlog = [], [], []
+def findings(paths, playbook_text, known, tmp_known=()):
+    """(new_undocumented, no_help, backlog, tmp_new, tmp_debt). Pure, so
+    self_check can drive it against a synthetic tree.
+
+    `tmp_known` is the set of scripts ALREADY known to default to /tmp when this
+    check was added (T95 enumerated eight). Those are debt, reported by name but
+    not counted -- eight permanent findings would make --strict always exit 1,
+    and an alarm that always fires is one nobody reads. A script NOT in that set
+    is a regression and IS counted. The set is stored in state, so fixing one
+    drops it off automatically without anyone editing a list.
+    """
+    new_undoc, no_help, backlog, tmp_new, tmp_debt = [], [], [], [], []
     for p in paths:
         text = p.read_text(errors="replace")
         executable, reads_args, has_help = scan(text)
@@ -120,7 +167,10 @@ def findings(paths, playbook_text, known):
             (new_undoc if is_new else backlog).append(p.name)
         if executable and reads_args and not has_help:
             no_help.append(p.name)
-    return new_undoc, no_help, backlog
+        hits = tmp_defaults(text)
+        if hits:
+            (tmp_debt if p.name in tmp_known else tmp_new).append((p.name, hits))
+    return new_undoc, no_help, backlog, tmp_new, tmp_debt
 
 
 def self_check():
@@ -139,7 +189,7 @@ def self_check():
                                         "if '--help' in sys.argv: print(__doc__)\n")
         (d / "notes.log").write_text("#!/usr/bin/env python3\nimport sys\nsys.argv\n")
         paths = sorted(p for p in d.iterdir() if p.suffix in SUFFIXES)
-        _nu, no_help, _bk = findings(paths, "", [])
+        _nu, no_help, _bk, _tn, _td = findings(paths, "", [])
         want = ["bad_tool.py"]
         checks.append(("flags a no-help tool; exempts lib / no-arg / documented",
                        no_help == want, f"flagged {no_help}, want {want}"))
@@ -152,18 +202,70 @@ def self_check():
 
         # 3. NEW vs BACKLOG must actually separate. Same tree, same texts, only
         #    the baseline differs -- so this fails if the bound is ignored.
-        nu_a, _h, bk_a = findings(paths, "", [])
-        nu_b, _h, bk_b = findings(paths, "", [p.name for p in paths])
+        nu_a, _h, bk_a, _tn, _td = findings(paths, "", [])
+        nu_b, _h, bk_b, _tn, _td = findings(paths, "", [p.name for p in paths])
         checks.append(("baseline separates new findings from backlog",
                        bool(nu_a) and not nu_b and not bk_a and bool(bk_b),
                        f"unseeded new={len(nu_a)}/backlog={len(bk_a)}; "
                        f"seeded new={len(nu_b)}/backlog={len(bk_b)}"))
 
         # 4. Documented-ness must be read from the playbook text, not assumed.
-        nu_doc, _h, bk_doc = findings(paths, " ".join(p.name for p in paths), [])
+        nu_doc, _h, bk_doc, _tn, _td = findings(paths, " ".join(p.name for p in paths), [])
         checks.append(("a named script is not reported as undocumented",
                        not nu_doc and not bk_doc,
                        f"new={nu_doc}, backlog={bk_doc}"))
+
+    # 4b. T47 DISCRIMINATION, on a synthetic tree with one of each shape. This
+    #     is the control that matters: a regex tuned to today's nine offenders
+    #     would pass a "does it find them" test while being useless. Each
+    #     negative below is a way the check could be wrong in the SAFE
+    #     direction (missing a real one) or the NOISY direction (flagging a
+    #     compliant script), and both are failures.
+    # THE FIXTURES ARE ASSEMBLED, NOT WRITTEN LITERALLY, and that is not
+    # fastidiousness: the first version spelled them out and this linter FLAGGED
+    # ITSELF at the line holding its own test data. The honest fix is to keep
+    # the pattern out of this file's source -- NOT to exempt this file, which
+    # would be a self-exemption and exactly the hole a checker must not have.
+    # audit_l2.py records two earlier controls that failed the same way.
+    T = "/" + "tmp"
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "shell_default.sh").write_text('#!/bin/bash\nLOG="${2:-' + T + '/x.log}"\n')
+        (d / "py_default.py").write_text('#!/usr/bin/env python3\nLOG = "' + T + '/x.log"\n')
+        (d / "compliant.sh").write_text(
+            '#!/bin/bash\nLOG="${2:-/media/joh/extra/archive/evidence/x.log}"\n')
+        (d / "scratch_ok.sh").write_text('#!/bin/bash\nX=$(mktemp ' + T + '/scratch.XXXX)\n')
+        (d / "talks_about_tmp.sh").write_text(
+            '#!/bin/bash\n# T47: never write LOG="${2:-' + T + '/x.log}" -- that is the bug\n'
+            'echo "refusing to fall back to ' + T + '" >&2\n')
+        paths = sorted(p for p in d.iterdir() if p.suffix in SUFFIXES)
+        _n, _h, _b, tmp_new, _td2 = findings(paths, "", [], tmp_known=())
+        got = sorted(n for n, _hits in tmp_new)
+        want = ["py_default.py", "shell_default.sh"]
+        checks.append(("T47: flags shell+python /tmp defaults; exempts archive "
+                       "path, mktemp, and prose", got == want, f"flagged {got}, want {want}"))
+
+        # 4c. The debt/regression split, driven twice over identical input with
+        #     only the known-set changed. Without this the eight enumerated
+        #     violations would count as findings forever.
+        _n, _h, _b, tn_a, td_a = findings(paths, "", [], tmp_known=())
+        _n, _h, _b, tn_b, td_b = findings(paths, "", [], tmp_known=[p.name for p in paths])
+        checks.append(("T47: a known violator is debt, an unknown one is a regression",
+                       bool(tn_a) and not td_a and not tn_b and bool(td_b),
+                       f"unseeded new={len(tn_a)}/debt={len(td_a)}; "
+                       f"seeded new={len(tn_b)}/debt={len(td_b)}"))
+
+    # 4d. REAL-TREE control, two-sided. The two scripts that actually obey T47
+    #     must come back clean -- a detector that flags everything passes 4b by
+    #     accident but fails here.
+    compliant = []
+    for name in ("display_isolate.sh", "gdb_trace.sh"):
+        f = SCRIPTS / name
+        if f.exists() and tmp_defaults(f.read_text(errors="replace")):
+            compliant.append(name)
+    checks.append(("T47: the two compliant scripts are not flagged", not compliant,
+                   f"wrongly flagged {compliant}" if compliant else
+                   "display_isolate.sh and gdb_trace.sh both clean"))
 
     # 5. This tool must satisfy its OWN rule. A linter that would flag itself
     #    has no standing to flag anything else.
@@ -210,7 +312,9 @@ def main():
     st = load_state()
     known = st["known"]
     seeding = not known
-    new_undoc, no_help, backlog = findings(paths, PLAYBOOK.read_text(), known)
+    tmp_seeding = "tmp_known" not in st
+    new_undoc, no_help, backlog, tmp_new, tmp_debt = findings(
+        paths, PLAYBOOK.read_text(), known, st.get("tmp_known", []))
 
     print(f"[tools] {len(paths)} script(s); baseline holds {len(known)}"
           f"{' (SEEDING — first run)' if seeding else ''}")
@@ -235,17 +339,43 @@ def main():
         for s in no_help:
             print(f"  - {s}")
 
+    if tmp_seeding:
+        allv = tmp_new + tmp_debt
+        print(f"[tools] T47 first run: {len(allv)} script(s) default evidence to /tmp, "
+              f"recorded as enumerated debt (T95). NOT counted as findings — eight permanent "
+              f"findings would make --strict always exit 1. A script that acquires a /tmp "
+              f"default LATER is a regression and WILL be counted:")
+        for name, hits in sorted(allv):
+            print(f"  - {name}:{hits[0][0]}  {hits[0][1][:70]}")
+    else:
+        if tmp_new:
+            n += len(tmp_new)
+            print(f"[tools] {len(tmp_new)} script(s) NEWLY default evidence to /tmp — T47 says "
+                  f"evidence goes to the archive drive, never /tmp (11 cited files are already "
+                  f"unrecoverable this way):")
+            for name, hits in sorted(tmp_new):
+                for ln, src in hits:
+                    print(f"  - {name}:{ln}  {src[:70]}")
+        if tmp_debt:
+            print(f"[tools] context, NOT findings: {len(tmp_debt)} script(s) still carry the "
+                  f"known T47 debt ({', '.join(sorted(nm for nm, _ in tmp_debt))}). Named every "
+                  f"run so it is not silently narrowed away; pass an explicit archive path.")
+
     if backlog:
         print(f"[tools] context, NOT findings: {len(backlog)} pre-existing script(s) are "
               f"undocumented. This is a backlog, not a regression — it is printed every run "
               f"so it is not silently narrowed away.")
 
-    if n == 0 and not seeding:
-        print("[tools] OK — every new script is documented and every argument-taking "
-              "script has a help path.")
+    if n == 0 and not seeding and not tmp_seeding:
+        print("[tools] OK — every new script is documented, every argument-taking script has "
+              "a help path, and nothing newly writes evidence to /tmp.")
 
     if not dry:
         st["known"] = [p.name for p in paths]
+        # Only scripts that STILL violate stay in the debt set, so fixing one
+        # drops it off with no list to edit by hand -- and re-introducing it
+        # afterwards then counts as the regression it is.
+        st["tmp_known"] = sorted(nm for nm, _ in (tmp_new + tmp_debt))
         st["runs"] = st.get("runs", 0) + 1
         STATE.write_text(json.dumps(st, indent=1))
     else:

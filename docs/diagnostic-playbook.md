@@ -2362,7 +2362,7 @@ below is installed and verified working.
 | `scripts/crop_recording.py` | repo | crop + compress a lossless run master in ONE pass. **REFUSES unless everything outside the crop is black** — `--check` to verify only, `--finalize` for the capture pipeline |
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
-| `scripts/lint_tools.py` | repo | is a NEW script documented, and does anything taking arguments have a help path? Bounded by a baseline so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` |
+| `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
 | **scene reference frames** | `<archive>/scene-refs/*.png` | labelled 640x480 frames from OUR build. **Never build these from the ares captures** — different renderer, ~240p + VI filtering (T88) |
 | **PIL, numpy** | system python3 | `scripts/shrink_shot.py`, capture analysis |
@@ -2449,8 +2449,14 @@ first run, correctly, because this section did not yet exist.
 `--help` fell through and **started X servers and recorded video.** Fixed in
 the same checkpoint.
 
+**T47, added the same day (T95).** The `/tmp` check exists because the sweep that found one offender found ten: `display_isolate.sh` was the ONLY script obeying T47, and nine defaulted evidence to `/tmp` including the run log, the fault identifier and the screenshot tool. **The rule was real, written down, and unenforced for a day — the identical shape to T89/T90.** The nine are recorded as named debt rather than findings, because nine permanent findings make `--strict` useless; a script that acquires a `/tmp` default *later* is a regression and is counted.
+
+**Its fixtures are ASSEMBLED, not written literally, and that is load-bearing.** The first version spelled them out and the linter flagged ITSELF at the line holding its own test data. The fix is to keep the pattern out of the source — **never to exempt the file**, which would be a self-exemption and precisely the hole a checker must not have. `audit_l2.py` records two earlier controls that failed this same way (T65).
+
+**Both T47 controls were verified to fail in BOTH directions:** with the regex made inert they reported `flagged []`, and with the comment/scratch exemptions removed they caught the prose false-positive (`talks_about_tmp.sh`). A detector can be wrong by missing real cases or by flagging compliant ones, and only a two-sided control sees both.
+
 ```bash
-scripts/lint_tools.py --self-check   # 6/6
+scripts/lint_tools.py --self-check   # 9/9
 scripts/lint_tools.py --dry-run      # report, do not touch the baseline
 scripts/lint_tools.py --strict       # exit 1 on findings
 ```

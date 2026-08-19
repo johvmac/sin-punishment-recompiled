@@ -56,5 +56,16 @@
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 1
+ "runs": 2,
+ "tmp_known": [
+  "ares_watch.sh",
+  "boot_screen_check.sh",
+  "freeze_check.sh",
+  "freeze_survey.sh",
+  "gdb_fault.sh",
+  "gdb_threads.sh",
+  "gdb_watch.sh",
+  "rr_record.sh",
+  "run_game.sh"
+ ]
 }
