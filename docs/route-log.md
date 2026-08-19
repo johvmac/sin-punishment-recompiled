@@ -97,3 +97,4 @@ A gap in the numbering means a roll was skipped.
 - roll #78: **EXPLORE** (drew 0.292 vs eps 0.3) -> `A97` — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #79: **EXPLORE** (drew 0.116 vs eps 0.3) -> `A97` — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #80: **EXPLOIT** (drew 0.582 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
+- roll #81: **EXPLOIT** (drew 0.398 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
