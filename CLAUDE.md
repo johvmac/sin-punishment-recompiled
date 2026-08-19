@@ -85,7 +85,11 @@ Before a new tool's output counts as evidence:
   story, say which step is the stitch and mark it unverified (T57).
 * **Measure a new tool before trusting it.** Three shipped confident wrong
   answers in one session (T60/T62/T63, and again T64/T66).
-* **A control that cannot fail is not a control** (T65).
+* **A control that cannot fail is not a control** (T65), and **a control that
+  greps its own file is the usual way one stops discriminating** — three
+  instances now (T100). Assemble the needle from parts; never exempt the file.
+* **A new checker whose FIRST real run finds nothing should be suspected,
+  not celebrated** (T100). Working checkers surprise you on day one.
 * **Every negative names its scope inside the claim** — "nothing in splat's
   asm calls this", not "nothing calls this".
 * **A single-run claim answers for itself, in the entry** (T99). If an

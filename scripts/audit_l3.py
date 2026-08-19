@@ -4,7 +4,10 @@
 WHY THIS EXISTS
 L1 counts defects. L2 groups them into classes and asks whether a fix held.
 Neither can answer the only question that decides whether any of this is
-working: **is the error rate falling, and which classes survive their fixes?**
+working: **which classes survive their fixes?** -- and, with an explicit caveat,
+whether the defect count is moving. **The COUNT's direction is confounded** (T100): a
+fall cannot be told apart from having stopped noticing, and better discipline raises
+it first. Every direction claim is emitted with CONFOUND_NOTE for that reason.
 
 A class that keeps recurring after being "fixed" means the fix addressed an
 instance, not the class -- and this project has already produced three of those
@@ -47,6 +50,28 @@ def class_counts(body):
     for m in re.finditer(r"^\s*- `([a-z-]+)` \([^)]*\): (\d+) / (\d+)", body, re.M):
         out[m.group(1)] = (int(m.group(2)), int(m.group(3)))
     return out
+
+
+# THE DIRECTION IS CONFOUNDED, AND SAYING SO IS THE FIX FOR NOW (T100).
+#
+# This file's own docstring asks "is the error rate falling?" -- and a falling
+# defect count cannot distinguish IMPROVEMENT from STOPPING NOTICING. Worse, the
+# confound runs the wrong way for the obvious reading: better discipline should
+# RAISE the count first, because more self-correction and more error produce the
+# same number. A project that got sloppier and audited less would print FALLING.
+#
+# The real fix needs L1 to separate self-caught from user-caught defects and
+# propagate that distinction up the ladder -- only "user-caught falling" is
+# unambiguously good. That is a ladder-wide change and is NOT done. Until it is,
+# every direction claim carries this note, so the number cannot be read naively.
+# --self-check asserts the note is emitted with the claim, not merely defined.
+CONFOUND_NOTE = (
+    "- **THIS DIRECTION IS CONFOUNDED — do not read it as progress.** A falling "
+    "count cannot be told apart from having stopped noticing, and better "
+    "discipline RAISES the count first (self-correction and error are the same "
+    "signal). Only a fall in USER-CAUGHT defects would be unambiguous, and the "
+    "ladder does not yet separate those (T100)."
+)
 
 
 def load_state():
@@ -134,6 +159,28 @@ def self_check():
                    "; ".join(wrong) if wrong else
                    "no-op holds the streak; only a reviewed-and-clean window advances it"))
 
+    # The confound note must be EMITTED WITH the direction claim, not merely
+    # defined near it. A caveat that exists in the source and never reaches the
+    # block is the T56 failure -- a reminder nothing emits is not a reminder --
+    # and it would leave the weekly review printing a bare FALLING/RISING that
+    # reads as progress. Order is asserted too: a caveat printed above the claim
+    # it qualifies is not attached to it.
+    # NEEDLES ASSEMBLED FROM PARTS, and this is not fastidiousness. The first
+    # version wrote them literally, so `src.index` found them inside THIS check
+    # rather than in main() -- and it then reported FAIL identically whether or
+    # not the emit was present, i.e. a control that could not discriminate at
+    # all. It was caught only by running the removal experiment. That is the
+    # THIRD self-referential control in this codebase (audit_l2.py records two
+    # earlier ones) and the second today, so the pattern is now the default
+    # suspicion whenever a check greps its own file.
+    _emit = "lines.append(" + "CONFOUND_NOTE)"
+    _dirline = 'f"- **defects per ' + 'digest:'
+    emitted = _emit in src
+    ordered = emitted and _dirline in src and src.index(_emit) > src.index(_dirline)
+    checks.append(("the direction claim carries its confound note", emitted and ordered,
+                   "emitted directly after the direction line" if emitted and ordered else
+                   f"defined={('CONFOUND_NOTE =' in src)}, emitted={emitted}, ordered={ordered}"))
+
     bad = sum(1 for _n, ok, _d in checks if not ok)
     for name, ok, detail in checks:
         print(f"{'ok  ' if ok else 'FAIL'}  {name:48} — {detail}")
@@ -187,6 +234,7 @@ def main():
                          "RISING" if late > early else "flat")
             lines.append(f"- **defects per digest: {early:.1f} -> {late:.1f} — {direction}** "
                          f"(over {len(totals)} digests)")
+            lines.append(CONFOUND_NOTE)
 
         # Which classes survive their fixes? A class marked `recurs` in a LATER
         # digest than one where it appeared is a fix that addressed an instance

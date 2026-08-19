@@ -666,7 +666,7 @@ the raw data.** Nothing ever trawls the journal.
 | L0 | every checkpoint | — | `check_ledger.py` hook + `route.py` roll |
 | **L1** | every ~10 rolls | ledger table, `run-log.tsv`, `route-log.md`, git | `scripts/audit.py` -> `docs/audit-log.md`, <=15 lines |
 | **L2** | daily | **only the L1 blocks** in `audit-log.md` | group defects by class; did the fix for class X hold?; list the day's load-bearing claims + falsifiers for the user to scan |
-| L3 | weekly | **only the L2 blocks** | is the withdrawal rate falling? which classes recur despite tooling? |
+| L3 | weekly | **only the L2 blocks** | which classes recur despite tooling? — plus a defect-count direction that is **CONFOUNDED and labelled as such** (T100): a falling count cannot be told apart from having stopped noticing, and better discipline raises it first |
 
 `audit.py` checks **leading indicators**, never findings themselves —
 re-verifying a claim costs what producing it cost, and an audit that expensive
@@ -712,7 +712,7 @@ evidence defects in one session that no mechanical check could see.
 scripts/audit_l2.py --self-check   # 4/4; layering by AST + the no-op control
 scripts/audit_l2.py --dry-run      # digest, record nothing
 scripts/audit_l2.py                # record an L2 block
-scripts/audit_l3.py --self-check   # 5/5; same layering + no-op controls
+scripts/audit_l3.py --self-check   # 6/6; layering + no-op + confound-note controls
 scripts/audit_l3.py                # same shape, reads only the L2 blocks
 ```
 
@@ -2087,6 +2087,19 @@ establish perturbation, if you need to claim it, against a no-probe control.
 A tool that only exists in a shell history is a tool the next session rebuilds.
 The write-up names **what it is for, its controls, and the incident that
 motivated it** — the incident is what stops it being deleted as ceremony later.
+> **A NEW CHECKER'S FIRST RUN SHOULD SURPRISE YOU (T100).** If it comes back
+> clean, the null hypothesis is that the checker is broken — not that the
+> codebase is. On 2026-08-20 `lint_tools.py` immediately found a real `--help`
+> defect, then flagged ITSELF, then its `/tmp` sweep found nine offenders where
+> one had been claimed. That is what working looks like on day one.
+>
+> **AND MOST OF OUR GROUND TRUTH IS INTERNAL (T100).** `rom_disasm.py`'s
+> self-check is the one control validated against something outside this
+> project (splat's committed asm); ares gives external truth for *sequence and
+> identity* only (T88). Everything else checks our instruments against our own
+> expectations. That is the weakest flank in the whole method — prefer a
+> control with an outside referent whenever one is available.
+
 Add it to the **Tool inventory** table below in the same checkpoint that creates
 it, not "later".
 
