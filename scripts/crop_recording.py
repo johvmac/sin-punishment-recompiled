@@ -128,10 +128,63 @@ def verify(path, geom, n_frames, dur):
     return worst, worst_at
 
 
+def self_check():
+    """Synthesise videos with a KNOWN answer and assert both directions.
+
+    A standing control, unlike `--check`, which needs a real recording to point
+    at. Two synthetic clips: one with a bright box only inside the crop rect
+    (must ACCEPT) and one with a bright box outside it (must REFUSE). If the
+    verifier ever stops looking outside the rect, the second case passes and the
+    tool silently starts discarding evidence.
+    """
+    checks = []
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        good, bad = d / "good.mp4", d / "bad.mp4"
+        # 1280x720 black, white box INSIDE the centred 640x480 rect
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                        "-f", "lavfi", "-i", "color=c=black:s=1280x720:d=3:r=10",
+                        "-vf", "drawbox=x=400:y=200:w=200:h=150:color=white:t=fill",
+                        "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+                        str(good)], capture_output=True)
+        # same, but the box is at x=40 -- OUTSIDE the rect, i.e. real content
+        # that a crop would destroy
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                        "-f", "lavfi", "-i", "color=c=black:s=1280x720:d=3:r=10",
+                        "-vf", "drawbox=x=40:y=200:w=200:h=150:color=white:t=fill",
+                        "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+                        str(bad)], capture_output=True)
+
+        for label, path, want_ok in (("ACCEPTS a clip whose content is all inside the rect", good, True),
+                                     ("REFUSES a clip with content OUTSIDE the rect", bad, False)):
+            W, H, dur = probe_size(path)
+            if dur is None:
+                checks.append((label, False, "duration unknown"))
+                continue
+            geom = (GAME_W, GAME_H, (W - GAME_W) // 2, (H - GAME_H) // 2)
+            worst, at = verify(path, geom, 4, dur)
+            ok = (worst <= BLACK) == want_ok
+            checks.append((label, ok, f"brightest outside = {worst}"
+                           + (f" at {at[0]},{at[1]}" if at and not want_ok else "")))
+
+        # duration must be recoverable from a container with no stream duration
+        checks.append(("duration is recovered (3-way fallback)",
+                       probe_size(good)[2] is not None,
+                       f"{probe_size(good)[2]}s"))
+
+    bad_n = 0
+    for name, ok, detail in checks:
+        bad_n += not ok
+        print(f"{'ok  ' if ok else 'FAIL'}  {name:56} — {detail}")
+    print(f"\n{len(checks)-bad_n}/{len(checks)} controls pass")
+    return 1 if bad_n else 0
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
-    ap.add_argument("video")
+    ap.add_argument("video", nargs="?")
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--self-check", action="store_true")
     ap.add_argument("--replace", action="store_true")
     ap.add_argument("--geom")
     ap.add_argument("--frames", type=int, default=24)
@@ -145,6 +198,8 @@ def main():
     if a.help:
         print(__doc__)
         return 0
+    if a.self_check:
+        return self_check()
 
     src = Path(a.video)
     if not src.exists():

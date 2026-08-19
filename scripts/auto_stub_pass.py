@@ -56,6 +56,15 @@ and reports it for manual review.
 Usage: scripts/auto_stub_pass.py [--max-fixes N] [--dry-run]
 Writes a log of every action to scripts/auto_stub_pass.log.
 """
+
+# T37 GUARD. This script MUTATES state -- it regenerates code and rewrites
+# files. route.py once fell through an unrecognised `--help` into its
+# state-mutating default and consumed a live routing roll; the same shape here
+# would silently run a code-regeneration pass. Recognise it explicitly and exit.
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import argparse
 import bisect
 import re

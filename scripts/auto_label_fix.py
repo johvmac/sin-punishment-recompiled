@@ -17,6 +17,15 @@ classify_branch() used for "Unhandled branch" errors.
 
 Usage: scripts/auto_label_fix.py [--max-fixes N] [--dry-run]
 """
+
+# T37 GUARD. This script MUTATES state -- it regenerates code and rewrites
+# files. route.py once fell through an unrecognised `--help` into its
+# state-mutating default and consumed a live routing roll; the same shape here
+# would silently run a code-regeneration pass. Recognise it explicitly and exit.
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import argparse
 import glob
 import multiprocessing
