@@ -84,6 +84,82 @@ except Exception as e:
     print("  derivation failed: %s" % e)
 end
 
+echo \n===== GAME STACK: $s0 PER RECURSION LEVEL (A124) =====\n
+# The recompiled ctx holds ONE register file per thread, so ctx->r16 is only the
+# INNERMOST frame's $s0 -- which is why A112/A122 confused an outer-call trace
+# with the faulting one. The per-level values are on the GAME stack: the walker
+# opens `addiu $sp,$sp,-0x50` and immediately does `sw $s0,0x10($sp)`, so the
+# word at sp + k*0x50 + 0x10 is the $s0 belonging to the frame ABOVE level k.
+# Walking that recovers the whole descent from a single fault, with no probe and
+# no rebuild.
+#
+# DO NOT sanity-check this walk by expecting the saved $ra at sp+0x28 to be a
+# code address. The store IS emitted, but $ra carries no meaning in recompiled
+# output -- returns are real C returns -- so that check fails on a CORRECT walk
+# (A125). The control that works is self-consistency: successive levels should
+# differ by the stride the static read predicts. And the walk is only valid
+# across the walker's OWN frames; func_80033A40 opens 0x18, not 0x50.
+python
+import gdb
+def u32(host):
+    return int(gdb.parse_and_eval("*(unsigned int *)%d" % host)) & 0xFFFFFFFF
+try:
+    base = int(gdb.parse_and_eval("*(unsigned long long *)&g_rdram_base"))
+    sp   = int(gdb.parse_and_eval("(unsigned long long)ctx->r29")) & 0xFFFFFFFF
+    live = int(gdb.parse_and_eval("(unsigned long long)ctx->r16")) & 0xFFFFFFFF
+    FRAME, S0_OFF, RA_OFF = 0x50, 0x10, 0x28
+    print("  live $s0 (innermost)      = 0x%08X" % live)
+    print("  %-4s %-12s %-12s %-12s" % ("lvl", "frame_sp", "saved_$s0", "saved_$ra"))
+    prev = live
+    for k in range(8):
+        fsp = (sp + k * FRAME) & 0xFFFFFFFF
+        if not (0x80000000 <= fsp < 0x80800000):
+            print("  level %d: sp 0x%08X outside RDRAM -- stopping" % (k, fsp)); break
+        s0 = u32(base + (fsp + S0_OFF - 0x80000000))
+        ra = u32(base + (fsp + RA_OFF - 0x80000000))
+        delta = ""
+        if 0x80000000 <= s0 < 0x80800000 and 0x80000000 <= prev < 0x80800000:
+            d = (prev - s0) & 0xFFFFFFFF
+            if d < 0x10000:
+                delta = "   (inner is +0x%X = idx %d at stride 4)" % (d, d // 4)
+        print("  %-4d 0x%08X   0x%08X   0x%08X%s" % (k, fsp, s0, ra, delta))
+        prev = s0
+    print("\n  A124's question: are these successive elements of ONE array, or does")
+    print("  the chain walk out of it? Compare the span against the array it starts in.")
+except Exception as e:
+    print("  stack walk failed: %s" % e)
+end
+
+echo \n===== CORE FILE =====\n
+# gdb writes the core ITSELF, on demand, at the moment of the fault.
+#
+# This is deliberately NOT the system core-dump path. That would need
+# `ulimit -c unlimited` plus taking core_pattern away from apport (sudo), and it
+# would then dump EVERY crash anywhere on the machine to a fixed location. This
+# writes one core, only when we are already debugging, exactly where we say --
+# no sudo, no apport, and nothing lands on the root filesystem.
+#
+# Worth having because a core is re-inspectable: on 2026-08-19 gdb_fault.sh was
+# run twice against the same crash purely because the first pass used the
+# release binary and `ctx` would not resolve (A122). With a core the second pass
+# costs nothing instead of a 158-second run.
+python
+import gdb, os
+path = os.environ.get("SNP_CORE", "")
+if path:
+    try:
+        gdb.execute("generate-core-file %s" % path)
+        print("  wrote %s (%.0f MB)" % (path, os.path.getsize(path) / 1e6))
+        print("  re-inspect with:  gdb build-debug/SinPunishmentRecompiled %s" % path)
+    except Exception as e:
+        print("  core generation FAILED: %s" % e)
+else:
+    print("  skipped. SNP_CORE=<path> writes one, but MEASURE FIRST: a core of this\n"
+          "  process is ~11.8 GB, not tens of MB -- the recompiler maps a very large\n"
+          "  writable region and gdb dumps all of it (T63). Re-running this script\n"
+          "  costs 158s and is almost always the better trade.")
+end
+
 echo \n===== FAULTING INSTRUCTION =====\n
 # `disassemble`, NOT `x/i $pc-N`. x/i decodes from an arbitrary byte offset and
 # on x86 that lands mid-instruction, printing confident nonsense -- A102 was

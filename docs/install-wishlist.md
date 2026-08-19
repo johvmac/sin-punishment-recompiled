@@ -46,19 +46,23 @@ ROM by hand.
   disassembles the ROM directly with correct addresses and no hand arithmetic.
 * Also lets us verify splat's output rather than trusting it.
 
-## 3. Core dumps — config, not a package
+## 3. Core dumps — MEASURED AND REJECTED 2026-08-19. Do NOT enable.
 
-`run_game.sh` prints "(core dumped)" on every SIGSEGV and **no core file
-exists**: `ulimit -c` is 0 and apport owns `core_pattern`.
+**This entry previously recommended enabling system-wide core dumps. That was
+wrong and it is corrected here rather than quietly removed.**
 
-* **What that cost:** on 2026-08-19 I went looking for a core to read the fault
-  registers offline, found none, and spent a full run under gdb instead (A122).
-  Every crash we have had this session could have been inspected for free.
-* Enable per-shell with `ulimit -c unlimited`, and either
-  `sudo systemctl disable --now apport` or set
-  `sudo sysctl -w kernel.core_pattern=/tmp/core.%e.%p`.
-* **Caution:** this binary is ~250MB and the root filesystem was at 92% (T27).
-  Point cores at the archive drive, or they will fill the disk.
+* **A core of this process is 11.8 GB** (`generate-core-file` at the A99 fault,
+  measured). RDRAM is 8 MB; the recompiler maps a very large writable region and
+  gdb dumps all of it.
+* Root is at 78% with 40 GB free, and this project crashes the game deliberately
+  several times a session. **System-wide cores would have filled the root
+  filesystem in about three crashes.**
+* The original entry reasoned from the 250 MB binary and attached a disk
+  *caution*. A caution is not a measurement — see T63.
+* **What to do instead:** `SNP_CORE=<path> scripts/gdb_fault.sh …` writes one on
+  demand, no sudo and no system setting touched. For this target the answer is
+  still almost always "don't" — re-running `gdb_fault.sh` costs 158 seconds,
+  which is cheaper than 12 GB.
 
 ## 4. `xdotool` and `wmctrl`  ·  `sudo apt install xdotool wmctrl`
 

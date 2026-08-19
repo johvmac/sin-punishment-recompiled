@@ -73,3 +73,4 @@ A gap in the numbering means a roll was skipped.
 - roll #54: **EXPLOIT** (drew 0.305 vs eps 0.3) -> `A99` — >>> 2026-08-19 (roll #45) READ A110, A111, A112 FIRST, THEN A106. A106 is corrected by A112 — it
 - roll #55: **EXPLOIT** (drew 0.747 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #56: **EXPLOIT** (drew 0.308 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
+- roll #57: **EXPLORE** (drew 0.038 vs eps 0.3) -> `A124` — The walk carries THREE PARALLEL ARRAYS, all indexed by one child byte, and NONE of them is bound
