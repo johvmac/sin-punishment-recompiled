@@ -679,15 +679,40 @@ A24/B35 dangling-citation class), contaminated runs (T23).
 audits -> halve the frequency. Two quiet L2s -> drop to weekly. An audit that
 never fires is a cost, not a control. `audit.py` tracks the quiet streak itself.
 
+> **A NO-OP IS NOT A QUIET DAY (fixed 2026-08-20).** The kill criterion above
+> nearly disabled the ladder using the ladder's own inactivity as the evidence.
+> Both `audit_l2.py` and `audit_l3.py` computed
+> `quiet = not new or <no defects found>` — which scores **"the level below has
+> not run"** identically to **"I read its output and it was clean."** Those are
+> opposite situations. And because each level reads the level below, it
+> compounds: one skipped L1 makes L2 quiet, which would make L3 quiet, so
+> **skipped work propagates upward as apparent health.**
+>
+> It was one step from firing. On 2026-08-20 an L2 ran with no new L1 blocks,
+> scored itself quiet, and took the streak to 1; a second would have dropped L2
+> to weekly — while the un-audited window contained T89, T90 and T91, the worst
+> defects of the session.
+>
+> Now a no-op **HOLDS** the streak: it cannot advance it (nothing was examined)
+> and must not reset it (nothing was refuted). The digest says so out loud
+> rather than printing a number — *"n/a — NOTHING WAS DIGESTED, so this is not
+> evidence of calm"* — and names the level that is behind. Both `--self-check`s
+> gained a control over the three cases, **verified to fail** by reinstating the
+> old expression (it reported `no-op holds: got 2 want 1`).
+>
+> The general shape, worth carrying: **any metric that treats "no input" as
+> "good input" will eventually be satisfied by doing nothing.**
+
 **L2 and L3 were BUILT on 2026-08-19 (T78), 1 day after being specified.** Until
 then they existed only as the table above — no script, no trigger, no run — and
 the user had been doing L2's job by hand, catching four claim-broader-than-
 evidence defects in one session that no mechanical check could see.
 
 ```bash
-scripts/audit_l2.py --self-check   # 3/3; asserts the LAYERING by AST
+scripts/audit_l2.py --self-check   # 4/4; layering by AST + the no-op control
 scripts/audit_l2.py --dry-run      # digest, record nothing
 scripts/audit_l2.py                # record an L2 block
+scripts/audit_l3.py --self-check   # 5/5; same layering + no-op controls
 scripts/audit_l3.py                # same shape, reads only the L2 blocks
 ```
 
@@ -2337,6 +2362,7 @@ below is installed and verified working.
 | `scripts/crop_recording.py` | repo | crop + compress a lossless run master in ONE pass. **REFUSES unless everything outside the crop is black** — `--check` to verify only, `--finalize` for the capture pipeline |
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
+| `scripts/lint_tools.py` | repo | is a NEW script documented, and does anything taking arguments have a help path? Bounded by a baseline so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
 | **scene reference frames** | `<archive>/scene-refs/*.png` | labelled 640x480 frames from OUR build. **Never build these from the ares captures** — different renderer, ~240p + VI filtering (T88) |
 | **PIL, numpy** | system python3 | `scripts/shrink_shot.py`, capture analysis |
@@ -2362,6 +2388,72 @@ by design. Anything meant to outlive the session goes somewhere durable.
 is 640x480, so halving discards upscaling, not detail (verified: fully legible at
 a quarter of the pixels). A `dark_fraction` number once said "not black" for a
 frame that was solid black.
+
+---
+
+## `lint_tools.py` — the inventory rule, checked instead of written down (added 2026-08-20)
+
+**The incident.** T71 gate 3 says a new tool is not evidence until it has a
+playbook write-up and a Tool inventory row. On 2026-08-19/20 **four tools were
+built and none of them got either** (T89/T90), and separately two
+state-mutating scripts had no `--help` (T37's exact failure). Both rules were
+real, written down, and unenforced. Prose describing a discipline is not the
+discipline.
+
+Unlike the failure that dominates this project — a claim broader than its
+evidence — both of these leave a machine-readable trace. That is the whole
+argument for automating them: they are the cheap half, and the cheap half was
+still being missed.
+
+**What it checks.**
+
+1. **A NEW script is named somewhere in the playbook** — anywhere, not only the
+   inventory table, because several tools are best explained in the gate that
+   uses them.
+2. **A script that reads arguments has a help path**, checked *statically*.
+
+**Why static, and this is the load-bearing design decision:** it must never
+test `--help` by running it. A script that does not handle the flag would fall
+through and **do its job** — for `route.py` that means consuming a routing
+roll, for `run_game.sh` it means launching the game. A checker for "does this
+mishandle arguments" that mishandles arguments is worse than none.
+
+**The baseline is what makes it survivable.** Only 7 of 55 scripts appear in the
+inventory table. Flagging all 48 would produce an alarm that always fires,
+which is an alarm nobody reads by its second run. So it is bounded by a
+baseline, the same trick `audit.py` uses: it reports what appeared *since the
+last run*. The pre-existing backlog is **printed every run as context and
+explicitly not counted as findings** — reporting a narrow set while implying a
+broad one is the T90 defect, so the narrowing is stated rather than silent.
+
+**Its exemptions are derived, never allowlisted:**
+
+* **no shebang → sourced, not executed.** `display_isolate.sh` is a library;
+  there is nothing to pass `--help` to.
+* **reads no arguments → nothing to document.** The `test_*.py` runners.
+
+A name-based allowlist would need maintaining, and the first tool someone forgot
+to add to it would be exempted *silently* — recreating the failure this exists
+to catch.
+
+**Controls (`--self-check`, 6, each able to fail).** A synthetic tree containing
+one of each shape asserts that only the genuinely-bad tool is flagged and that
+both exemptions discriminate; a `.log` file written to *look* like code asserts
+the suffix filter still works; the new/backlog split is driven twice over
+identical input with only the baseline changed; and the tool is required to
+**pass its own rule and be documented in this playbook** — control 6 failed on
+first run, correctly, because this section did not yet exist.
+
+**It found a real one immediately.** `test_display_isolate.py` documented a
+`[--dry-run]` flag, read `sys.argv`, and handled no `--help` — so
+`--help` fell through and **started X servers and recorded video.** Fixed in
+the same checkpoint.
+
+```bash
+scripts/lint_tools.py --self-check   # 6/6
+scripts/lint_tools.py --dry-run      # report, do not touch the baseline
+scripts/lint_tools.py --strict       # exit 1 on findings
+```
 
 ---
 

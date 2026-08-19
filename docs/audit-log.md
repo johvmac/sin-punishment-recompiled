@@ -179,3 +179,9 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A153: rests on ONE run (dispatch-pointer-trace.log). Repeat it or say why one is enough.
   - A161: created and withdrawn within one audit window. What made it look right?
 
+## Audit #8 — since d975f7e0
+- ledger: 263 entries (+10 this window), 36 withdrawn
+- rolls: 2 this window; runs: 6 (1 exited early, 0 contaminated)
+- **1 thing(s) to look at:**
+  - A163: rests on ONE run (roll88-dispatch-300-436.log). Repeat it or say why one is enough.
+

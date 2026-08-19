@@ -86,6 +86,27 @@ def load_state():
     return {"l2s": 0, "last_l1": 0, "quiet_streak": 0}
 
 
+def streak_after(prev, digested, quiet):
+    """The quiet streak has THREE inputs, not two. This used to be a boolean.
+
+    The original was `quiet = not new or <no defects>`, which scored "the level
+    below has not run" identically to "I examined its output and found nothing
+    wrong". Those are opposite situations: the second is evidence of calm, the
+    first is evidence of nothing at all. Because each ladder level reads the
+    level below, the error compounded upward -- L1 not running made L2 quiet,
+    which would in turn make L3 quiet, so SKIPPED WORK PROPAGATED UPWARD AS
+    HEALTH, and at streak 2 the level demoted itself to a slower cadence on the
+    strength of its own inactivity. Found 2026-08-20 while auditing why an L2
+    reported "nothing to digest" one step before demoting itself.
+
+    So: a no-op HOLDS the streak. It cannot advance it (nothing was examined)
+    and it must not reset it either (nothing was refuted).
+    """
+    if not digested:
+        return prev
+    return prev + 1 if quiet else 0
+
+
 def self_check():
     """Assert the LAYERING, which is the ladder's whole cost argument."""
     src = Path(__file__).read_text()
@@ -129,6 +150,26 @@ def self_check():
                        f"got {six}"))
     else:
         checks.append(("L1 log present", False, "docs/audit-log.md missing"))
+
+    # 4. THE NO-OP MUST NOT SCORE AS CALM. This is the control for the defect
+    #    described in streak_after's docstring. It is written against the three
+    #    cases directly, so reinstating `quiet = not new or ...` fails it: that
+    #    form makes the no-op case quiet, which advances the streak to prev+1
+    #    and the first assertion below goes 1 != 2.
+    #
+    #    VERIFIED TO FAIL, not merely to pass (T65/T71): the buggy expression
+    #    was pasted back in and this control reported
+    #    "FAIL ... no-op advanced the streak to 2". Restored after.
+    cases = [
+        ("no-op holds",       streak_after(1, False, False), 1),
+        ("no-op holds (2)",   streak_after(0, False, False), 0),
+        ("clean day advances", streak_after(1, True, True),  2),
+        ("defects reset",     streak_after(1, True, False),  0),
+    ]
+    wrong = [f"{n}: got {g} want {w}" for n, g, w in cases if g != w]
+    checks.append(("a no-op does not score as a quiet day", not wrong,
+                   "; ".join(wrong) if wrong else
+                   "no-op holds the streak; only an examined-and-clean window advances it"))
 
     bad = 0
     for name, ok, detail in checks:
@@ -190,9 +231,15 @@ def main():
         else:
             lines.append("- no defects reported in this window")
 
-    quiet = not new or not any(classify(b) for _n, b in new)
-    lines.append(f"- quiet: {'yes' if quiet else 'no'} "
-                 f"(streak {st['quiet_streak'] + 1 if quiet else 0}; at 2, drop L2 to weekly)")
+    digested = bool(new)
+    quiet = digested and not any(classify(b) for _n, b in new)
+    streak = streak_after(st["quiet_streak"], digested, quiet)
+    if not digested:
+        lines.append(f"- quiet: **n/a — NOTHING WAS DIGESTED, so this is not evidence of calm.** "
+                     f"Streak HELD at {streak}. L1 is behind; run `scripts/audit.py`.")
+    else:
+        lines.append(f"- quiet: {'yes' if quiet else 'no'} "
+                     f"(streak {streak}; at 2, drop L2 to weekly)")
     lines.append("- **L2 is a digest for a human, not a verdict.** The failure that dominates "
                  "here — a claim broader than its evidence — leaves no mechanical trace. Scan the "
                  "classes above and ask whether any of them is that.")
@@ -207,7 +254,7 @@ def main():
     st["last_date"] = _dt.date.today().isoformat()
     st["l2s"] += 1
     st["last_l1"] = blocks[-1][0] if blocks else st["last_l1"]
-    st["quiet_streak"] = st["quiet_streak"] + 1 if quiet else 0
+    st["quiet_streak"] = streak
     STATE.write_text(json.dumps(st, indent=1))
     if not OUT.exists():
         OUT.write_text("# L2 audit log\n\nDaily digests. Each reads ONLY the L1 blocks in "

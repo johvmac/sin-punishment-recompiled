@@ -45,7 +45,21 @@ def sh(script, env=None, timeout=90):
 
 
 def main():
-    dry = "--dry-run" in sys.argv
+    # --help must be handled BEFORE anything else. Without this, `--help` fell
+    # through to the full test, which starts real X servers and records video
+    # -- the T37 failure: a script that does not understand its arguments
+    # running its side-effecting default anyway. Caught by lint_tools.py on its
+    # first real run, 2026-08-20.
+    a = sys.argv[1:]
+    if "--help" in a or "-h" in a:
+        print(__doc__)
+        return 0
+    unknown = [x for x in a if x != "--dry-run"]
+    if unknown:
+        print(f"[test_iso] unknown argument(s): {' '.join(unknown)}", file=sys.stderr)
+        print("[test_iso] REFUSING rather than starting an X server.", file=sys.stderr)
+        return 2
+    dry = "--dry-run" in a
     checks = []
 
     def add(name, ok, detail):

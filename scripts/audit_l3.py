@@ -55,6 +55,23 @@ def load_state():
     return {"l3s": 0, "last_l2": 0, "quiet_streak": 0}
 
 
+def streak_after(prev, digested, quiet):
+    """Identical to audit_l2.streak_after, and deliberately NOT imported.
+
+    The ladder rule is that a level touches only the level below's output; L3
+    importing from L2 would make that false in the one place the AST control
+    cannot see. Twenty duplicated lines is the cheaper mistake.
+
+    Same defect, same fix: `quiet = not new or ...` scored "L2 has not run" as
+    "L2's output was examined and was clean". Since L3 reads L2 which reads L1,
+    a single skipped L1 could have carried all the way up as three levels of
+    apparent health. A no-op HOLDS the streak.
+    """
+    if not digested:
+        return prev
+    return prev + 1 if quiet else 0
+
+
 def self_check():
     import ast as _ast
     src = Path(__file__).read_text()
@@ -102,6 +119,20 @@ def self_check():
         single_ok = False
     checks.append(("refuses a trend from a single digest", single_ok,
                    "threshold present" if single_ok else "would claim a direction from n=1"))
+
+    # A no-op week must not score as a calm week -- see streak_after. Same
+    # control as L2's, VERIFIED TO FAIL by pasting `quiet = not new or ...`
+    # back in, which reported "no-op advanced the streak to 2".
+    cases = [
+        ("no-op holds",        streak_after(1, False, False), 1),
+        ("no-op holds (2)",    streak_after(0, False, False), 0),
+        ("clean week advances", streak_after(1, True, True),  2),
+        ("rising resets",      streak_after(1, True, False),  0),
+    ]
+    wrong = [f"{n}: got {g} want {w}" for n, g, w in cases if g != w]
+    checks.append(("a no-op does not score as a quiet week", not wrong,
+                   "; ".join(wrong) if wrong else
+                   "no-op holds the streak; only a reviewed-and-clean window advances it"))
 
     bad = sum(1 for _n, ok, _d in checks if not ok)
     for name, ok, detail in checks:
@@ -173,9 +204,14 @@ def main():
         else:
             lines.append("- no class recurred across this window")
 
-    quiet = not new or "RISING" not in "\n".join(lines)
-    lines.append(f"- quiet: {'yes' if quiet else 'no'} (streak "
-                 f"{st['quiet_streak'] + 1 if quiet else 0})")
+    digested = bool(new)
+    quiet = digested and "RISING" not in "\n".join(lines)
+    streak = streak_after(st["quiet_streak"], digested, quiet)
+    if not digested:
+        lines.append(f"- quiet: **n/a — NOTHING WAS REVIEWED, so this is not evidence of calm.** "
+                     f"Streak HELD at {streak}. L2 is behind; run `scripts/audit_l2.py`.")
+    else:
+        lines.append(f"- quiet: {'yes' if quiet else 'no'} (streak {streak})")
     lines.append("- **L3 asks whether the METHOD is improving, not whether any finding is "
                  "right.** If a class recurs after a fix, the fix was aimed at an instance.")
 
@@ -189,7 +225,7 @@ def main():
     st["last_date"] = _dt.date.today().isoformat()
     st["l3s"] += 1
     st["last_l2"] = blocks[-1][0] if blocks else st["last_l2"]
-    st["quiet_streak"] = st["quiet_streak"] + 1 if quiet else 0
+    st["quiet_streak"] = streak
     STATE.write_text(json.dumps(st, indent=1))
     if not OUT.exists():
         OUT.write_text("# L3 audit log\n\nWeekly reviews. Each reads ONLY the L2 digests in "
