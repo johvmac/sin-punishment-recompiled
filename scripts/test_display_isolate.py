@@ -114,6 +114,22 @@ def main():
             add("ISOLATED mode produces a DECODABLE video with real frames",
                 ok and frames > 10, detail)
 
+            # The whole chain: lossless capture -> blackness verify -> crop ->
+            # compress -> master deleted. A .mp4 at 640x480 proves every step
+            # ran; a surviving .mkv means the crop REFUSED, and a 1280x720 .mp4
+            # would mean it silently skipped.
+            mkv = list(Path(d).glob("*.mkv"))
+            dims = ""
+            if vids:
+                pr2 = subprocess.run(
+                    ["ffprobe", "-v", "error", "-select_streams", "v:0",
+                     "-show_entries", "stream=width,height", "-of", "csv=p=0", str(vids[0])],
+                    capture_output=True, text=True)
+                dims = pr2.stdout.strip()
+            add("pipeline finalizes: cropped 640x480 .mp4, lossless master removed",
+                dims == "640,480" and not mkv,
+                f"dims={dims or 'none'}, leftover masters={len(mkv)}")
+
     bad = 0
     for name, ok, detail in checks:
         bad += not ok

@@ -83,11 +83,20 @@ snp_start_recording() {
         echo "[$label] WARNING: cannot write $dir -- this run is NOT recorded (T47)" >&2
         return 0
     fi
-    SNP_REC_FILE="$dir/${label}-$(date +%H%M%S).mp4"
+    # CAPTURE IS LOSSLESS (`-qp 0`), and the single compression happens later in
+    # the same pass as the crop. Capturing lossy and then cropping meant TWO
+    # generations of loss stacked on each other -- measured at crf28-then-crf26,
+    # 11.5% of pixels off by >4 and a max channel error of 48. One generation
+    # from a lossless master is strictly better AND cheaper on CPU during the
+    # run, which matters because the run must not be perturbed.
+    #
+    # Measured on this content: ~0.5 MB/s, i.e. ~80 MB for a 160 s run, encoded
+    # at ~50x realtime. The intermediate is deleted once the final file exists.
+    SNP_REC_FILE="$dir/${label}-$(date +%H%M%S).mkv"
     ffmpeg -nostdin -loglevel error -y \
         -f x11grab -framerate "${SNP_REC_FPS:-30}" -video_size "${SNP_ISO_GEOM_WH:-1280x720}" \
         -i "$DISPLAY" -t "${SNP_REC_MAX:-400}" \
-        -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p \
+        -c:v libx264 -qp 0 -preset ultrafast -pix_fmt yuv444p \
         "$SNP_REC_FILE" > /tmp/snp_rec_ffmpeg.log 2>&1 &
     SNP_REC_PID=$!
     sleep 0.5
@@ -114,6 +123,29 @@ snp_display_cleanup() {
         kill -9 "$SNP_REC_PID" 2>/dev/null
         SNP_REC_PID=""
         if [ -n "${SNP_REC_FILE:-}" ] && [ -s "$SNP_REC_FILE" ]; then
+            # CROP to the game window. The recorded screen is 1280x720 and the
+            # game is a 640x480 window centred in it (Xvfb runs with no window
+            # manager), so ~73% of every frame is black padding -- measured, a
+            # crop leaves 27% of the file.
+            #
+            # SAFE BY CONSTRUCTION: crop_recording.py REFUSES unless every pixel
+            # outside the proposed rect is black across frames sampled through
+            # the whole file. If the window is ever somewhere else the crop does
+            # not happen, the FULL recording is kept, and the refusal says why.
+            # An assumed geometry that silently discarded evidence is exactly
+            # the failure this project keeps paying for.
+            if [ "${SNP_REC_CROP:-1}" = "1" ] && [ -x "$(dirname "${BASH_SOURCE[0]}")/crop_recording.py" ]; then
+                # ONE pass: crop + compress, lossless master -> final .mp4.
+                # The blackness check runs against the LOSSLESS file, so it is
+                # exact rather than tolerating codec noise.
+                if "$(dirname "${BASH_SOURCE[0]}")/crop_recording.py" \
+                        "$SNP_REC_FILE" --finalize --crf "${SNP_REC_CRF:-20}" \
+                        --frames "${SNP_REC_CROP_FRAMES:-8}" >&2; then
+                    SNP_REC_FILE="${SNP_REC_FILE%.mkv}.mp4"
+                else
+                    echo "[rec] crop declined; the LOSSLESS master is kept as-is" >&2
+                fi
+            fi
             echo "[rec] $SNP_REC_FILE ($(du -h "$SNP_REC_FILE" | cut -f1))" >&2
         elif [ -n "${SNP_REC_FILE:-}" ]; then
             echo "[rec] WARNING: $SNP_REC_FILE is empty" >&2

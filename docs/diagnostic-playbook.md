@@ -2190,12 +2190,39 @@ SNP_REC_FPS=N    default 30
 SNP_REC_MAX=N    hard cap in seconds, default 400
 ```
 
-**Cost, measured on real runs, and the first estimate was LOW.** A 20 s run gave
-1.2 MB (~60 KB/s), but a 160 s gdb run gave **20 MB** and a 75 s one 3.7 MB —
-about **125 KB/s**, roughly double, because a longer run shows more varied
-content and h264 spends bits on change. So budget **~20 MB per full-length run**
-and **~50 MB at the 400 s cap**. At 73 GB free that is still well over a thousand
-runs, but extrapolating the short-run rate would have understated it by half. Note the game window is 640x480 inside a 1280x720 screen, so
+**Recordings are CROPPED to the game window automatically**, in
+`snp_display_cleanup`, via `scripts/crop_recording.py --replace`. The recorded
+screen is 1280x720 and the game is a 640x480 window centred in it (Xvfb has no
+window manager), so most of every frame is black padding. Measured effect:
+**recordings land at 27-40% of their uncropped size** — the day's four files went
+46 MB -> 14 MB. `SNP_REC_CROP=0` disables it.
+
+**Cost, measured on real runs, and the first estimate was LOW.** Uncropped, a
+20 s run gave 1.2 MB (~60 KB/s) but a 160 s gdb run gave **20 MB** — about
+125 KB/s, roughly double, because a longer run shows more varied content and
+h264 spends bits on change. **Cropped, budget ~6 MB for a long run.** Note the
+short-run extrapolation understated the real rate by half; measure the case you
+care about.
+
+### Why the crop is not `cropdetect`, and why it can refuse
+
+`cropdetect` finds the bounding box of non-black **content**, which is the wrong
+box: the game's own image has black borders inside its 640x480, so a title-screen
+frame measures 591x425 at 344,136. Cropping to that silently slices off real game
+pixels and the result looks fine. **We want the WINDOW rect — a geometry fact,
+not a content fact.**
+
+An assumed geometry that is wrong destroys evidence and looks fine afterwards, so
+the crop is never applied on the assumption alone:
+
+> **every pixel outside the proposed rect, across frames sampled through the
+> whole file, must be black — otherwise REFUSE and keep the full recording.**
+
+Sampled across the whole file deliberately: sampling only the start would not
+notice a window that moved, which is the same scope lesson as A93/A161. Verified
+to refuse — a rect shifted 40 px reports `brightest pixel OUTSIDE = 151 at
+x=344 y=142 t=41.3s` and declines. If the window ever moves, runs keep their full
+recording and the refusal says why. Note the game window is 640x480 inside a 1280x720 screen, so
 most of each frame is black padding; that is why the files are so small.
 
 ### Why this exists — three wrong answers from sampled stills
@@ -2238,6 +2265,36 @@ it**, not a still. Extract the frame if you want one in the ledger:
 ```bash
 ffmpeg -ss 147 -i <run>.mp4 -frames:v 1 frame.png
 ```
+
+### Classifying a recording automatically (T88)
+
+```bash
+scripts/classify_recording.py <run>.mp4 --fps 4      # timeline of matched scenes
+scripts/classify_recording.py <run>.mp4 --fps 0      # EVERY frame -- needed for absence
+scripts/classify_recording.py --self-check           # discrimination control
+```
+
+Perceptual hash (dHash) against labelled frames in
+`<archive>/scene-refs/<label>.png`. It prints a timeline plus the per-frame best
+distance, so a near miss is visible rather than swallowed by the threshold.
+
+**`--fps 0` is what makes an absence claim possible.** A coarse `--fps` plus the
+word "never" is A93/A161 with extra steps.
+
+**Two scope limits that are easy to forget:**
+
+* **Build references from OUR OWN build, never from the ares captures.** ares
+  renders at roughly 240p and emulates the N64's video-interface filtering/AA;
+  RT64 does not match it pixel-for-pixel. **The ares set is authoritative for
+  SEQUENCE and scene IDENTITY — it is how we know the title screen is the green
+  logo card — and is useless for pixel matching.**
+* **References are tied to the renderer settings and window size.** Change
+  resolution or filtering and they must be rebuilt. `--self-check`'s
+  discrimination distances are the canary: title-vs-attract measures 21 today,
+  against a threshold of 12.
+
+A moving cinematic needs many references or it reads as `(unmatched)`. Attract
+currently matches only sporadically, and the tool says so rather than guessing.
 
 ### Still open: the scene byte has never been calibrated
 
