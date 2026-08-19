@@ -10,7 +10,15 @@ and add a row here. I do not interrupt work for it.
 
 ---
 
-## 1. `rr` — record & replay debugging  ·  `sudo apt install rr`
+## 1. `rr` — record & replay debugging  ·  INSTALLED 2026-08-19, **blocked on one sysctl**
+
+> `rr check` reports: needs `kernel.perf_event_paranoid <= 1`, this machine is **4**.
+> ```bash
+> sudo sysctl -w kernel.perf_event_paranoid=1
+> ```
+> Persist with `echo 'kernel.perf_event_paranoid = 1' | sudo tee /etc/sysctl.d/10-rr.conf`.
+> That loosens a kernel hardening setting machine-wide (unprivileged perf events), so it is
+> a judgement call, not a formality. `rr record -n` works without it but is much slower.
 
 **The single biggest win available.** Most of this project's hard questions are
 "who wrote this word, and when" — and `rr` answers them by running the program
@@ -28,7 +36,13 @@ backwards from the fault.
   change — the 158s crash may move or not reproduce. **Test it against the known
   158s repro before trusting it**, exactly as we A/B'd Xvfb.
 
-## 2. A MIPS binutils  ·  `sudo apt install binutils-mips-linux-gnu`
+## 2. A MIPS binutils  ·  INSTALLED 2026-08-19, validated (T61)
+
+> Working invocation, cross-checked against splat instruction-for-instruction:
+> ```bash
+> mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
+>   --adjust-vma=0x80024C00 --start-address=0x800339C8 --stop-address=0x800339F4 baserom.z64
+> ```
 
 `decomp.sh` says outright that there is no MIPS toolchain here, so we read the
 ROM by hand.
