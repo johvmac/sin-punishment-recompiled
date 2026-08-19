@@ -131,10 +131,32 @@ def main():
         if len(set(logs)) == 1 and not re.search(r"\b(\d+|two|three|both)\s+runs?\b", ev + " " + body, re.I):
             findings.append(f"{eid}: rests on ONE run ({logs[0]}). Repeat it or say why one is enough.")
 
-    # 2. entries that describe a probe but never mention a control
+    # 2. entries that describe a probe THEY RAN but never mention a control.
+    #
+    # Narrowed 2026-08-19 after audit #5 flagged 6 entries in this category and
+    # ALL SIX were false positives. The old test was `\bprobe|hook\b` against
+    # the whole body, which fires on any entry that merely says the word:
+    # T36 counting debug probes in a working tree, T47 listing filenames that
+    # contain "probe", A118 describing what a hook "would have done", T39 naming
+    # the script probe_stubs.py. Worse, A110 and A105 DID state their controls
+    # -- as "Independent confirmation" and "OBSERVED, not assumed" -- and were
+    # flagged because the detector only knew the literal word "control".
+    #
+    # Six of six wrong is not a strict check, it is noise, and noise is how a
+    # discipline stops being read (T29). Same defect class as T40: a predicate
+    # matched against a wider thing than the one it describes.
+    #
+    # So: require a phrase that indicates an instrument THIS entry deployed, and
+    # recognise a control however it is worded.
+    DEPLOYED = re.compile(
+        r"probe (?:at|on|in|fired|printed|logged|reported|caught|is live)|"
+        r"(?:scratch |toml |a |new |walker-entry )hook on|hooks? fired|"
+        r"instrumented|\bSNP_[A-Z]", re.I)
+    CONTROL = re.compile(
+        r"control|ARM |heartbeat|positive|independent(?:ly)? (?:confirm|verif|source)|"
+        r"cross-check|OBSERVED, not assumed|exact match|two independent", re.I)
     for eid, (status, body, ev) in added.items():
-        if re.search(r"\bprobe|hook\b", body, re.I) and not re.search(
-                r"control|ARM |heartbeat|positive", body + ev, re.I):
+        if DEPLOYED.search(body) and not CONTROL.search(body + ev):
             findings.append(f"{eid}: describes a probe with no control mentioned. A dead probe reads as a clean negative.")
 
     # 3. churn: created AND withdrawn inside this window
@@ -207,6 +229,26 @@ def main():
                      f"(quiet streak {st.get('quiet_streak', 0) + 1}; at 3, halve the frequency)")
 
     print("\n".join(lines))
+
+    # An EMPTY window is not a quiet audit -- it is a non-event, and recording it
+    # as quiet is actively harmful: three quiet audits halve the audit frequency
+    # (see the streak line below), so re-running this script to test a change to
+    # it would make audits RARER. That happened on 2026-08-19: audit #6 was
+    # recorded two minutes after #5, +0 entries and 0 rolls, purely because the
+    # script was invoked without --dry-run to check a fix to its own probe check.
+    # Same shape as T37 -- a state-mutating script run without checking its flags
+    # -- and the reason --dry-run exists. Refuse rather than rely on remembering.
+    # `window` is the rolls INSIDE this window; `rolls` is the whole route log
+    # and is never empty, so guarding on it does nothing. The first version of
+    # this guard did exactly that and silently failed to fire -- caught only
+    # because the state file was checked afterwards instead of assumed.
+    if not dry and not added and not window:
+        print("\n".join(lines))
+        print("\n[audit] EMPTY WINDOW — no new entries and no rolls since the last "
+              "audit. NOT recorded and state unchanged: an empty window is not a "
+              "quiet audit, and counting it as one would push the audit frequency "
+              "down. Use --dry-run when you are testing this script.", file=sys.stderr)
+        return 0
 
     if not dry:
         st["audits"] += 1

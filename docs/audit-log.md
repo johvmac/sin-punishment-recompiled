@@ -117,3 +117,41 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - T39: describes a probe with no control mentioned. A dead probe reads as a clean negative.
   - A105: created and withdrawn within one audit window. What made it look right?
 
+## Audit #5 — since e8c2e2a7
+- ledger: 180 entries (+42 this window), 33 withdrawn
+- rolls: 11 this window; runs: 3 (2 exited early, 0 contaminated)
+- **12 thing(s) to look at:**
+  - A106: rests on ONE run (a99-probe.log). Repeat it or say why one is enough.
+  - A107: rests on ONE run (a99-walk.log). Repeat it or say why one is enough.
+  - T36: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T47: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A118: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A110: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A105: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T39: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A115: created and withdrawn within one audit window. What made it look right?
+  - A112: created and withdrawn within one audit window. What made it look right?
+  - A109: created and withdrawn within one audit window. What made it look right?
+  - A105: created and withdrawn within one audit window. What made it look right?
+
+## Audit #6 — VOID (never a real audit)
+- **Not an audit.** I re-ran `scripts/audit.py` two minutes after #5 to test a fix
+  to its own probe/control check, instead of using `--dry-run`. The window was
+  empty by construction: +0 entries, 0 rolls.
+- **Left here rather than deleted — this log is append-only** (same rule as the
+  route log after T37, which is the same mistake: a state-mutating script run
+  without checking its flags).
+- **State restored to 5 audits, quiet streak 0.** The spurious "quiet streak 1"
+  mattered: three quiet audits halve the audit frequency, so testing the audit
+  would have made audits rarer. `audit.py` now refuses to record an empty
+  window (T56).
+
+## Audit #6 (second occurrence) — VOID, same non-event
+- The empty-window guard was added but keyed on the WRONG VARIABLE (`rolls`, the
+  whole route log, which is never empty — instead of `window`, the rolls inside
+  this window), so it silently did nothing and a second empty audit recorded.
+- **Caught because the state file was checked after the run instead of assumed.**
+  A guard that cannot fire looks exactly like a guard that had nothing to catch.
+- Fixed and verified both ways: state and log entry count unchanged across a
+  re-run. State restored to 5 audits, quiet streak 0.
+
