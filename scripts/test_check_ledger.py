@@ -240,7 +240,41 @@ def main():
           f"lagged={lagged}")
     bad += not w_ok
 
-    total = len(CASES) + 6
+    # SINGLE-RUN AT WRITE TIME (T99). Two-sided, and it must run the checker
+    # TWICE: the first run seeds the high-water mark and deliberately flags
+    # nothing, so a one-shot test would report "does not fire" for the wrong
+    # reason and look like a passing negative control.
+    def single_run_case(row):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            led = root / "docs" / "findings-ledger.md"
+            head = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+            led.write_text(head + "| A1 | MEASURED (2 runs) | baseline | x.log, y.log |\n")
+            chk = [sys.executable, str(root / "scripts" / "check_ledger.py")]
+            subprocess.run(chk, capture_output=True, text=True)      # seeds the mark
+            led.write_text(head + "| A1 | MEASURED (2 runs) | baseline | x.log, y.log |\n" + row)
+            p = subprocess.run(chk, capture_output=True, text=True)
+            return "rests on ONE run" in (p.stdout + p.stderr)
+
+    sr_fires = single_run_case(
+        "| A2 | MEASURED | a new claim from one run | 2026-01-01; only.log |\n")
+    sr_two_logs = single_run_case(
+        "| A3 | MEASURED | a claim from two runs | 2026-01-01; a.log and b.log |\n")
+    sr_plural = single_run_case(
+        "| A4 | MEASURED (2 runs) | a claim | 2026-01-01; only.log |\n")
+    sr_justified = single_run_case(
+        "| A5 | MEASURED | ONE RUN IS ENOUGH: the walk is deterministic "
+        "| 2026-01-01; only.log |\n")
+    sr_ok = sr_fires and not sr_two_logs and not sr_plural and not sr_justified
+    print(f"{'ok  ' if sr_ok else 'FAIL'}  single-run asked at write time: fires bare, exempt on "
+          f"2 logs / plural / justification  — fires={sr_fires}, two-logs={sr_two_logs}, "
+          f"plural={sr_plural}, justified={sr_justified}")
+    bad += not sr_ok
+
+    total = len(CASES) + 7
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 

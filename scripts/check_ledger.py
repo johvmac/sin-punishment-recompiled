@@ -434,6 +434,63 @@ def main():
         except Exception:
             reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
 
+    # 4c. SINGLE-RUN, ASKED AT WRITE TIME (T99).
+    #
+    # `single-run` is the one defect class that will not go away: 21 instances,
+    # and L2 #5 flagged it as still recurring after every fix aimed at it. The
+    # reason is timing, not detection -- audit.py already catches it, but days
+    # later, when repeating a run is inconvenient and writing a justification is
+    # easy. So the same question moves to the moment the entry is written, when
+    # answering it honestly is still cheap.
+    #
+    # THE PREDICATE IS audit.py's, COPIED DELIBERATELY rather than reinvented:
+    # MEASURED/INTERVENED, exactly one distinct .log cited, no plural-runs
+    # phrasing. Two different definitions of "single-run" would be worse than
+    # one, because entries would pass one checker and fail the other.
+    #
+    # BOUNDED BY A HIGH-WATER MARK. Unbounded it flags all 21 historical
+    # instances on every run, and 21 permanent warnings bury the two real ones
+    # (T29: noise is how a discipline stops being read). Same bound as
+    # lint_tools.py's baseline and audit.py's window: only entries created after
+    # the mark are checked, and the mark advances each run.
+    _srp = LEDGER.parent / ".check-ledger-state.json"
+    try:
+        _srs = json.loads(_srp.read_text()) if _srp.exists() else {}
+    except Exception:
+        _srs = {}
+    _base = _srs.get("sr_baseline")
+    _cur = {}
+    for eid in rows:
+        m = re.match(r"([A-Z]+)(\d+)", eid)
+        if m:
+            _cur[m.group(1)] = max(_cur.get(m.group(1), 0), int(m.group(2)))
+    if _base is not None:
+        for eid, (tag, body, n) in rows.items():
+            m = re.match(r"([A-Z]+)(\d+)", eid)
+            if not m or int(m.group(2)) <= _base.get(m.group(1), 0):
+                continue
+            if not re.search(r"MEASURED|INTERVENED", tag):
+                continue
+            blob = tag + " " + body
+            logs = set(re.findall(r"[\w.-]+\.log", blob))
+            if len(logs) != 1:
+                continue
+            if re.search(r"\b(\d+|two|three|both)\s+runs?\b", blob, re.I):
+                continue
+            if re.search(r"ONE RUN IS ENOUGH", blob, re.I):
+                continue
+            problems.append(
+                (n, f"{eid}: rests on ONE run ({sorted(logs)[0]}) and does not say why that "
+                    f"is enough. Repeat it, cite a second log, or write "
+                    f"'ONE RUN IS ENOUGH: <reason>' in the entry. Asked now because "
+                    f"asked-at-audit-time has not worked 21 times (T99)."))
+    if not hook:
+        _srs["sr_baseline"] = _cur
+        try:
+            _srp.write_text(json.dumps(_srs, indent=1))
+        except Exception:
+            pass
+
     # 4d. THE ROLL WITNESS (T98). route.py stamps each roll with a random token
     # and records it in route-log.md. Quoting it proves the tool ran, because it
     # cannot be written before it existed -- T91 fabricated a whole roll line and

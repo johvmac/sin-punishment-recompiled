@@ -88,3 +88,7 @@ Before a new tool's output counts as evidence:
 * **A control that cannot fail is not a control** (T65).
 * **Every negative names its scope inside the claim** — "nothing in splat's
   asm calls this", not "nothing calls this".
+* **A single-run claim answers for itself, in the entry** (T99). If an
+  entry cites one run log, `check_ledger.py` now asks at write time —
+  repeat it, cite a second log, or write **`ONE RUN IS ENOUGH: <reason>`**.
+  Asked now because asked-at-audit-time has failed 21 times.

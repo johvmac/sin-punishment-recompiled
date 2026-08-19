@@ -2391,6 +2391,40 @@ frame that was solid black.
 
 ---
 
+## `single-run` is asked at WRITE time now, not at audit time (added 2026-08-20, T99)
+
+`single-run` is the defect class that will not die: **21 instances, and L2 #5 still
+reports it recurring after every fix aimed at it.** A class that recurs after a fix
+means the fix addressed an instance.
+
+**The problem was never detection — `audit.py` has caught these all along.** It is
+TIMING. The audit asks *"repeat it or say why one is enough"* days later, when
+repeating a run is inconvenient and writing a justification is easy. So the same
+question now fires from `check_ledger.py` at the moment the entry is written, while
+answering it honestly is still cheap.
+
+**Three ways to satisfy it**, and the message names all three:
+
+* repeat the run and cite a second `.log`,
+* say `2 runs` / `two runs` / `both runs` in the entry, or
+* write **`ONE RUN IS ENOUGH: <reason>`** — a deliberate, greppable commitment.
+
+**The predicate is `audit.py`'s, copied deliberately rather than reinvented:**
+MEASURED/INTERVENED status, exactly one distinct `.log`, no plural-runs phrasing.
+Two definitions of "single-run" would be worse than one, because an entry could
+pass one checker and fail the other.
+
+**Bounded by a high-water mark**, in `docs/.check-ledger-state.json`. Unbounded it
+flags all 21 historical instances every run, and 21 permanent warnings bury the two
+real ones (T29). **The first run on a fresh clone SEEDS the mark and deliberately
+flags nothing** — which is why its control runs the checker twice; a one-shot test
+would see "does not fire" and read it as a passing negative.
+
+Controls verified to fail in both directions: exemption widened to always-exempt →
+`fires=False`; plural exemption removed → fires on a legitimate 2-run entry.
+
+---
+
 ## `lint_tools.py` — the inventory rule, checked instead of written down (added 2026-08-20)
 
 **The incident.** T71 gate 3 says a new tool is not evidence until it has a
