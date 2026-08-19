@@ -1669,6 +1669,29 @@ and letting the reader ask for depth rather than mining for it.
 
 ---
 
+## G3.1 — Overlay data: ALWAYS list every copy before quoting a value (added 2026-08-19)
+
+**One command, before you quote any value at a `0x802C`–`0x802E` address:**
+
+```bash
+grep -l '802CE128' /home/joh/Documents/sin_and_punishment/splat-project/asm/*.s
+```
+
+If more than one file defines it, **the value is overlay-dependent** and a
+single reading of it means nothing on its own. Quote all of them, or say which
+overlay you read.
+
+**Why this is here rather than in anyone's memory.** This is A85's trap and it
+has now caught us twice. On 2026-08-19 (A110) the check was run on
+`D_802E1680`, came back with a single definition, and was reported clear. One
+dereference later (A114) the same reasoning quoted a buffer as
+"`.word 0x00000000` in the ROM image, verified by direct lookup" — and that
+address is defined in **three** overlays, `0x00000000` in one and real float
+data in the other two (A119). The lookup was correct. The scope was not.
+
+**Having cleared the trap once is exactly what makes the second instance
+likely** — the check felt spent. It costs one command; run it every time.
+
 ## Free checks — run these before ANY experiment (added 2026-08-18)
 
 Zero cost, no build, no run, no game launch. Every one of these has produced a
