@@ -192,7 +192,55 @@ def main():
     print(f"{'ok  ' if probs_disclosed else 'FAIL'}  last line discloses the {n_probs} finding(s) above it")
     bad += not probs_disclosed
 
-    total = len(CASES) + 5
+    # THE ROLL WITNESS (T98), asserted BOTH WAYS in one helper. A one-sided
+    # version -- "it fires when the witness is missing" -- would also pass if the
+    # check fired unconditionally, which would be noise on every checkpoint and
+    # would get switched off within a day. So the cited case must come back
+    # silent, and the check must be LAGGED: the newest roll's checkpoint is
+    # legitimately still in flight.
+    def witness_case(ledger_extra, label):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            (root / "docs" / "findings-ledger.md").write_text(
+                "| # | status | finding |\n|---|---|---|\n"
+                f"| Z1 | MEASURED | a finding {ledger_extra} |\n")
+            (root / "docs" / "route-log.md").write_text(
+                "- roll #91: **EXPLOIT** (drew 0.5 vs eps 0.3) -> `A99` "
+                "[witness `aabbcc`] — x\n"
+                "- roll #92: **EXPLORE** (drew 0.1 vs eps 0.3) -> `A97` "
+                "[witness `ddeeff`] — y\n")
+            p = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
+                               capture_output=True, text=True)
+            return "aabbcc" in (p.stdout + p.stderr)
+
+    fires_when_missing = witness_case("with no witness quoted", "uncited")
+    silent_when_cited = not witness_case("recorded under witness aabbcc", "cited")
+    # And the CURRENT roll must not be demanded: `ddeeff` is roll #92's, still
+    # in flight, so it must never be named.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td) / "r"
+        (root / "scripts").mkdir(parents=True)
+        (root / "docs").mkdir(parents=True)
+        shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+        (root / "docs" / "findings-ledger.md").write_text(
+            "| # | status | finding |\n|---|---|---|\n| Z1 | MEASURED | nothing |\n")
+        (root / "docs" / "route-log.md").write_text(
+            "- roll #91: **EXPLOIT** (drew 0.5 vs eps 0.3) -> `A99` [witness `aabbcc`] — x\n"
+            "- roll #92: **EXPLORE** (drew 0.1 vs eps 0.3) -> `A97` [witness `ddeeff`] — y\n")
+        p = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
+                           capture_output=True, text=True)
+        lagged = "ddeeff" not in (p.stdout + p.stderr)
+
+    w_ok = fires_when_missing and silent_when_cited and lagged
+    print(f"{'ok  ' if w_ok else 'FAIL'}  roll witness: fires when uncited, silent when cited, "
+          f"lags one roll  — missing={fires_when_missing}, cited-silent={silent_when_cited}, "
+          f"lagged={lagged}")
+    bad += not w_ok
+
+    total = len(CASES) + 6
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 

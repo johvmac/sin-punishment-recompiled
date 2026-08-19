@@ -103,10 +103,46 @@ CLOSING_REQUIREMENT = (
 # same reason. test_route.py asserts both are defined and both are printed.
 OPENING_REQUIREMENT = (
     "\n[route] ANNOUNCE THIS ROLL BEFORE DOING THE WORK -- verdict, draw,\n"
-    "        eps and target, at the TOP of the checkpoint. A roll reported\n"
-    "        only afterwards cannot be told apart from one rationalised\n"
-    "        after the fact, which is the whole thing the roll prevents."
+    "        eps, target AND THE WITNESS BELOW, at the TOP of the checkpoint.\n"
+    "        A roll reported only afterwards cannot be told apart from one\n"
+    "        rationalised after the fact, which is the whole thing the roll\n"
+    "        prevents."
 )
+
+# THE WITNESS (T98) -- why a random token and not a stronger instruction.
+#
+# T91: a checkpoint header was written BEFORE route.py ran -- invented verdict,
+# invented draw, invented target. It was caught only because the real output
+# appeared one line later and disagreed. The response at the time was a rule
+# ("the announcement is a TRANSCRIPTION, not a composition"), and T89/T90/T95
+# are all the same lesson: a rule with no checker is a preference. Every number
+# in a roll line is guessable -- a verdict from two options, a draw that only
+# has to look like a probability, a target from a two-item frontier. A plausible
+# fabrication is indistinguishable from a transcription.
+#
+# A random witness is not guessable. It is generated at roll time, recorded in
+# route-log.md, and printed as part of the announcement, so quoting it is
+# PROOF THE TOOL RAN. This does not make lying impossible -- it makes it
+# impossible to do by accident, which is what actually happened.
+#
+# `secrets`, not `random`: the module-level `random` here is seeded for the
+# roll itself and its stream is reproducible by design. A witness drawn from
+# that stream would be predictable from the roll number, which is the one
+# property it must not have.
+WITNESS_BITS = 24
+
+
+def make_witness():
+    """A witness for one roll. MUST NOT come from the seeded `random` stream.
+
+    `random` is seeded and reproducible by design -- that is what makes the roll
+    itself auditable. A witness drawn from it would be predictable from the roll
+    number, i.e. forgeable without running anything, which is the single
+    property it exists to deny. test_route.py asserts this by seeding `random`
+    identically twice and requiring the two witnesses to DIFFER.
+    """
+    import secrets
+    return secrets.token_hex(WITNESS_BITS // 8)
 
 
 def open_items():
@@ -306,8 +342,9 @@ def main():
     st["last_entry_count"] = entry_count()
     STATE.write_text(json.dumps(st, indent=1))
 
+    witness = make_witness()
     line = (f"- roll #{st['roll']}: **{verdict}** (drew {draw:.3f} vs eps {EPS}) "
-            f"-> `{target}` — {body}")
+            f"-> `{target}` [witness `{witness}`] — {body}")
     if not LOG.exists():
         LOG.write_text("# Routing log\n\nEvery explore/exploit decision, machine-rolled.\n"
                        "A gap in the numbering means a roll was skipped.\n\n")
@@ -326,6 +363,9 @@ def main():
 
     print(OPENING_REQUIREMENT)
     print(f"[route] roll #{st['roll']} — {verdict}  (drew {draw:.3f}, eps {EPS})")
+    print(f"        WITNESS: {witness}   <-- quote this in the announcement and in")
+    print(f"                 the checkpoint's ledger entry. It is random, so it")
+    print(f"                 cannot be written before this line existed.")
     print(f"        target: {target} — {body}")
     print(f"        {note}")
     if explore:

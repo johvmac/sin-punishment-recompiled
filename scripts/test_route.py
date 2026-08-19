@@ -109,6 +109,38 @@ def main():
             fails.append("FAIL: OPENING_REQUIREMENT prints AFTER the roll line — "
                          "an 'announce first' reminder that appears second")
 
+    # THE WITNESS (T98). Every other number in a roll line is guessable: a
+    # verdict from two options, a draw that only has to look like a probability,
+    # a target from a two-item frontier. T91 fabricated all three and was caught
+    # by luck. The witness is the one field that cannot be written before the
+    # tool produced it -- but only if it is genuinely unpredictable, so that is
+    # what is asserted, not merely that it exists.
+    w = getattr(route, "make_witness", None)
+    if w is None:
+        fails.append("FAIL: route.make_witness is gone — the roll is forgeable again")
+    else:
+        if len(set(w() for _ in range(64))) < 60:
+            fails.append("FAIL: witnesses repeat — not a witness, a label")
+        if len(w()) != route.WITNESS_BITS // 4:
+            fails.append(f"FAIL: witness is {len(w())} hex chars, want {route.WITNESS_BITS // 4}")
+        # THE CONTROL THAT MATTERS, and the one that fails if someone
+        # "simplifies" secrets back to random: route seeds `random` for the roll
+        # itself, so a witness drawn from that stream is reproducible from the
+        # roll number -- forgeable without running anything. Seed identically
+        # twice; the witnesses must still differ.
+        import random as _r
+        _r.seed(1234); a = w()
+        _r.seed(1234); b = w()
+        if a == b:
+            fails.append("FAIL: the witness is drawn from the SEEDED random stream — "
+                         "reproducible from the roll number, so it proves nothing")
+        if "witness" not in src.lower() or "[witness `" not in src:
+            fails.append("FAIL: the witness is generated but never written to route-log.md — "
+                         "an unrecorded witness cannot be checked afterwards")
+        if "WITNESS:" not in src:
+            fails.append("FAIL: the witness is not PRINTED with the roll — it can only be "
+                         "quoted in the announcement if it appears there (cf. T56)")
+
     # A brand-new entry must read as staleness 0, not `roll`. It defaulted to 0
     # in `last_seen`, so B67 was born at roll #74 with staleness 74 and ~90% of
     # the next explore draw -- the exact inverse of what staleness is for.
@@ -143,7 +175,11 @@ def main():
         print("tie-break: NOTE — no cost ties in the current ledger, so this check "
               "is inert right now. The ordering rule still holds.")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 5
+    # +6, not +5: discrimination, closing-requirement, opening-requirement,
+    # staleness, tie-break, and the witness group (T98). A check that runs
+    # but is not counted makes the summary understate the suite -- and the
+    # summary is what anyone actually reads.
+    total = len(POSITIVE) + len(NEGATIVE) + 6
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -156,7 +192,8 @@ def main():
         print(f)
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
-          f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break)")
+          f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
+          f"1 witness)")
     return 1 if fails else 0
 
 

@@ -434,6 +434,31 @@ def main():
         except Exception:
             reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
 
+    # 4d. THE ROLL WITNESS (T98). route.py stamps each roll with a random token
+    # and records it in route-log.md. Quoting it proves the tool ran, because it
+    # cannot be written before it existed -- T91 fabricated a whole roll line and
+    # every OTHER field was guessable (a verdict from two options, a draw that
+    # only has to look like a probability, a target from a two-item frontier).
+    #
+    # CHECKED HERE, not just emitted, because T89/T90/T95 are all the same story:
+    # a rule nothing verifies is a preference. The check is deliberately lagged
+    # by one roll -- the CURRENT roll's checkpoint is legitimately mid-flight, so
+    # demanding its witness immediately would fire on every checkpoint and become
+    # noise. Only a roll that has been SUPERSEDED by a later one should already
+    # have been written up.
+    try:
+        _rl = (LEDGER.parent / "route-log.md").read_text()
+        _rolls = re.findall(r"^- roll #(\d+):.*?\[witness `([0-9a-f]+)`\]", _rl, re.M)
+        if len(_rolls) >= 2:
+            _n, _w = _rolls[-2]          # the last COMPLETED roll
+            if _w not in text:
+                reminders.append(
+                    f"routing: roll #{_n}'s witness `{_w}` appears in no ledger entry. "
+                    f"Either that checkpoint recorded no outcome, or its announcement "
+                    f"was not transcribed from the tool (T91/T98).")
+    except FileNotFoundError:
+        pass
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "
