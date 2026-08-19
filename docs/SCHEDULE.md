@@ -30,11 +30,13 @@ each checkpoint. Tick the box when done.
       `.ovlfile12`**, which would burn the whole budget re-deriving one
       structural fact. Run `scripts/symbol_gaps.py` first, then do these as
       **two separate questions**:
-      1. **Is `ovlfile12` ever loaded at runtime?** (`scripts/overlay_map.py`.)
-         It holds 84% of all unclaimed bytes and 46 of its 67 candidates have a
-         declared size <= 0x10 — a symbol table that was never populated, not 67
-         truncations. If it never loads, most of T11 evaporates. **Do this
-         first; it is one check and it re-prices everything else.**
+      1. ~~**Is `ovlfile12` ever loaded at runtime?**~~ **ANSWERED 2026-08-19
+         (roll #58) — NO, over three runs including two that reach a fresh
+         scene load at ~158s, with a positive control and a size-based check
+         that does not depend on its ROM offset. See T11 (now closed) and A127.
+         So step 1 is DONE and most of T11 did evaporate: file12's 67
+         candidates are the LOWEST priority.** Step 2 below is the whole of
+         what remains.
       2. **Triage the ~106 candidates OUTSIDE `ovlfile12`**, top-of-list first,
          each checked against splat's `endlabel`. Fix only genuine truncations
          (the L1/L7 class). Bounded: stop at 20 checked, record the hit rate.

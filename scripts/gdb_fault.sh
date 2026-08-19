@@ -149,7 +149,17 @@ try:
             d = (prev - s0) & 0xFFFFFFFF
             if d < 0x10000:
                 delta = "   (inner is +0x%X = idx %d at stride 4)" % (d, d // 4)
-        print("  %-4d 0x%08X   0x%08X   0x%08X%s" % (k, fsp, s0, ra, delta))
+        # RANGE GATE (A128). $s0 is assigned once at entry from $a2, and
+        # $a2 = $s0_parent + (lbu byte << 2), so a level can only move
+        # +0..+1020. Five invocations therefore span at most 5*1020 bytes
+        # BELOW the live value. Anything outside that window is not a walker
+        # $s0, whatever it looks like. This gate exists because the table
+        # above was read as a descent down to level 3, where it was printing
+        # 0x3F800000 -- the float 1.0f -- and A125 built a "measured
+        # discontinuity" on level 2, a value 1.6 MB out of range.
+        reach = (live - 5 * 1020) <= s0 <= live
+        flag = "" if reach else "   <-- UNREACHABLE: not a walker $s0 (A128)"
+        print("  %-4d 0x%08X   0x%08X   0x%08X%s%s" % (k, fsp, s0, ra, delta, flag))
         prev = s0
     print("")
     steps = 0
@@ -170,8 +180,11 @@ try:
     print("  or these are not walker frames -- do NOT read the values above as a")
     print("  descent in that case. (Do not use saved $ra as the check: it carries no")
     print("  meaning in recompiled output, A125.)")
-    print("  A124's open question: the chain crosses from overlay data into the heap")
-    print("  object, and THAT step is not a stride-4 step.")
+    print("  RANGE (A128): every walker $s0 must lie in 0x%08X..0x%08X" % (live - 5*1020, live))
+    print("  -- +0..+1020 per level, %d levels. Rows outside it are flagged above and" % 5)
+    print("  are NOT part of the descent. A125 claimed a measured crossing from overlay")
+    print("  data into the heap; that value was 1.6 MB out of range and is WITHDRAWN.")
+    print("  The whole descent is inside the heap object.")
 except Exception as e:
     print("  stack walk failed: %s" % e)
 end
