@@ -12,12 +12,15 @@ precisely because you ask that question when you do NOT know where to look.
 
 So the file does not change. This is a VIEW over it.
 
-  --index   one line per entry: ID, status tag, claim.   ~6k tokens.
+  --index   one line per entry: ID, status tag, claim.   ~8.5k tokens.
   --show    the full entry, verbatim, for the handful you actually need.
 
-Measured on 2026-08-19: 198 entries, 34,671 words / ~85k tokens in full; the
-index is ~2.4k words / ~6k tokens. The index grows ~12 words per entry against
-~400 for the file, so it is roughly flat as the ledger keeps growing.
+Measured 2026-08-19, 199 entries: the file is 216k chars / 83k tokens, the index
+22k chars / ~8.5k -- about 10x. Do not trust these figures as current; run
+--self-check, which asserts the index stays under 25% of the file whatever the
+entry count. The point is the GROWTH RATE: ~12 words per entry against ~400, so
+the index stays roughly flat as the ledger keeps growing. Every earlier attempt
+bought a one-off saving instead (T54), which is why they all expired.
 
 THE RULE THAT MAKES THIS SAFE
 -----------------------------
@@ -89,7 +92,31 @@ def parse():
 
 
 def _plain(s):
-    return re.sub(r"\s+", " ", re.sub(r"[*`~]", "", s)).strip()
+    s = re.sub(r"\s+", " ", re.sub(r"[*`~]", "", s)).strip()
+    return re.sub(r"\s+([;,.])", r"\1", s)  # markup removal leaves " ;" behind
+
+
+STATUS_WORD = re.compile(r"\b(WD|OPEN|MERGED|DEAD|OUT|EST|MEASURED|INTERVENED|READ|INFERRED|NEGATIVE|RETRACTED)\b", re.I)
+TAG_PREFIX = re.compile(r"^([A-Z][A-Z()+,/\w\s]{0,48}?)\s+[—-]{1,2}\s+")
+
+
+def _strip_tag(st):
+    """Drop a leading status tag so the claim is not 'MEASURED — MEASURED ...'.
+
+    The prefix must have BALANCED PARENS. Status tags routinely qualify
+    themselves -- "MEASURED (hardware watchpoint, 3 runs, identical -- the third
+    under the display isolation added in T59)" -- and without this guard the
+    match ran into the parenthetical and cut at the em-dash INSIDE it, leaving
+    A123 indexed as "the third under the display isolation added in T59) — the
+    value A99 dereferences...": a fragment starting mid-clause.
+    """
+    m = TAG_PREFIX.match(st)
+    if not m:
+        return st
+    pre = m.group(1)
+    if pre.count("(") != pre.count(")"):
+        return st
+    return st[m.end():].strip()
 
 
 def tag_of(status):
@@ -119,8 +146,7 @@ def claim_of(status, body):
         add(m.group(1))
 
     st = _plain(status)
-    # Strip a leading tag so the claim is not "MEASURED — MEASURED ..."
-    add(re.sub(r"^[A-Z][A-Z()\w\s]{0,28}?\s+[—-]{1,2}\s+", "", st).strip())
+    add(_strip_tag(st))
     if st.upper().startswith("MERGED INTO"):
         return st
 
@@ -155,7 +181,19 @@ def _first_words(s, n):
 def index_lines(rows):
     out = []
     for eid, status, body, _ev, _raw in rows:
-        out.append((eid, tag_of(status), claim_of(status, body)))
+        tag, claim = tag_of(status), claim_of(status, body)
+        # The I-series puts its CLAIM in the status column rather than a tag, so
+        # rendering both gave "ares poll had no posit | ares poll had no positive
+        # control -- ...": half the tag column wasted repeating the claim. Blank
+        # the tag when it is just the claim's opening.
+        # ...but never blank a tag carrying a status keyword. A36's status is
+        # "WD [cites the missing A24 — T21]", which IS its own claim, so the
+        # duplication rule hid its WD. Losing a WD marking is the single worst
+        # thing this index can do: "does anything rest on a withdrawn entry?" is
+        # the check that caught B46 standing as fact, twice.
+        if tag and claim.lower().startswith(tag.lower()[:12]) and not STATUS_WORD.search(tag):
+            tag = ""
+        out.append((eid, tag, claim))
     return out
 
 
@@ -237,9 +275,15 @@ def self_check():
     # The tag must survive into the index. It is the highest-value signal in the
     # file: an entry resting on a WITHDRAWN one is the check that caught B46
     # standing as fact, twice.
-    wd = [e for e, t, _c in idx if "WD" in t.upper()]
-    checks.append(("WITHDRAWN entries are visibly WD in the index", len(wd) >= 20,
-                   f"{len(wd)} marked WD"))
+    # EXACT, not a floor. This was `>= 20` and passed while A36's WD was hidden
+    # by a cosmetic rule -- a control with that much slack cannot detect the
+    # drift it exists to detect (T65).
+    raw_wd = {r[0] for r in rows if re.search(r"\bWD\b", r[1].upper())}
+    shown = {e for e, t, _c in idx if "WD" in t.upper()}
+    checks.append(("every WITHDRAWN entry is visibly WD in the index",
+                   raw_wd == shown and len(raw_wd) > 0,
+                   f"{len(shown)}/{len(raw_wd)} shown"
+                   + (f"; HIDDEN: {', '.join(sorted(raw_wd - shown))}" if raw_wd - shown else "")))
 
     for name, ok, detail in checks:
         bad += not ok
