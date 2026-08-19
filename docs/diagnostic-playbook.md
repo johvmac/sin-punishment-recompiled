@@ -2290,6 +2290,44 @@ frame that was solid black.
 
 ---
 
+## Falsifiers: RUN the cheap ones, do not merely write them (added 2026-08-19, T86)
+
+Every ledger entry carries a falsifier. That requirement trains you to **write**
+one. It does not train you to **run** one, and those are not the same discipline.
+
+**A161 stated the falsifier that would have killed it, and it was never run.**
+Verbatim: *"a capture between 152 s and 158 s showing the green logo card."* One
+capture, about two minutes, and it was written down **before** the claim was
+asserted. The claim was withdrawn the same day when the user pointed at exactly
+that gap.
+
+**The rule: if a falsifier is cheap enough to run now, run it before asserting
+the claim.** Then record the result, not the intention.
+
+**For a cheap falsifier, stating it and not running it is WORSE than omitting
+it** — it manufactures the appearance of rigour. A reader (including a later
+session, including you) sees a falsifier and reads the entry as tested.
+
+Ask the question in this order:
+
+1. What would make this false?
+2. **What would it cost to check that right now?**
+3. If the answer to 2 is minutes, it is not a falsifier — it is the next command.
+
+### Why this is NOT mechanised (cf. T29)
+
+A falsifier's usual purpose *is* to be run later — that is what makes it useful
+to write down for a future session. So flagging every untested falsifier would
+fire on almost all of them and train you to ignore the channel, which is the
+failure T29 warns about. The judgement is about **cost**, and no check can see
+what a given test would cost. It stays a rule.
+
+What the tooling does cover: `audit.py` flags entries created and withdrawn
+inside one window (`churn`), which is where this failure shows up after the
+fact. That caught A161 — one audit window late.
+
+---
+
 ## EV-2 — Claim strength: match the claim to the evidence (added 2026-08-18)
 
 **The recurring failure on this project is not missing evidence. It is claims

@@ -16,3 +16,12 @@ Weekly reviews. Each reads ONLY the L2 digests in `audit-l2-log.md`.
 - quiet: yes (streak 2)
 - **L3 asks whether the METHOD is improving, not whether any finding is right.** If a class recurs after a fix, the fix was aimed at an instance.
 
+## L3 #3 — covering L2 digests 3..3
+- L2 digests reviewed: 1
+- defects this digest: 2. **NO TREND CLAIMED — a direction needs at least 2 digests.**
+- **classes that RECUR despite tooling — a fix that addressed an instance, not the class:**
+  - `churn`: recurred in L2 #3
+  - `single-run`: recurred in L2 #3
+- quiet: yes (streak 3)
+- **L3 asks whether the METHOD is improving, not whether any finding is right.** If a class recurs after a fix, the fix was aimed at an instance.
+

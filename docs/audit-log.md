@@ -172,3 +172,10 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A138: created and withdrawn within one audit window. What made it look right?
   - A130: created and withdrawn within one audit window. What made it look right?
 
+## Audit #7 — since 79770802
+- ledger: 253 entries (+22 this window), 36 withdrawn
+- rolls: 10 this window; runs: 4 (3 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - A153: rests on ONE run (dispatch-pointer-trace.log). Repeat it or say why one is enough.
+  - A161: created and withdrawn within one audit window. What made it look right?
+
