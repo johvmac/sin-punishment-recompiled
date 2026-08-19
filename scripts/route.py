@@ -119,6 +119,23 @@ def open_items():
     return items
 
 
+def staleness(st, eid):
+    """Rolls since this entry was last picked -- 0 for an entry never seen.
+
+    `last_seen` used to default to 0, so a BRAND-NEW entry read as
+    `roll - 0 = roll`: B67 was born at roll #74 with staleness 74 and an explore
+    weight of 75 against the frontier's 4, i.e. ~90% of the next explore draw.
+    That inverts the reason staleness is weighted at all -- this file's own
+    docstring says the point is that "an item untouched for many rolls is
+    exactly the one whose cost estimate is most likely out of date", and a new
+    entry has the FRESHEST estimate on the board.
+
+    Unknown -> 0. Entries are seeded into `last_seen` when a roll happens, so
+    they then age normally from birth.
+    """
+    return st["roll"] - st["last_seen"].get(eid, st["roll"])
+
+
 def unpriced(items):
     return [e for e, _, c in items if c is None]
 
@@ -202,7 +219,7 @@ def main():
         print(f"[route] {len(items)} open, last roll #{st['roll']}, "
               f"entries at last roll {st['last_entry_count']} (now {entry_count()})")
         for i, (eid, body, cost) in enumerate(items):
-            stale = st["roll"] - st["last_seen"].get(eid, 0)
+            stale = staleness(st, eid)
             cs = f"cost={cost:<3d}" if cost is not None else "cost=?  "
             print(f"  {'CHEAPEST' if i == 0 and cost is not None else '        '} {eid:5s} "
                   f"{cs} stale={stale:2d}  {body}")
@@ -225,7 +242,7 @@ def main():
         if "--uniform" in sys.argv:
             weights = [1] * len(cands)
         else:
-            weights = [1 + (st["roll"] - st["last_seen"].get(e, 0)) for e, _, _ in cands]
+            weights = [1 + staleness(st, e) for e, _, _ in cands]
         total = sum(weights)
         pick = random.random()
         acc, target, body = 0.0, cands[-1][0], cands[-1][1]
@@ -245,6 +262,10 @@ def main():
                 else "WARNING: no OPEN row carries [cost=N], so this is NOT a cost "
                      "ranking -- it is document order. Price the rows before trusting it.")
 
+    # Seed any entry we have never seen, so it ages from THIS roll rather than
+    # from roll 0. Done at roll time only -- --status must not mutate state.
+    for _e, _b, _c in items:
+        st["last_seen"].setdefault(_e, st["roll"])
     st["last_seen"][target] = st["roll"]
     st["last_entry_count"] = entry_count()
     STATE.write_text(json.dumps(st, indent=1))

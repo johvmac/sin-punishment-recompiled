@@ -88,7 +88,20 @@ def main():
         fails.append("FAIL: CLOSING_REQUIREMENT is defined but never printed — "
                      "a reminder nothing emits is not a reminder (cf. T56)")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 2
+    # A brand-new entry must read as staleness 0, not `roll`. It defaulted to 0
+    # in `last_seen`, so B67 was born at roll #74 with staleness 74 and ~90% of
+    # the next explore draw -- the exact inverse of what staleness is for.
+    st = {"roll": 74, "last_entry_count": 0, "last_seen": {"A99": 71}}
+    new_stale = route.staleness(st, "B67_NEVER_SEEN")
+    old_stale = route.staleness(st, "A99")
+    if new_stale != 0:
+        fails.append(f"FAIL: an unseen entry reports staleness {new_stale}, want 0 "
+                     f"(it would dominate the explore draw)")
+    elif old_stale != 3:
+        fails.append(f"FAIL: a seen entry reports staleness {old_stale}, want 3 "
+                     f"(the fix must not flatten real staleness)")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 3
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -101,7 +114,7 @@ def main():
         print(f)
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
-          f"1 closing-requirement)")
+          f"1 closing-requirement, 1 staleness)")
     return 1 if fails else 0
 
 
