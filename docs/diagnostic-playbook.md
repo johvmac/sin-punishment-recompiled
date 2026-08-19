@@ -378,7 +378,7 @@ mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
 |---|---|
 | `scripts/boot_screen_check.sh <sec> <out.png>` | "Is the screen black?" — launches, screenshots the *game window* (`xwininfo`+`xwd`+`ffmpeg`), gives a numeric dark-fraction verdict. Window-selection fixed 2026-08-14 to require WM_CLASS `SinPunishmentRecompiled` and exclude `mutter` — it used to match the WM's own decoration/frame window too (same title text) and could silently capture that instead. Check the printed image `size=`: `(1280, 720)` is the real content window; anything else means the wrong window was captured. **A "BLACK" result is no longer trustworthy on its own — see the standing rule below.** |
 | `scripts/gdb_watch.sh <vram> [arm] [deadline] [log] [bin] [cond]` | Hardware watchpoint on an N64 address — breaks at `recomp_entrypoint`, captures rdram base, computes the host address. **`[cond]` is appended to the `watch` (e.g. `"== 0x02000000"`) — use it or a hot word floods the watchpoint.** Its arm-time print of the current value is the positive control: if the value is already what you are hunting, you armed too late and a null result would be meaningless |
-| `scripts/gdb_fault.sh [deadline] [log] [bin]` | Catches the SIGSEGV and dumps the game-side register file. **Run it against `build-debug/` — `ctx` needs debug info; against `build/` you get frame names only.** There is no core file to inspect instead: `ulimit -c` is 0 and apport owns `core_pattern`, so bash's "(core dumped)" is the signal disposition, not a file |
+| `scripts/gdb_fault.sh [deadline] [log] [bin]` | Catches the SIGSEGV and dumps the game-side register file, the per-level `$s0` descent off the game stack, and (with `SNP_RDRAM_DUMP`) an 8MB snapshot — see G7.2. **Two built-in controls:** it names the faulting function and flags a MISMATCH if it is not A99's, and it reports how many recursion levels are stride-consistent (0 means the stack walk is misaligned — do not read the values as a descent). **Run it against `build-debug/` — `ctx` needs debug info; against `build/` you get frame names only.** There is no core file to inspect instead: `ulimit -c` is 0 and apport owns `core_pattern`, so bash's "(core dumped)" is the signal disposition, not a file |
 | `scripts/display_isolate.sh` | Sourced by the three launchers, never run directly. `xvfb` (default, truly headless) / `SNP_ISO=xephyr` (nested — input isolated but **a window IS shown**) / `SNP_VISIBLE=1` (real display, your typing reaches the game — T23). One copy on purpose: three divergent copies is what let the gdb wrappers run unisolated (T59) |
 | `scripts/xtest_key.py <win_hex> <keysym>…` | Real synthetic keyboard input to an SDL/X11 window. Clicks into the window first (WM click-to-focus) then `xtest.fake_input`. Works against our build *and* the reference recomps |
 | `scripts/xclick.py <win_hex> <x> <y>` | Real synthetic click at a specific point in an X11 window. Reliable against top-level SDL/game-render windows (ours, BanjoRecomp, ares' main window); **not** reliable against native Qt dropdown menus — ask the user to drive those directly instead |
@@ -387,6 +387,7 @@ mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
 | `scripts/auto_stub_pass.py`, `auto_label_fix.py`, `fix_dangling_gotos.py`, `fix_zero_writes.py`, `patch_si_stubs.py` | Bulk recompiler-output repairs (class A) |
 | `scripts/rom_info.py` | ROM identification / conversion |
 | `scripts/rom_disasm.py <vram> [end\|+len]` | Disassemble the ROM at a VRAM address. **Looks the vram->ROM delta up from the `[[section]]` blocks rather than taking it as an argument** — deriving it by hand is what produced T49's confident wrong table. REFUSES if no section contains the address, and warns when several do (overlays share vram — A85/G3.1). `--self-check` compares against splat's committed asm: a positive control on tool, invocation and delta at once |
+| `scripts/rdram_peek.py <snap> <vram> [n]` | Read game memory out of an RDRAM snapshot — no gdb, no game run. `--stride N` for record arrays, `--regs` for the register file at the fault. **Run `--self-check` first, every time**: it asserts values measured by other means and catches the silent endianness/offset errors that produce plausible byte-reversed output (T64, and I7 for the same fact about byte access) |
 | `scripts/rr_record.sh` | **Refuses by default — `rr` cannot record this target (G7.1/T62).** Kept for a future `rr` version; `SNP_RR_FORCE=1` overrides |
 
 ### Standard loop
@@ -1131,6 +1132,52 @@ the part people get wrong.
 **Note `rr check` is not a subcommand** in rr 5.7 (`rr help` lists the real
 ones); it fails with `execve failed: 'check'`. The prerequisite it would have
 reported is `kernel.perf_event_paranoid <= 1`, which is now set on this machine.
+
+
+### G7.2 — Snapshot RDRAM at the fault, then ask questions offline (added 2026-08-19)
+
+**Take a snapshot on every fault run. It costs 8 MB and it makes the crash
+re-interrogable.** The reason to bother: a run to the A99 fault costs ~158s and
+yields one fixed set of values, so every new question is another run. On
+2026-08-19 `gdb_fault.sh` was run twice against the same crash purely because
+the first pass used the release binary and `ctx` would not resolve (A122).
+
+```bash
+SNP_RDRAM_DUMP=/media/joh/extra/sin-punishment-archive/evidence/<date>/<name>.rdram \
+  scripts/gdb_fault.sh 320 /tmp/fault.log build-debug/SinPunishmentRecompiled
+
+scripts/rdram_peek.py <snap> 0x8013C278           # one word
+scripts/rdram_peek.py <snap> 0x802E1680 20        # 20 words
+scripts/rdram_peek.py <snap> --stride 0x14 0x802E1680 8
+scripts/rdram_peek.py <snap> --regs               # register file at the fault
+scripts/rdram_peek.py --self-check                # ALWAYS, before believing output
+```
+
+**NOT a core file.** `SNP_CORE` exists but a core of this process is **11.8 GB**
+— librecomp reserves 4 GB and commits 512 MB (`addresses.hpp`) — and enabling
+system-wide cores would fill the root filesystem in about three crashes (T63).
+The snapshot is 8.4 MB because every address this project has ever examined
+lives in the first few MB of RDRAM. Keep as many as you like.
+
+**RUN `--self-check` BEFORE TRUSTING ANY READ.** This is not ceremony. The first
+version of `rdram_peek.py` read words big-endian and printed clean, plausible,
+**byte-reversed** values — `0x8013C278` as `0x00000002`, A110's child pointers as
+`34162E80` instead of `802E1634` (T64). RDRAM is stored in HOST word order,
+which is the same fact that makes byte access need `^3` (I7). Endianness is not
+eyeballable here: most of these words look like plausible data either way round.
+The self-check asserts values measured by other means, and it discriminates —
+4/4 pass when correct, **0/4 pass under the original bug**.
+
+**What it is good for, with a worked example.** Diffing a snapshot against the
+ROM image found **A126** — every typed scene node is rebased `+0x1B` at load,
+while `0xFFFF` sentinels are untouched — which corrected A111's type analysis.
+Nobody had asked that question; asking it cost nothing because the crash state
+was already on disk. **Static data and runtime data are different things, and a
+snapshot is how you tell them apart** (G3.1 is the overlay-copy version of the
+same trap).
+
+**Preserve snapshots to the archive drive, not `/tmp`** — evidence cited from
+session-scoped paths does not survive (T47).
 
 
 ## EV — The evidence gate (applies to every observation, at every gate)

@@ -59,11 +59,61 @@ def word(data, vram):
     return struct.unpack_from("<I", data, off)[0]
 
 
+DEFAULT_SNAP = ("/media/joh/extra/sin-punishment-archive/evidence/2026-08-19/"
+                "a99-fault.rdram")
+
+# Values this project has measured by OTHER means. A snapshot reader that
+# disagrees with these is misreading memory, and the failure mode is silent:
+# the first version of this script read words big-endian and printed clean,
+# plausible, byte-reversed values (T64). Endianness is not eyeballable -- most
+# of these words look like plausible data either way round -- so it is asserted.
+CONTROLS = [
+    (0x8013C278, 0x02000000, "the faulting word (A122/A123)"),
+    (0x802E1688, 0x802E1634, "node 0's child-list pointer (A110, static read)"),
+    (0x802E169C, 0x802E1638, "node 1's child-list pointer (A110, static read)"),
+    (0x802E1680, 0xFFFF0000, "node 0 type = none sentinel (A110)"),
+]
+
+
+def self_check(snap):
+    """Assert known values. Catches endianness and offset errors, which are silent."""
+    try:
+        data, regs, _ = load(snap)
+    except FileNotFoundError:
+        print(f"no snapshot at {snap} -- make one with:\n"
+              f"  SNP_RDRAM_DUMP={snap} scripts/gdb_fault.sh 320 /tmp/f.log "
+              f"build-debug/SinPunishmentRecompiled", file=sys.stderr)
+        return 1
+    bad = 0
+    for vram, want, why in CONTROLS:
+        try:
+            got = word(data, vram)
+            shown = f"0x{got:08X}"
+        except IndexError:
+            got, shown = None, "unreadable"
+        ok = got == want
+        bad += not ok
+        print(f"{'ok  ' if ok else 'FAIL'}  0x{vram:08X} = {shown:<10} "
+              f"want 0x{want:08X}  -- {why}")
+    if regs:
+        s0 = regs[16] & 0xFFFFFFFF
+        ok = s0 == 0x8013C278
+        bad += not ok
+        print(f"{'ok  ' if ok else 'FAIL'}  ctx $s0 = 0x{s0:08X}  want 0x8013C278"
+              f"  -- register file round-trips (A122)")
+    print(f"\n{len(CONTROLS) + (1 if regs else 0) - bad}/"
+          f"{len(CONTROLS) + (1 if regs else 0)} controls pass")
+    return 1 if bad else 0
+
+
 def main():
     a = sys.argv[1:]
     if not a or "--help" in a or "-h" in a:
         print(__doc__)
         return 0
+    if "--self-check" in a:
+        rest = [x for x in a if x != "--self-check"]
+        return self_check(rest[0] if rest else DEFAULT_SNAP)
     snap = a[0]
     rest = a[1:]
     data, regs, rdram_base = load(snap)

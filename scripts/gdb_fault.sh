@@ -57,6 +57,33 @@ info signal SIGSEGV
 frame
 bt 12
 
+echo \n===== CONTROL: is this the fault we think it is? =====\n
+# Without this, a register dump from SOME OTHER crash reads exactly like a
+# register dump from the expected one, and every ledger number keyed to A99
+# would be quietly wrong. Cheap, and it is the difference between a measurement
+# and a plausible-looking one.
+python
+import gdb
+try:
+    f = gdb.selected_frame()
+    name = f.name() or "<unknown>"
+    expected = "boot_func_80033758"
+    ok = (name == expected)
+    print("  faulting function = %s" % name)
+    print("  %s  expected %s" % ("ok  " if ok else "MISMATCH --", expected))
+    if not ok:
+        print("  >>> This is NOT A99's crash. Ledger values keyed to A99 do not apply here.")
+    n = 0
+    fr = f
+    while fr and n < 40:
+        if (fr.name() or "") == expected:
+            n += 1
+        fr = fr.older()
+    print("  %s frames of %s on the stack (A99 shows 5)" % (n, expected))
+except Exception as e:
+    print("  control FAILED to evaluate: %s" % e)
+end
+
 echo \n===== GAME REGISTER FILE AT THE FAULT =====\n
 # The recompiled functions carry a `ctx` (recomp_context*). $s0 is r16 and
 # $v0 is r2 -- the load that faults is `lw $s3, 0x0($v0)` and $v0 came from
@@ -124,8 +151,27 @@ try:
                 delta = "   (inner is +0x%X = idx %d at stride 4)" % (d, d // 4)
         print("  %-4d 0x%08X   0x%08X   0x%08X%s" % (k, fsp, s0, ra, delta))
         prev = s0
-    print("\n  A124's question: are these successive elements of ONE array, or does")
-    print("  the chain walk out of it? Compare the span against the array it starts in.")
+    print("")
+    steps = 0
+    vals = [live]
+    for k in range(4):
+        fsp = (sp + k * FRAME) & 0xFFFFFFFF
+        if not (0x80000000 <= fsp < 0x80800000):
+            break
+        vals.append(u32(base + (fsp + S0_OFF - 0x80000000)))
+    for i in range(len(vals) - 1):
+        d = (vals[i] - vals[i + 1]) & 0xFFFFFFFF
+        if d and d < 0x400 and d % 4 == 0:
+            steps += 1
+        else:
+            break
+    print("  CONTROL: %d consecutive level(s) differ by a small multiple of 4," % steps)
+    print("  which is the stride A124 predicts. 0 would mean the walk is misaligned")
+    print("  or these are not walker frames -- do NOT read the values above as a")
+    print("  descent in that case. (Do not use saved $ra as the check: it carries no")
+    print("  meaning in recompiled output, A125.)")
+    print("  A124's open question: the chain crosses from overlay data into the heap")
+    print("  object, and THAT step is not a stride-4 step.")
 except Exception as e:
     print("  stack walk failed: %s" % e)
 end
