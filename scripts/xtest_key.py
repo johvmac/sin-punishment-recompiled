@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Click into a window (for WM click-to-focus), then send real XTEST key
 press/release events so the target app sees genuine input."""
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import sys
 import time
 from Xlib import X, XK, display

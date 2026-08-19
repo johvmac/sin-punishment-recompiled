@@ -67,10 +67,37 @@ than masked.
 
 1. **Upstream the patches — one per day, in this order.** Assessed 2026-08-18.
 
+   > **ITEM 1 IS CLOSED IN FULL — 2026-08-19 (T38). Do not restart it.**
+   > Upstream replied to #154: the bug **was already fixed in PR #153**, and
+   > they asked us to **refrain from submitting AI-generated issue reports**.
+   > So neither code nor issues go up from this project. T36's conclusion that
+   > "issues with disclosure are still fine" is **withdrawn**. The four patches
+   > stay local and keep working. **The analysis was not wrong — the bug was
+   > real and upstream fixed it independently. Being right and being welcome
+   > are separate questions.** Historical detail below.
+   >
+   > **PR 1 was filed as issue #154.**
+   > <https://github.com/N64Recomp/N64ModernRuntime/issues/154> — filed, open,
+   > no patch attached. Nothing further to do on patch 1.
+   > `N64ModernRuntime/CONTRIBUTING.md`, present at our base commit `589bbf0`,
+   > **prohibits AI-generated code contributions** and states such proposals are
+   > rejected on sight. **Do not open a code PR on these repos from this
+   > project's AI-assisted patches.** PR 1 was accordingly re-scoped to a
+   > **bug report with no patch**, disclosing that the work was AI-assisted:
+   > `patches/upstream/N64ModernRuntime-vi-null-mode.ISSUE.md`. The prepared PR
+   > branch and body were deleted on purpose — if you find yourself recreating
+   > them, that is the bug, not progress. **Patches 2-4: CHECKED 2026-08-19 —
+   > `N64Recomp` and `RecompFrontend` carry the SAME first line. The policy is
+   > org-wide, so none of 2-4 can go up as a code PR either.** What remains is a
+   > per-patch judgement on whether each underlying bug is worth reporting as an
+   > issue on its own evidence; nobody has made that call yet. Patch 4 was
+   > already issue-only by its own assessment, so it loses least.
+   > The verdicts below remain accurate as *technical* assessments.
+
    | # | patch | verdict |
    |---|---|---|
    | 1 | `N64ModernRuntime-vi-null-mode-fix` | **Ready.** 12 lines, one file, null-deref fix, generalises to any game. Start here |
-   | 2 | `RecompFrontend-keyboard-defaults` | Likely fine; 72 lines, needs review for project-specific choices |
+   | 2 | `RecompFrontend-keyboard-defaults` | **CLOSED 2026-08-19, not deferred.** Policy blocks the code (T36), *and* there is no bug to report instead — keyboard defaults are a preference, and this assessment already suspected some of the 72 lines were ours rather than sensible defaults. See SCHEDULE "Closed without doing" |
    | 3 | `N64ModernRuntime-pif-raw-si-responder` | 89 lines, the most substantial; needs the clearest repro |
    | 4 | `N64Recomp-rsp-sig0-fix` | **Do NOT submit as-is** — see below |
 

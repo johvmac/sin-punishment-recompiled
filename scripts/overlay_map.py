@@ -24,6 +24,10 @@ boot_func_8003A324/8003A41C advance unrelated *index* counters (seeded 0x1B and
 
 Emits a JSON map and a short summary. Nothing here runs the game.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import json
 import struct
 import sys

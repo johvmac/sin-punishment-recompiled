@@ -8,7 +8,9 @@ mistake -- a hook's `static` state being process-global rather than per-thread
 (I4, I5, I8). One was byte access to RDRAM without the `^3` swap, which printed
 byte-reversed values that read as exactly the bug being hunted (I7). One was a
 probe with no positive control, where a dead probe and a clean negative look
-identical (I1).
+identical (I1). One passed a 32-bit UNSIGNED value to `MEM_*`, which needs the
+sign-extended `ctx->rN`; it wrote to a wild address and produced a clean,
+convincing, entirely FALSE experimental result (I17).
 
 All five were caught AFTER a ~3 minute recompile, a build, and a run -- and in
 two cases only after a wrong conclusion had been drawn and written down. Every
@@ -17,8 +19,8 @@ one is a text pattern visible in the hook body before any of that is spent.
 This runs before the build, so the cost of the mistake drops from a full
 cycle plus a retraction to a few seconds.
 
-It cannot check whether a probe measures the right thing. It checks the five
-mistakes that have actually been made more than once.
+It cannot check whether a probe measures the right thing. It checks the six
+mistakes that have actually been made -- most of them more than once.
 
 Usage:
     scripts/lint_hooks.py            # warn, exit 0
@@ -54,7 +56,40 @@ def hooks(text):
             cur = {}
 
 
+def _mem_args(body):
+    """Yield (arg1, arg2) for every MEM_*(...) call in `body`.
+
+    BOTH args, not just one: the macro computes `(reg) + (offset)`, and addition
+    is commutative, so N64Recomp emits both orders and both are correct --
+    `MEM_W(0X18, ctx->r29)` for `sw $ra,0x18($sp)` but `MEM_BU(ctx->r20, 0X0)`
+    for `lbu $a0,0x0($s4)`. A check that assumed the register was always the
+    second argument flagged the second form, which is valid generated code.
+
+    Paren-balanced on purpose: an argument is legitimately allowed to be another
+    MEM_* call, so a plain `MEM_\\w+\\([^,]+,([^)]+)\\)` splits in the wrong
+    place and reports nonsense for exactly the nested form that is CORRECT.
+    """
+    for m in re.finditer(r"\bMEM_[A-Z]{1,2}\s*\(", body):
+        i, depth, arg_start, first_arg_end = m.end(), 1, m.end(), None
+        while i < len(body) and depth:
+            c = body[i]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            elif c == "," and depth == 1 and first_arg_end is None:
+                first_arg_end = i
+            i += 1
+        if first_arg_end is not None and depth == 0:
+            yield body[arg_start:first_arg_end], body[first_arg_end + 1:i]
+
+
 def main():
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(__doc__)
+        return 0
     if not TOML.exists():
         return 0
     text = TOML.read_text()
@@ -74,6 +109,31 @@ def main():
         if re.search(r"rdram\s*\[", body) and "^3" not in body:
             errors.append(f"{where}: indexes `rdram[...]` with no `^3` swap. "
                           f"Byte reads come out reversed (I7).")
+
+        # I17 -- MEM_* takes the SIGN-EXTENDED register. The macro is
+        #     *(int32_t*)(rdram + (((reg) + (offset)) - 0xFFFFFFFF80000000))
+        # so `reg` must sign-extend: `ctx->rN` (int64_t) or a nested MEM_* whose
+        # int32_t result sign-extends on promotion. Hand it a 32-bit UNSIGNED
+        # value and it zero-extends, the subtraction wraps, and the access lands
+        # at a wild host address.
+        #
+        # This is flagged as an ERROR rather than a warning because of how it
+        # fails: on 2026-08-19 it did not crash the probe visibly, it produced a
+        # clean, plausible, entirely FALSE result (a 3s-vs-158s difference that
+        # read exactly like the hypothesis under test). Caught only by asking
+        # where the fault was -- gdb put frame #0 inside the hook's own function.
+        for a1, a2 in _mem_args(body):
+            args = [a1.strip(), a2.strip()]
+            shown = f"{args[0]}, {args[1]}"
+            if any("unsigned" in a for a in args):
+                errors.append(f"{where}: `MEM_*({shown})` narrows an operand to "
+                              f"unsigned, so it zero-extends and the access "
+                              f"lands at a wild address. Pass `ctx->rN` and put "
+                              f"the displacement in the other argument (I17).")
+            elif not any("ctx->r" in a or a.startswith("MEM_") for a in args):
+                errors.append(f"{where}: `MEM_*({shown})` has no sign-extending "
+                              f"operand — neither argument is a `ctx->rN` or a "
+                              f"nested MEM_*. A narrowed copy wraps (I17).")
 
         # I1 -- a silent probe and a dead probe are indistinguishable.
         if "fprintf" in body and not re.search(r"ARM|first|control|HB ", body):

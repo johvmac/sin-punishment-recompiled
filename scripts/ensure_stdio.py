@@ -13,6 +13,10 @@ every later probe convention -- "[probe]" hooks broke the build again on
 2026-08-15. Now it detects actual stdio usage rather than one magic tag, and
 recompile.sh calls it automatically.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import glob
 import re
 

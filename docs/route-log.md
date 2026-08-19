@@ -38,3 +38,25 @@ A gap in the numbering means a roll was skipped.
 - roll #32: **EXPLOIT** (drew 0.968 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
 - roll #33: **EXPLOIT** (drew 0.712 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
 - roll #34: **EXPLORE** (drew 0.165 vs eps 0.3) -> `A97` — Audio runs and produces PURE SILENCE — user-reported, now quantified. TASK: find why. First step
+- roll #35: **EXPLOIT** (drew 0.576 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
+
+> **Note on #35 (added 2026-08-19, T37).** Roll #35 was **accidental** — it was
+> produced by `scripts/route.py --help`, a flag the script did not have, which
+> was silently ignored so the script took the no-argument path and rolled.
+> It landed on EXPLOIT/A99 and thereby discarded roll **#34's pending
+> EXPLORE -> A97**, which had not been worked yet.
+>
+> **Resolution: #34 stands, #35 is void.** Not because #35's target is
+> unwelcome, but because accepting it would launder an unconsumed EXPLORE into
+> an EXPLOIT — the precise bias this log exists to make visible (T14, T31:
+> observed explore rate 13% against a nominal 20%). The next roll is **#36**.
+>
+> `route.py` now refuses unrecognised arguments instead of rolling.
+- roll #36: **EXPLORE** (drew 0.294 vs eps 0.3) -> `T11` — 296 symbols leave an unclaimed gap (vram + size < next vram) — the BC-2 lead list. Most are genu
+- roll #37: **EXPLOIT** (drew 0.404 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
+- roll #38: **EXPLOIT** (drew 0.871 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
+- roll #39: **EXPLORE** (drew 0.077 vs eps 0.3) -> `A96` — RE-COSTED 2026-08-19 (was cost=5): the sweep is now scripts/truncation_sweep.py and the lead lis
+- roll #40: **EXPLOIT** (drew 0.738 vs eps 0.3) -> `A99` — New failure, highly reproducible: SIGSEGV in the scene walker on THREAD 3 while walking the titl
+- roll #41: **EXPLOIT** (drew 0.492 vs eps 0.3) -> `A99` — >>> READ A106 FIRST (2026-08-19): the framing below is WRONG. This is a ONE-SHOT walk at t157, n
+- roll #42: **EXPLORE** (drew 0.061 vs eps 0.3) -> `B36` — Re-anchored: this cited B35, which has never existed in this ledger (T21). The entry that actual
+- roll #43: **EXPLORE** (drew 0.156 vs eps 0.3) -> `T11` — RE-COSTED 2026-08-19 by roll #36 (was cost=4; EXPLORE, one bounded check) — the "296" was never 

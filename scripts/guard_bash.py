@@ -54,8 +54,37 @@ RULES = [
 # rather than into it, which is the opposite of the point.
 SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|readelf|du|gdb)\b")
 
+# Rules are evaluated PER STATEMENT, not against the whole command (T40).
+#
+# The exemption above used to be `SAFE.search(cmd)` over the entire command
+# string, so a single safe-listed word ANYWHERE disabled the binary-launch
+# refusal for everything else in that command:
+#
+#     echo build/SinPunishmentRecompiled              -> REFUSED (correct)
+#     ls >/dev/null; echo build/SinPunishmentRecompiled -> ALLOWED (wrong)
+#
+# Ordinary compound commands trip this constantly -- `sha256sum`, `ls`, `stat`
+# and `cp` are exactly what a checkpoint command contains -- so the guard was
+# silently inert for much of a session while still passing its own liveness
+# control, as long as that control was bundled with anything else. Splitting
+# first means a SAFE token only ever exempts the statement it appears in.
+SPLIT = re.compile(r"\|\||&&|\$\(|[;\n|&()`]")
+
+
+def statements(cmd):
+    """Split a shell command into rough simple-command segments.
+
+    Deliberately crude: separators, command substitution and backticks. It only
+    has to be fine-grained enough that a safe command cannot vouch for an
+    unrelated one sitting beside it.
+    """
+    return [s for s in SPLIT.split(cmd) if s and s.strip()]
+
 
 def main():
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(__doc__)
+        return 0
     try:
         payload = json.load(sys.stdin)
     except Exception:
@@ -66,10 +95,13 @@ def main():
     if not cmd:
         return 0
 
+    segments = statements(cmd)
     for pat, why, instead in RULES:
-        if pat.search(cmd):
-            if pat is RULES[2][0] and SAFE.search(cmd):
-                continue          # inspecting the binary, not running it
+        for seg in segments:
+            if not pat.search(seg):
+                continue
+            if pat is RULES[2][0] and SAFE.search(seg):
+                continue          # inspecting the binary in THIS statement, not running it
             print(f"[guard] REFUSED: {why}\n[guard] Instead: {instead}", file=sys.stderr)
             return 2
     return 0

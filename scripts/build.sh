@@ -5,7 +5,17 @@
 # Usage:
 #   scripts/build.sh              # lint, snapshot, recompile + build
 #   scripts/build.sh --no-recomp  # skip recompile.sh (C++-only changes)
-#   scripts/build.sh --label NAME # name this snapshot (e.g. MILESTONE-xyz)
+#   scripts/build.sh --label NAME # name the build this run PRODUCES
+#
+# Every run snapshots the OUTGOING binary as `AUTO-<stamp>` (see 2 below).
+# `--label NAME` additionally snapshots the binary this run BUILDS, as
+# `NAME-<stamp>`, after the build succeeds. So a labelled run leaves two
+# snapshots and the label always names the NEW one.
+#
+# To label a build after the fact -- the milestone flow, where the user has to
+# watch it work before it can be called good -- re-run with the label and no
+# source changes; the build no-ops and the label lands on that same binary:
+#   SNP_USER_CONFIRMED=1 scripts/build.sh --no-recomp --label MILESTONE-xyz
 #
 # WHY THIS EXISTS
 # ---------------
@@ -34,6 +44,15 @@
 # has failed at least once; every one wired into a script has held.
 set -uo pipefail
 
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
+
 cd "$(dirname "$0")/.." || exit 1
 KGB=known_good_builds
 BIN=build/SinPunishmentRecompiled
@@ -44,8 +63,26 @@ LABEL=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --no-recomp) RECOMP=0; shift ;;
-        --label)     LABEL="$2"; shift 2 ;;
-        *)           shift ;;
+        --label)
+            # A bare `--label` used to consume the next arg blindly; with set -u
+            # an absent value aborts with an unhelpful "unbound variable".
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo "[build] --label needs a NAME (e.g. --label VI-REPRO-reverted)" >&2
+                exit 2
+            fi
+            LABEL="$2"; shift 2 ;;
+        # This used to be `*) shift ;;` -- unknown arguments were silently
+        # dropped. That is the same defect class as T37 in route.py: a typo like
+        # `--lable X` would build and snapshot with NO label and say nothing,
+        # and `--no-recomp-typo` would silently do a FULL recompile. A build is
+        # expensive and mutates known_good_builds/; it must not proceed on input
+        # it did not understand.
+        -h|--help)   ;;   # handled above, before any work
+        *)
+            echo "[build] unknown argument: $1" >&2
+            echo "[build] known: --no-recomp, --label NAME, --help" >&2
+            echo "[build] REFUSING to build on input I did not understand." >&2
+            exit 2 ;;
     esac
 done
 
@@ -67,6 +104,16 @@ scripts/lint_hooks.py || true
 # --- 2. snapshot what is about to be overwritten ---------------------------
 # The binary being replaced is the one that becomes unrecoverable. Capturing it
 # after the build would capture the wrong thing.
+#
+# But note what that means for NAMING (I16, 2026-08-19): this snapshot holds the
+# OUTGOING binary, so a label passed on the command line must NOT land on it.
+# It did, once: `--label VI-REPRO-reverted` was passed to the build that
+# *produced* the reverted binary, and archived the PATCHED one under that name
+# -- a snapshot whose label stated the exact opposite of its contents, which is
+# worse than no snapshot because it reads as usable. Proven by hash, not by
+# reading: the "reverted" snapshot was byte-identical to the patched build.
+# => The pre-build snapshot is ALWAYS `AUTO`. `--label` is applied in step 4,
+#    to the binary this run actually produces.
 # The archive lives on a second drive via a symlink (the root fs runs ~92% full
 # and snapshots are ~24MB each). If that drive is not mounted the symlink
 # dangles -- and a snapshot that silently does not happen is precisely the
@@ -78,12 +125,17 @@ if [[ -L "$KGB" && ! -d "$KGB/" ]]; then
     exit 1
 fi
 
-if [[ -f "$BIN" ]]; then
+# snapshot <name> <role>
+#   role=outgoing -- the binary this run is about to REPLACE
+#   role=built    -- the binary this run has just PRODUCED
+# The role goes in the manifest and the index, so a snapshot can never again be
+# ambiguous about which side of a build it came from.
+snapshot() {
+    local NAME="$1" ROLE="$2"
+    local PROBES TAGS HOOKS DRIFT
     mkdir -p "$KGB"
-    STAMP=$(date +%Y-%m-%d-%H%M%S)
-    NAME="${LABEL:-AUTO}-$STAMP"
-    cp "$BIN"                        "$KGB/SinPunishmentRecompiled-$NAME"
-    cp sinpunishment.toml            "$KGB/sinpunishment-$NAME.toml"
+    cp "$BIN"                          "$KGB/SinPunishmentRecompiled-$NAME"
+    cp sinpunishment.toml              "$KGB/sinpunishment-$NAME.toml"
     cp symbols/sinpunishment.syms.toml "$KGB/syms-$NAME.toml"
 
     # The manifest is what makes a snapshot usable as a control: which probes
@@ -91,23 +143,43 @@ if [[ -f "$BIN" ]]; then
     PROBES=$(strings "$BIN" 2>/dev/null | grep -oE "^SNP_[A-Z_]+" | sort -u | tr '\n' ' ')
     TAGS=$(strings "$BIN" 2>/dev/null | grep -oE "^\[[a-z]{2,4}\] " | sort -u | tr -d '[] \n')
     HOOKS=$(awk '/BEGIN SCRATCH/,/END SCRATCH/' sinpunishment.toml | grep -c "patches.hook")
+
+    # The .toml and .syms copied here are the CURRENT tree state. For an
+    # `outgoing` snapshot they can POSTDATE the binary -- edit symbols, then
+    # build, and the old binary gets archived beside the new syms that did not
+    # build it. That is the same "label disagrees with contents" trap as I16,
+    # one level down, so measure it rather than hope. (A `built` snapshot is
+    # taken after the build, so its sidecars always match.)
+    DRIFT=""
+    if [[ "$ROLE" == "outgoing" ]]; then
+        DRIFT=$(find sinpunishment.toml symbols -newer "$BIN" -type f 2>/dev/null | head -3 | tr '\n' ' ')
+    fi
     {
         echo "name:      $NAME"
+        echo "role:      $ROLE"
+        echo "contents:  the binary this build $([[ "$ROLE" == outgoing ]] && echo REPLACED || echo PRODUCED)"
         echo "date:      $(date -Iseconds)"
         echo "git:       $(git rev-parse --short HEAD 2>/dev/null)"
         echo "scratch:   $HOOKS hook(s)"
         echo "env_probes: $PROBES"
         echo "log_tags:  $TAGS"
+        echo "sha256:    $(sha256sum "$BIN" 2>/dev/null | cut -d' ' -f1)"
+        if [[ -n "$DRIFT" ]]; then
+            echo "SIDECAR_DRIFT: $DRIFT"
+            echo "  ^ these postdate the binary -- the .toml/.syms archived here are NOT what built it"
+        fi
     } > "$KGB/manifest-$NAME.txt"
 
     if [[ ! -f "$KGB/INDEX.tsv" ]]; then
-        printf 'name\tdate\tgit\tscratch_hooks\tlog_tags\n' > "$KGB/INDEX.tsv"
+        printf 'name\trole\tdate\tgit\tscratch_hooks\tlog_tags\n' > "$KGB/INDEX.tsv"
     fi
-    printf '%s\t%s\t%s\t%s\t%s\n' "$NAME" "$(date -Iseconds)" \
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$NAME" "$ROLE" "$(date -Iseconds)" \
         "$(git rev-parse --short HEAD 2>/dev/null)" "$HOOKS" "$TAGS" >> "$KGB/INDEX.tsv"
-    echo "==> snapshot: $NAME  ($HOOKS scratch hook(s), tags: ${TAGS:-none})"
+    echo "==> snapshot: $NAME  [$ROLE — the binary this build $([[ "$ROLE" == outgoing ]] && echo REPLACED || echo PRODUCED)]  ($HOOKS scratch hook(s), tags: ${TAGS:-none})"
+    [[ -n "$DRIFT" ]] && echo "==>   NOTE: .toml/.syms postdate this binary and are not what built it: $DRIFT"
 
     # Prune AUTO snapshots only -- anything labelled is kept deliberately.
+    local f base
     mapfile -t OLD < <(ls -1t "$KGB"/SinPunishmentRecompiled-AUTO-* 2>/dev/null | tail -n +$((KEEP + 1)))
     for f in "${OLD[@]:-}"; do
         [[ -z "$f" ]] && continue
@@ -116,6 +188,10 @@ if [[ -f "$BIN" ]]; then
               "$KGB/syms-$base.toml" "$KGB/manifest-$base.txt"
         echo "==> pruned old snapshot $base"
     done
+}
+
+if [[ -f "$BIN" ]]; then
+    snapshot "AUTO-$(date +%Y-%m-%d-%H%M%S)" outgoing
 fi
 
 # --- 3. build --------------------------------------------------------------
@@ -140,4 +216,11 @@ if [[ -x "$BIN" ]]; then
 else
     echo "[build] ERROR: $BIN missing after build" >&2
     exit 1
+fi
+
+# --- 4. label the binary this run PRODUCED (I16) ---------------------------
+# Only after a successful build, so a label can never name a binary that does
+# not exist or a build that failed halfway.
+if [[ -n "$LABEL" ]]; then
+    snapshot "$LABEL-$(date +%Y-%m-%d-%H%M%S)" built
 fi

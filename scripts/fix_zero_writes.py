@@ -13,6 +13,10 @@ statement that would have represented it changes nothing about program
 behavior, regardless of whether the surrounding code is real logic or
 misidentified data.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import glob
 import re
 

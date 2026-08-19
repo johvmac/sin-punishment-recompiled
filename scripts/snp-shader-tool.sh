@@ -10,6 +10,12 @@
 #
 # Usage: snp-shader-tool.sh dxc <dxc args...>
 #        snp-shader-tool.sh spirv-cross <spirv-cross args...>
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,12p' "$0" | sed 's/^#\( \|$\)//'
+        exit 0 ;;
+esac
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOL="$1"
 shift

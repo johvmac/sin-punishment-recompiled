@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Inject SNP flag-protocol tracing into the generated pump/dispatcher code."""
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import glob
 
 injections = [

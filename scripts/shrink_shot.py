@@ -10,6 +10,10 @@ principle collapse two genuinely different frames onto the same hash.
 
 Usage: shrink_shot.py <in.png> [out.png] [width]
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import sys
 from pathlib import Path
 

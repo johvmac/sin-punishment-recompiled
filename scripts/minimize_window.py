@@ -10,6 +10,10 @@ fix, not just a visual trick.
 
 Usage: minimize_window.py <window_id_hex>
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import sys
 from Xlib import display, X, protocol
 

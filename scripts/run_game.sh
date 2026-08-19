@@ -25,6 +25,15 @@
 #    => This script uses SIGKILL, which cannot be caught.
 set -uo pipefail
 
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
+
 SECS="${1:-20}"
 OUT="${2:-/tmp/game_run.log}"
 shift 2 2>/dev/null || true

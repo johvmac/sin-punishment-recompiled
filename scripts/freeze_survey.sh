@@ -15,6 +15,15 @@
 #   FROZEN    - last two captures are the identical frame (and not black)
 #   ANIMATING - every capture is a distinct frame
 set -uo pipefail
+
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
 cd "$(dirname "$0")/.." || exit 1
 
 N="${1:-5}"

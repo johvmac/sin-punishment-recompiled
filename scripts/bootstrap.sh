@@ -3,6 +3,15 @@
 # Installs system deps, initializes submodules and builds the N64Recomp tools.
 set -euo pipefail
 
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

@@ -93,6 +93,21 @@ def load_state():
 
 
 def main():
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(__doc__)
+        return 0
+
+    # T37: audit.py appends to docs/audit-log.md, so an unrecognised flag must
+    # not fall through to the default (writing) action.
+    KNOWN = {"--dry-run", "--since", "--help", "-h"}
+    unknown = [a for a in sys.argv[1:]
+               if a.startswith("-") and a not in KNOWN]
+    if unknown:
+        print("[audit] unknown argument(s): " + " ".join(unknown), file=sys.stderr)
+        print("[audit] known: " + ", ".join(sorted(KNOWN)), file=sys.stderr)
+        print("[audit] REFUSING to run — this script writes docs/audit-log.md.",
+              file=sys.stderr)
+        return 2
     dry = "--dry-run" in sys.argv
     st = load_state()
 

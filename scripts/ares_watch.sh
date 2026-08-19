@@ -29,6 +29,15 @@
 #   process discards gdb's buffered output so the log looks empty rather than
 #   negative.
 set -uo pipefail
+
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
 cd "$(dirname "$0")/.." || exit 1
 
 VRAM="${1:?usage: ares_watch.sh <vram_addr> [deadline_s] [logfile]}"

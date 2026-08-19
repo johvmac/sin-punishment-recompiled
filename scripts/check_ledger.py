@@ -85,6 +85,9 @@ def parse(text):
 
 
 def main():
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(__doc__)
+        return 0
     hook = "--hook" in sys.argv
     if hook:
         try:
@@ -171,6 +174,32 @@ def main():
                 problems.append(
                     (n, f"{eid}: cites {ref}, which DOES NOT EXIST in this ledger. "
                         f"Either the entry was never written or the ID is wrong."))
+
+    # 3c. malformed cost annotation in the STATUS column.
+    #
+    # scripts/route.py ranks open work by parsing exactly `[cost=N]`. Anything
+    # else silently drops the row OUT of the ranking. On 2026-08-19 a re-cost was
+    # written `[cost=3, was 4]` -- readable to a human, invisible to the parser --
+    # and T11 vanished from the cost ranking while THIS script still said "OK".
+    # route.py noticed and said UNPRICED; the automatic gate did not. That is the
+    # wrong way round: the hook fires on every ledger edit, route.py only when
+    # someone runs it.
+    #
+    # Only the status column is inspected, never the body -- prose legitimately
+    # says "cost days" or "re-costed", and policing that would be noise.
+    cost_ok = re.compile(r"\[cost=\d+\]")
+    mentions_cost = re.compile(r"cost", re.I)
+    for eid, (tag, body, n) in rows.items():
+        if mentions_cost.search(tag) and not cost_ok.search(tag):
+            problems.append(
+                (n, f"{eid}: malformed cost in the status column -> '{tag.strip()}'. "
+                    f"route.py parses exactly [cost=N] (digits only); anything else "
+                    f"drops this row out of the ranking as UNPRICED, silently. "
+                    f"Use [cost=N] and put any history in the finding text."))
+        elif "OPEN" in tag and not cost_ok.search(tag):
+            problems.append(
+                (n, f"{eid}: OPEN but carries no [cost=N], so route.py cannot rank "
+                    f"it and sorts it last. Price it, or the ordering is not a ranking."))
 
     # 4. routing decision overdue. This is what makes the explore/exploit roll
     # actually happen: findings accumulate constantly, so the nag surfaces on

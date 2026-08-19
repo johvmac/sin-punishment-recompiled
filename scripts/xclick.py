@@ -10,6 +10,10 @@ drive it directly instead of iterating on coordinates.
 
 Usage: xclick.py <window_id_hex> <local_x> <local_y>
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import sys
 import time
 from Xlib import X, display

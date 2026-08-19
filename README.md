@@ -272,6 +272,42 @@ is part of the implementation. When working here:
 - Treat the pinned submodules as upstream dependencies; changes to them need an explicit reason and a reproducible checkpoint.
 - Do not describe the project as playable until the acceptance criteria are met.
 
+### Provenance — clean room from the retail ROM
+
+Everything this project knows about the game is derived from static and dynamic
+analysis of a **retail ROM that the user supplies locally**. No leaked, stolen, or
+otherwise unauthorised source material, internal documentation, or development
+artifact has been used.
+
+Concretely, and verifiably from this repository:
+
+- The recompiled C (`RecompiledFuncs/`) and the RSP microcode translations
+  (`rsp/*.cpp`) are **machine-generated** on the user's own machine by
+  [N64Recomp](https://github.com/N64Recomp/N64Recomp) and RSPRecomp from that ROM.
+  Both are `.gitignore`d and **no file from either is tracked in git** — the only
+  tracked file under `rsp/` is `audio.toml`, a configuration.
+- No ROM is included or tracked; `*.z64` and `rom/` are ignored.
+- Symbol names, sizes and addresses in `symbols/` are the project's own hypotheses,
+  arrived at from disassembly, [splat](https://github.com/ethteck/splat) output, m2c
+  decompilation and runtime measurement. Where a symbol is wrong, the ledger records
+  how it was found to be wrong — which is the record of a reverse-engineering process,
+  not of a copy.
+
+**Contributors** must not use leaked or unauthorised material, and should not
+contribute here if they have consulted such material for this title.
+
+**On AI assistance.** This project uses AI tools (see Credits). Their training data
+cannot be independently audited, which is worth stating plainly rather than glossing.
+Two things limit the exposure. First, no source code for this title is known to have
+been publicly leaked — it is not among the titles reported in the 2020 Nintendo
+"Gigaleak" or the iQue leak, and the game was developed by Treasure rather than
+Nintendo internally. Second, and more importantly, **the process does not rely on a
+model knowing anything about the game**: every game-specific claim in this repository
+originates from a tool run locally against the ROM, is recorded with its evidence in
+`docs/findings-ledger.md`, and is reproducible without any AI in the loop. AI
+assistance is applied to the harness, the analysis method and the write-ups — not as
+a source of facts about the game.
+
 ## Credits and licensing
 
 This port's original code follows the project's GPL-3.0 licensing intent. The

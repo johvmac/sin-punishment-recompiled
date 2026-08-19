@@ -140,6 +140,28 @@ def main():
     st = load()
     items = open_items()
 
+    # An unrecognised argument must NEVER fall through to a roll. It did once
+    # (2026-08-19, T37): `route.py --help` -- a flag this script does not have --
+    # was silently ignored, so the script took the no-argument path and ROLLED.
+    # That consumed roll #35 and discarded a pending EXPLORE from #34, which is
+    # precisely the bias the roll exists to prevent (T14/T31: the roll is used
+    # but under-applied). Rolling mutates .route-state.json and appends to
+    # docs/route-log.md; a mutation must be the explicit case, never a fallback.
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(__doc__)
+        return 0
+
+    KNOWN = {"--status", "--history", "--uniform", "--help", "-h"}
+    unknown = [a for a in sys.argv[1:] if a not in KNOWN]
+    if unknown:
+        print(f"[route] unknown argument(s): {' '.join(unknown)}", file=sys.stderr)
+        print(f"[route] known flags: {', '.join(sorted(KNOWN))}", file=sys.stderr)
+        print("[route] (a roll is the NO-ARGUMENT case: scripts/route.py)", file=sys.stderr)
+        print("[route] REFUSING to roll — a roll must be asked for explicitly, "
+              "never as a fallback for input this script did not understand.",
+              file=sys.stderr)
+        return 2
+
     if "--history" in sys.argv:
         print(LOG.read_text() if LOG.exists() else "[route] no history yet")
         return 0

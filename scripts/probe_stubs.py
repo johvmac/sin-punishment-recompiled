@@ -27,6 +27,10 @@ already-generated tree (no recompile needed) and rebuild:
 
 Pass --revert to strip the injection again.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 
 import re
 import sys

@@ -6,6 +6,10 @@ senders check the return value (0 = success -> controller present). This script
 injects `ctx->r2 = 0;` into the stub bodies listed in SI_STUB_FUNCS.
 Idempotent: skips functions that already contain the injected statement.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import re
 import sys
 from pathlib import Path

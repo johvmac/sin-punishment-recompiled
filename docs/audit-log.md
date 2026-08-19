@@ -106,3 +106,14 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A101: describes a probe with no control mentioned. A dead probe reads as a clean negative.
   - A101: created and withdrawn within one audit window. What made it look right?
 
+## Audit #4 — since ba7e032b
+- ledger: 217 entries (+20 this window), 29 withdrawn
+- rolls: 10 this window; runs: 29 (18 exited early, 0 contaminated)
+- **6 thing(s) to look at:**
+  - A106: rests on ONE run (a99-probe.log). Repeat it or say why one is enough.
+  - A107: rests on ONE run (a99-walk.log). Repeat it or say why one is enough.
+  - A107: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A105: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T39: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A105: created and withdrawn within one audit window. What made it look right?
+

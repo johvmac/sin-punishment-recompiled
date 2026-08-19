@@ -7,6 +7,10 @@ Usage:
 
 All facts verified 2026-08-06; see docs/research.md.
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import hashlib
 import struct
 import sys

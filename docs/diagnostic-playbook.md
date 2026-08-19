@@ -286,6 +286,30 @@ Check what already exists before writing anything new. **Do not add fresh
 instrumentation until you've confirmed an existing hook doesn't cover it** —
 several already do.
 
+### G3.0 — First, check you can READ the whole call chain (T43)
+
+Before investigating any backtrace or call chain, run `decomp.sh` over **every
+frame at once**:
+
+```bash
+scripts/decomp.sh boot_func_80033758 boot_func_80033A40 main_func_800B09EC ...
+```
+
+It ends with `coverage: N readable, M NOT FOUND`. **An unreadable frame is the
+first finding, not an obstacle to hand-read around.** It means splat has no
+segment covering that address (L6); fix the config in the **sibling** repo
+`splat-project` (T19), re-run, and verify per T42.
+
+This exists because on 2026-08-19 an A99 investigation hand-read the
+transliterated C in `RecompiledFuncs/`, stopped at "the node is arg0", and never
+asked whether the *caller* was readable. It was not — and the fix was already
+sitting in the schedule labelled as tooling rather than as a dependency of the
+frontier. One run of the command above would have said so in seconds.
+
+**Reading generated C by hand is the last resort, not the first move.** That is
+what `decomp.sh` is for; a hand-read of `boot_func_8002AA90` on 2026-08-18
+truncated and missed an entire list that m2c emitted in six lines.
+
 ### Environment hooks already built into the build
 
 | Hook | What it does |

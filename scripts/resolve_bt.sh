@@ -10,6 +10,15 @@
 # Usage: scripts/resolve_bt.sh <logfile> [binary]
 set -uo pipefail
 
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
+
 LOG="${1:?usage: resolve_bt.sh <logfile> [binary]}"
 BIN="${2:-./build/SinPunishmentRecompiled}"
 

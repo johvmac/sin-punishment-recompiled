@@ -10,6 +10,10 @@ the label is never emitted and the file fails to compile. All observed
 cases have a nop delay slot, so dropping the goto is semantically safe
 (the call remains; the function then falls off the end = return).
 """
+import sys as _sys
+if "--help" in _sys.argv or "-h" in _sys.argv:
+    print(__doc__)
+    _sys.exit(0)
 import glob, re, sys
 
 def fix_file(path):

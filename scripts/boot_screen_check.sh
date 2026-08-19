@@ -9,6 +9,15 @@
 # the user's way -- set KEEP_VISIBLE=1 to skip that (e.g. when you want the
 # user to look at the actual screen for a sanity check, not just the capture).
 set -u
+
+# --- help (T37) ------------------------------------------------------------
+# Prints this script's own header block. Added after `route.py --help` was
+# silently ignored and fell through to a state-mutating default.
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
+        exit 0 ;;
+esac
 cd "$(dirname "$0")/.."
 
 WAIT_SECONDS="${1:-60}"
