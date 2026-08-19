@@ -2057,6 +2057,66 @@ it, not "later".
 
 ---
 
+## Disassembling something `rom_disasm.py` cannot reach (added 2026-08-19, A155)
+
+`scripts/rom_disasm.py` resolves a VRAM address through the `[[section]]` blocks
+in the symbol file and **refuses** when no section contains it. That is correct
+and it must not be loosened. But the **RSP microcode is not in those sections**
+— it lives at a raw ROM offset (`rsp/audio.toml`: `text_offset = 0x32280`) and
+is addressed as IMEM `0x04001000`. So the ucode needs a raw slice, which puts
+you back in the position T49 came out of: **an offset chosen by hand, producing
+a disassembly that looks entirely plausible and is entirely wrong.**
+
+**The rule: an offset is not usable until a documented, unique word at a known
+position decodes correctly at it.** For the audio ucode those words are already
+recorded in `rsp/audio.toml`'s header comment — IMEM `0x000` = `0x09000419`
+(`j 0x1064`) and IMEM `0x004` = `0x20010FC0`, described there as the only
+occurrences of either value in the whole ROM. Check both *before* reading a
+single instruction, and print the check rather than eyeballing it:
+
+```bash
+python3 -c "
+import struct; rom=open('rom/sinpunishment.z64','rb').read(); b=0x32280
+w=lambda o: struct.unpack('>I', rom[b+o:b+o+4])[0]
+print('%08X %s' % (w(0), 'OK' if w(0)==0x09000419 else 'FAIL'))
+print('%08X %s' % (w(4), 'OK' if w(4)==0x20010FC0 else 'FAIL'))"
+```
+
+Then slice and disassemble with the IMEM base as the vma, so the addresses in
+the output match the `L_xxxx` labels in the generated C and can be compared
+line for line:
+
+```bash
+mips-linux-gnu-objdump -D -b binary -m mips -EB --adjust-vma=0x1000 ucode.bin
+```
+
+**This is a control, not ceremony — it can fail.** A wrong `text_offset` fails
+both words. And the comparison it enables is the point: A155 exists because the
+generated C and the ROM were checked against each other instruction for
+instruction, which is what made it safe to reason about the boot path at all.
+
+**Two standing caveats.**
+
+* **Scalar decode only.** `objdump -m mips` decodes the RSP's vector ops as
+  COP2 garbage. Trust it for loads, stores, branches, `jr`/`jal`, `mtc0`/`mfc0`
+  and arithmetic; do not quote it for anything vector.
+* **RSP `mtc0` register numbers are NOT MIPS CP0 names.** objdump prints
+  `mtc0 a3,$0` — `$0` is **SP_MEM_ADDR**, `$1` SP_DRAM_ADDR, `$2` SP_RD_LEN,
+  `$4` SP_STATUS, `$5` SP_DMA_FULL, `$6` SP_DMA_BUSY, `$7` SP_SEMAPHORE,
+  `$11` DPC_STATUS. The generated C names them properly in its comments; use
+  that side for the names and the ROM side for the bytes.
+
+**And the trap A155 actually turned on: `SP_MEM_ADDR` bit 12 is the IMEM/DMEM
+select.** A value of `0x1080` is *IMEM offset `0x080`*, not DMEM `0x1080`.
+librecomp's `DO_DMA_READ` ignores it entirely (`rsp.hpp:94`, unconditionally
+`dma_rdram_to_dmem`), so any ucode that overlays its own IMEM is mis-emulated —
+and **a ucode that does that also invalidates static reading of its text past
+the overlay point**, because the bytes at a given IMEM address at runtime are
+not the bytes RSPRecomp compiled there. Check for an IMEM-targeted DMA *before*
+trusting any whole-file static scan of a ucode.
+
+---
+
 ## Tool inventory (added 2026-08-18) — check here before building anything
 
 Half of one session's friction was not knowing what already existed. Everything
