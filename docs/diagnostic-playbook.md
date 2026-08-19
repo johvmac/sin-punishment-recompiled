@@ -2008,6 +2008,14 @@ Minimum bar:
 * **Sourced isolation** (`display_isolate.sh`) and a **hard deadline** for
   anything that launches the game.
 
+**Calibration for `gdb_trace.sh`, measured (A138): traps are free, STOPS are
+not.** 183,194 breakpoint traps with zero stops perturbed nothing and A99
+reproduced normally. **93 stops changed which bug the run hit** — the run took a
+crash in `osSpTaskYield` instead, because each stop halts every thread and
+resumes them in a new order. So: keep expected stops in the **low tens**, and
+tighten the condition until they are. The reach counter costs a trap and is
+free; the `printf` costs a stop and is not.
+
 ### 3. WRITTEN UP HERE — in the same checkpoint
 
 A tool that only exists in a shell history is a tool the next session rebuilds.
