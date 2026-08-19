@@ -289,15 +289,23 @@ def main():
     # 62% of it -- so the first archive pass is cheap and obvious.
     # NOT a structural problem, so it stays out of `problems` and cannot block
     # daily_push.sh: "the ledger is long" is not "the ledger is malformed".
+    # Threshold raised 30k -> 40k on 2026-08-19, and the PRESCRIPTION changed,
+    # because the old one had become unfollowable: it said "archive a closed
+    # investigation" when both archivable investigations were already archived
+    # (T46). A gate whose only prescribed action is unavailable gets satisfied
+    # by whatever is easiest, which means archiving things that should stay.
+    #
+    # Measured yield of every size intervention tried (T54): compressing prose
+    # +5,588 words net, archiving +367, merging by class -210. The lever is
+    # spent, so this nag now points at the ONE thing still worth doing (write
+    # short, per the LENGTH check above) and otherwise gets out of the way.
     words = len(text.split())
-    if words >= 35000:
-        reminders.append(f"SIZE: {words:,} words — well past the 30k archive "
-                         f"threshold. Archive a resolved investigation now.")
-    elif words >= 30000:
-        reminders.append(f"SIZE: {words:,} words — past the 30k threshold. "
-                         f"Archive the supporting entries of a CLOSED investigation "
-                         f"to docs/findings-archive-<topic>.md, leaving one index "
-                         f"line. Never archive WITHDRAWN, I-series or T-series rows.")
+    if words >= 40000:
+        reminders.append(
+            f"SIZE: {words:,} words. Housekeeping is spent (T54) — do NOT start "
+            f"another archive or merge pass expecting a saving. If the read cost "
+            f"is actually hurting, the remaining answer is the two-tier index in "
+            f"T52, which is a design decision, not a tidy-up.")
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
         since = len(rows) - state.get("last_entry_count", 0)
