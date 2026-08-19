@@ -68,6 +68,20 @@ def _open_re():
 OPEN_RE = _open_re()
 
 
+def _wd_re():
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_route_wd", ROOT / "scripts" / "route.py")
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m.WD_RE
+    except Exception:
+        return re.compile(r"\s*\**WD\b", re.I)
+
+
+WD_RE = _wd_re()
+
+
 def parse():
     """Rows as (id, status, body, evidence, raw_line).
 
@@ -301,7 +315,10 @@ def self_check():
     # EXACT, not a floor. This was `>= 20` and passed while A36's WD was hidden
     # by a cosmetic rule -- a control with that much slack cannot detect the
     # drift it exists to detect (T65).
-    raw_wd = {r[0] for r in rows if re.search(r"\bWD\b", r[1].upper())}
+    # Same anchored predicate as route.py/check_ledger.py. A bare \bWD\b search
+    # counted T72 -- whose status says "A138 is the WD entry, not this one" --
+    # and made this tool disagree with check_ledger about the count.
+    raw_wd = {r[0] for r in rows if WD_RE.match(r[1])}
     shown = {e for e, t, _c in idx if "WD" in t.upper()}
     checks.append(("every WITHDRAWN entry is visibly WD in the index",
                    raw_wd == shown and len(raw_wd) > 0,

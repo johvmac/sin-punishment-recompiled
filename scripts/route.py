@@ -72,6 +72,12 @@ COST_RE = re.compile(r"\[cost=(\d+)\]")
 # asserts the discrimination, using A124's literal status string as the negative.
 OPEN_RE = re.compile(r"\s*\**OPEN\b", re.I)
 
+# Same anchoring, same reason, for the WITHDRAWN tag. `"WD" in tag` marked T72
+# withdrawn because its status explains that A138 is "the WD entry" -- and
+# check_ledger.py and ledger.py then disagreed about the withdrawn count (35 vs
+# 36). Three tools must not each carry their own idea of what a tag means.
+WD_RE = re.compile(r"\s*\**WD\b", re.I)
+
 # Printed at the end of EVERY roll, because a roll is how a checkpoint starts and
 # skipping one leaves a gap in docs/route-log.md. Requested by the user
 # 2026-08-19 and deliberately NOT left to a memory file or to habit: this

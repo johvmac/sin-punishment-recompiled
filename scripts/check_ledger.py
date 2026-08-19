@@ -65,6 +65,24 @@ def is_open(tag):
         globals()["is_open"] = lambda t: bool(re.match(r"\s*\**OPEN\b", t, re.I))
     return globals()["is_open"](tag)
 
+def is_withdrawn(tag):
+    """Is this status cell TAGGED withdrawn, as opposed to mentioning "WD"?
+
+    Anchored for the same reason `is_open` is (T66). A status may legitimately
+    discuss withdrawal -- "withdraws A138's claim", "A138 is the WD entry" --
+    without itself being withdrawn.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_route_wd", Path(__file__).resolve().parent / "route.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return bool(mod.WD_RE.match(tag))
+    except Exception:
+        return bool(re.match(r"\s*\**WD\b", tag, re.I))
+
+
 # A claim asserting an absence. These are the phrasings that actually burned us.
 NEGATIVE = re.compile(
     r"\b(nothing|never|no other|zero (?:callers|hits|writes|gaps|matches)|"
@@ -129,12 +147,17 @@ def main():
     text = LEDGER.read_text()
     rows, lb, dupes = parse(text)
 
-    withdrawn = {i for i, (tag, _, _) in rows.items() if "WD" in tag}
+    # ANCHORED, not substring. `"WD" in tag` classified T72 as withdrawn because
+    # its status says "A138 is the WD entry, not this one" -- an entry was marked
+    # withdrawn by *explaining* that something else was. Everything citing it was
+    # then flagged, and a reader would discount a live rule. Exactly T66's defect
+    # in a second predicate: the tag must OPEN the cell, not merely appear in it.
+    withdrawn = {i for i, (tag, _, _) in rows.items() if is_withdrawn(tag)}
     problems = []
 
     # 1. negatives without a scope
     for eid, (tag, body, n) in rows.items():
-        if "WD" in tag or is_open(tag):
+        if is_withdrawn(tag) or is_open(tag):
             continue
         if NEGATIVE.search(body) and not SCOPE.search(body):
             problems.append(
@@ -167,7 +190,7 @@ def main():
         r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~)", re.I)
     NEAR = 150
     for eid, (tag, body, n) in rows.items():
-        if "WD" in tag:
+        if is_withdrawn(tag):
             continue
         for w in sorted(withdrawn):
             for m in re.finditer(rf"(?<![\w./]){w}(?![\w./])", body):
@@ -364,7 +387,10 @@ def main():
             f"SIZE: {words:,} words. Housekeeping is spent (T54) — do NOT start "
             f"another archive or merge pass expecting a saving. If the read cost "
             f"is actually hurting, the remaining answer is the two-tier index in "
-            f"T52, which is a design decision, not a tidy-up.")
+            f"T52 — which was BUILT as T68: read `scripts/ledger.py --index` "
+            f"(~8.5k tokens) instead of this file, and `--show <ID>` to expand. "
+            f"If you are seeing this note you are reading the raw file; that is "
+            f"the thing the index exists to avoid.")
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
         since = len(rows) - state.get("last_entry_count", 0)
