@@ -62,3 +62,4 @@ A gap in the numbering means a roll was skipped.
 - roll #43: **EXPLORE** (drew 0.156 vs eps 0.3) -> `T11` — RE-COSTED 2026-08-19 by roll #36 (was cost=4; EXPLORE, one bounded check) — the "296" was never 
 - roll #44: **EXPLORE** (drew 0.277 vs eps 0.3) -> `A53` — RE-SCOPED once the leak-hunt framing collapsed (see A80). Item (1) "leak is in the runtime/hook 
 - roll #45: **EXPLOIT** (drew 0.688 vs eps 0.3) -> `A99` — >>> READ A106 FIRST (2026-08-19): the framing below is WRONG. This is a ONE-SHOT walk at t157, n
+- roll #46: **EXPLORE** (drew 0.175 vs eps 0.3) -> `A103` — Strategic question raised by A102: guard-by-guard, or root cause? The title-screen scene walk hi
