@@ -124,18 +124,34 @@ def main():
 
     # 3. resting on a withdrawn entry.
     # An entry that IS the replacement legitimately names what it replaced, so
-    # skip when the citing text says so -- otherwise every correction we make
-    # trips its own alarm.
+    # a correction-word excuses the citation it sits beside.
+    #
+    # T48: that exemption used to be tested against the WHOLE ROW. Rows here run
+    # to thousands of characters, so one "refuted" anywhere -- or a `~~` used as
+    # plain strikethrough -- switched the check off for every citation in the
+    # row, permanently. 62 of 185 rows were exempt, including the B46 case this
+    # check's own docstring cites as its reason for existing. Found the same way
+    # as T40: an honest annotation on T17 silenced the alarm, and the words that
+    # did it were prose, not a claim the checker understood.
+    #
+    # So the word must sit NEAR the citation it excuses. Same fix as T40's --
+    # narrow the scope of the predicate to the thing it describes. The window is
+    # deliberately generous (a long sentence) but is a small fraction of a row.
     supersedes = re.compile(
-        r"(supersed|replaces|corrects|refut|retract|too coarse|withdraw|~~)", re.I)
+        r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~)", re.I)
+    NEAR = 150
     for eid, (tag, body, n) in rows.items():
-        if "WD" in tag or supersedes.search(body):
+        if "WD" in tag:
             continue
         for w in sorted(withdrawn):
-            if re.search(rf"(?<![\w./]){w}(?![\w./])", body):
+            for m in re.finditer(rf"(?<![\w./]){w}(?![\w./])", body):
+                window = body[max(0, m.start() - NEAR):m.end() + NEAR]
+                if supersedes.search(window):
+                    continue
                 problems.append(
                     (n, f"{eid}: cites {w}, which is WITHDRAWN. "
                         f"Re-check whether {eid} still stands on its own."))
+                break
     for lid, d in lb.items():
         joined = "\n".join(d["body"])
         for w in sorted(withdrawn):

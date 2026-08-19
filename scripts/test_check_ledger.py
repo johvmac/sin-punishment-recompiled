@@ -40,6 +40,38 @@ CASES = [
      False, "the word 'cost' in the BODY must not trip it"),
     ("| ZZ1 | INTERVENED | Re-costed T11 from 4 to 3 | 2026-01-01 |",
      False, "'re-costed' in the body must not trip it"),
+
+    # --- check 3: resting on a WITHDRAWN entry (T48) ---------------------
+    # These inject TWO rows: ZZ9 is withdrawn, ZZ1 may or may not cite it.
+    # The cases that matter are the FAR ones. Before T48 the exemption was
+    # matched against the whole row, so a correction-word anywhere -- even
+    # `~~` used as plain strikethrough -- silenced every citation in it.
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | This rests on ZZ9 and says nothing about why | 2026-01-01 |",
+     True,  "POSITIVE CONTROL: plain citation of a withdrawn entry"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | This supersedes ZZ9 | 2026-01-01 |",
+     False, "the replacement legitimately names what it replaced"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | Something here was refuted. {'padding text ' * 20}"
+     f"and separately this rests on ZZ9 | 2026-01-01 |",
+     True,  "THE T48 BUG: 'refuted' far from the citation must NOT exempt it"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | ~~struck out note~~ {'padding text ' * 20}"
+     f"and this rests on ZZ9 | 2026-01-01 |",
+     True,  "THE T48 BUG: distant `~~` markup must NOT exempt a citation"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | A standalone finding whose text uses the word "
+     f"refuted but cites no retired entry | 2026-01-01 |",
+     False, "correction-word with no withdrawn citation must not flag"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | WD | This cites ZZ9 but is itself withdrawn | 2026-01-01 |",
+     False, "a withdrawn row citing a withdrawn row is not a problem"),
 ]
 
 ANCHOR = "## Tools and methods"
