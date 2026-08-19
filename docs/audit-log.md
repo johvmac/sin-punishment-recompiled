@@ -155,3 +155,20 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
 - Fixed and verified both ways: state and log entry count unchanged across a
   re-run. State restored to 5 audits, quiet streak 0.
 
+## Audit #6 — since c759199d
+- ledger: 231 entries (+51 this window), 36 withdrawn
+- rolls: 23 this window; runs: 3 (0 exited early, 0 contaminated)
+- **12 thing(s) to look at:**
+  - A141: rests on ONE run (epilogue-trace.log). Repeat it or say why one is enough.
+  - A135: rests on ONE run (a99-entry-trace.log). Repeat it or say why one is enough.
+  - A136: rests on ONE run (yield-fault-trace.log). Repeat it or say why one is enough.
+  - A128: rests on ONE run (fault3-6.log). Repeat it or say why one is enough.
+  - A125: rests on ONE run (fault3.log). Repeat it or say why one is enough.
+  - A122: rests on ONE run (fault2.log). Repeat it or say why one is enough.
+  - B66: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T63: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T59: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - T72: created and withdrawn within one audit window. What made it look right?
+  - A138: created and withdrawn within one audit window. What made it look right?
+  - A130: created and withdrawn within one audit window. What made it look right?
+

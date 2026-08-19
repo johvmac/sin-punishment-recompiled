@@ -68,6 +68,30 @@ EPS = 0.20
 ROW = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]*?)\s*\|\s*(.*?)\s*\|\s*([^|]*?)\s*\|?\s*$")
 
 
+def _tag_res():
+    """OPEN/WD predicates, imported from route.py -- the single source (T75).
+
+    audit.py was the FOURTH tool carrying its own `"WD" in status`, after
+    route.py, check_ledger.py and ledger.py. It reported 36 withdrawn while
+    check_ledger reported 35, and it flagged T72 as "created and withdrawn
+    within one window" -- T72 being the entry whose status merely SAYS "A138 is
+    the WD entry, not this one". A tag must OPEN the cell, never merely appear
+    in it.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_route_tags", Path(__file__).resolve().parent / "route.py")
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m.OPEN_RE, m.WD_RE
+    except Exception:
+        return (re.compile(r"\s*\**OPEN\b", re.I), re.compile(r"\s*\**WD\b", re.I))
+
+
+OPEN_RE, WD_RE = _tag_res()
+
+
 def git(*args):
     try:
         return subprocess.run(["git", "-C", str(ROOT), *args],
@@ -161,7 +185,7 @@ def main():
 
     # 3. churn: created AND withdrawn inside this window
     for eid, (status, body, ev) in added.items():
-        if "WD" in status:
+        if WD_RE.match(status):
             findings.append(f"{eid}: created and withdrawn within one audit window. What made it look right?")
 
     # 4. explore ratio
@@ -176,7 +200,7 @@ def main():
 
     # 5. entries with an empty evidence cell
     for eid, (status, body, ev) in added.items():
-        if "OPEN" not in status and "WD" not in status and not ev.strip():
+        if not OPEN_RE.match(status) and not WD_RE.match(status) and not ev.strip():
             findings.append(f"{eid}: no evidence recorded. Say what was observed and when.")
 
     # 6. contaminated or invalid runs in the window
@@ -218,7 +242,7 @@ def main():
 
     lines = [f"## Audit #{st['audits'] + 1} — since {since[:8] or 'start'}",
              f"- ledger: {len(now)} entries (+{len(added)} this window), "
-             f"{sum(1 for s, _, _ in now.values() if 'WD' in s)} withdrawn",
+             f"{sum(1 for s, _, _ in now.values() if WD_RE.match(s))} withdrawn",
              f"- rolls: {len(window)} this window; runs: {len(recent)} "
              f"({len(crashed)} exited early, {len(dirty)} contaminated)"]
     if findings:
