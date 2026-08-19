@@ -1177,6 +1177,18 @@ was already on disk. **Static data and runtime data are different things, and a
 snapshot is how you tell them apart** (G3.1 is the overlay-copy version of the
 same trap).
 
+**WHAT A SNAPSHOT CANNOT DO: reconstruct a call chain (T69).** Memory above the
+outermost live frame holds whatever an earlier, deeper call left there, and
+leftovers of a recursive function are indistinguishable from live frames of it —
+same layout, same plausible pointers, same arithmetic relationships. This stack
+produced **four** self-consistent, mutually incompatible readings (A125, A128,
+A130, A132); three are withdrawn.
+
+**So: use a stack image to generate candidates and to REFUTE** — a value outside
+an arithmetic bound is a genuine refutation, which is how A125 fell — **never to
+establish a chain. Establish chains by logging entry arguments at runtime**,
+where each record is one real invocation and a leftover cannot appear.
+
 **Preserve snapshots to the archive drive, not `/tmp`** — evidence cited from
 session-scoped paths does not survive (T47).
 
