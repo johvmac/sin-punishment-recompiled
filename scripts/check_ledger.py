@@ -455,9 +455,27 @@ def main():
     # So the last line must say that there IS something above it. Truncating to
     # one line can now hide the CONTENT of a reminder but never its EXISTENCE.
     note = f" — {len(reminders)} note(s) above" if reminders else ""
+
+    # OVERDUE ACTIONS ESCALATE THROUGH THE HOOK; standing observations do not.
+    #
+    # The hook only surfaces its report to Claude on exit 2, and this returned 0
+    # whenever there were no structural problems -- so a reminder ALONE never
+    # reached the one channel that cannot be skipped. That is T76 again: the
+    # audit nag fired for 13 rolls into a channel nothing read. The L2/L3 nags
+    # were about to inherit the same fate on their first day.
+    #
+    # But not every reminder deserves to interrupt. LENGTH and SIZE are standing
+    # facts about a long file; escalating those would fire on every ledger edit
+    # and train me to ignore the guard channel, which is the failure T29 warns
+    # about. Only reminders that name something OVERDUE escalate.
+    overdue = [r for r in reminders if re.search(r"\b(due|rolls since audit)\b", r, re.I)]
     if not problems:
         print(f"[ledger] OK — {len(rows)} entries, {len(lb)} load-bearing, "
               f"{len(withdrawn)} withdrawn.{note}", file=out)
+        if hook and overdue:
+            print(f"[ledger] {len(overdue)} OVERDUE: "
+                  + "; ".join(overdue), file=out)
+            return 2
         return 0
 
     print(f"[ledger] {len(problems)} thing(s) to look at "

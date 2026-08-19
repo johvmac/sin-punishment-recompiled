@@ -26,6 +26,13 @@ A checkpoint is: `scripts/route.py` (a roll, recorded — skipping one leaves a
 visible gap in `docs/route-log.md`), then the bounded work it selects, then a
 ledger entry recording the outcome **either way**.
 
+**Review runs on a ladder, and each level reads only the level below's output:**
+L0 every checkpoint (`check_ledger` + the roll), L1 every ~10 rolls
+(`scripts/audit.py`), L2 daily (`scripts/audit_l2.py`), L3 weekly
+(`scripts/audit_l3.py`). `check_ledger.py` nags when any is due, and its hook
+**exits 2 on an overdue level** so the nag cannot be missed. Never let a level
+read raw data — that is what makes it cheap enough to actually happen.
+
 **The handoff's FIRST FIVE MINUTES is a SESSION-START check, not a per-checkpoint
 one.** Between checkpoints, re-run only what your own last checkpoint could have
 invalidated — the ledger check, the roll, and the self-test of any script you
