@@ -678,6 +678,36 @@ A24/B35 dangling-citation class), contaminated runs (T23).
 audits -> halve the frequency. Two quiet L2s -> drop to weekly. An audit that
 never fires is a cost, not a control. `audit.py` tracks the quiet streak itself.
 
+**L2 and L3 were BUILT on 2026-08-19 (T78), 1 day after being specified.** Until
+then they existed only as the table above — no script, no trigger, no run — and
+the user had been doing L2's job by hand, catching four claim-broader-than-
+evidence defects in one session that no mechanical check could see.
+
+```bash
+scripts/audit_l2.py --self-check   # 3/3; asserts the LAYERING by AST
+scripts/audit_l2.py --dry-run      # digest, record nothing
+scripts/audit_l2.py                # record an L2 block
+scripts/audit_l3.py                # same shape, reads only the L2 blocks
+```
+
+**The layering is enforced, not promised.** Each level's `--self-check` parses
+its own AST and fails if the file constructs a path to any lower-level or raw
+data file. That control was wrong twice before it worked: the first version
+searched for the bare filenames and matched *its own list of them*; the second
+searched for the `DOCS / "name"` idiom and matched *the comment explaining the
+idiom*. A control that fires on its own text is as useless as one that cannot
+fire (T65).
+
+**`check_ledger.py` nags for both** — daily for L2, weekly for L3 — because L1
+had a nag and still went 13 rolls unread (T76), so a level with no nag was never
+going to run at all.
+
+**L3 refuses a trend below 2 digests.** Its first recorded block claimed
+"defects per digest: 118.0 -> 0.0 — FALLING" from a *single* digest: the window
+was halved regardless of size and the empty half scored 0. That is a direction
+asserted from n=1 — T72's error, printed by the tool meant to catch it. The
+block is annotated VOID in `audit-l3-log.md` rather than deleted.
+
 **Known limit.** Mechanical checks catch structure, not "this claim is broader
 than its evidence" unless it leaves a trace — and both errors the user caught
 were of exactly that kind. L2's real product is therefore a digest short enough

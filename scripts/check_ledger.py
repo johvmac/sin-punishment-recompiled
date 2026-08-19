@@ -414,6 +414,26 @@ def main():
     except Exception:
         reminders.append("audit: no audit recorded yet — run scripts/audit.py.")
 
+    # L2 (daily) and L3 (weekly) nags. The ladder specified four levels on
+    # 2026-08-18; L2 and L3 were never built and never ran, and the reason is
+    # simply that NOTHING ASKED FOR THEM -- L1 had a nag and still went 13 rolls
+    # unread (T76), so a level with no nag was never going to happen at all.
+    import datetime as _dt
+    _today = _dt.date.today().isoformat()
+    for _lvl, _statef, _script, _period in (
+            ("L2", ".audit-l2-state.json", "scripts/audit_l2.py", "daily"),
+            ("L3", ".audit-l3-state.json", "scripts/audit_l3.py", "weekly")):
+        try:
+            _sp = LEDGER.parent / _statef
+            _last = json.loads(_sp.read_text()).get("last_date", "") if _sp.exists() else ""
+            _due = (_last != _today) if _lvl == "L2" else (
+                not _last or (_dt.date.fromisoformat(_today) - _dt.date.fromisoformat(_last)).days >= 7)
+            if _due:
+                reminders.append(f"{_lvl} ({_period}) audit due — run {_script} "
+                                 f"(last: {_last or 'never'}).")
+        except Exception:
+            reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "
