@@ -26,6 +26,12 @@ A checkpoint is: `scripts/route.py` (a roll, recorded — skipping one leaves a
 visible gap in `docs/route-log.md`), then the bounded work it selects, then a
 ledger entry recording the outcome **either way**.
 
+**The handoff's FIRST FIVE MINUTES is a SESSION-START check, not a per-checkpoint
+one.** Between checkpoints, re-run only what your own last checkpoint could have
+invalidated — the ledger check, the roll, and the self-test of any script you
+edited. Re-running the guard pair and the stray-process check when no game ran
+and no hook changed is ceremony, and ceremony makes a real check easy to skip.
+
 **Close every checkpoint with one plain-language sentence saying what it
 achieved** — no hex, no entry IDs, no tool names. If the honest answer is
 "nothing moved forward, I fixed a measuring instrument", say that; exposing

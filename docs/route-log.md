@@ -77,3 +77,4 @@ A gap in the numbering means a roll was skipped.
 - roll #58: **EXPLORE** (drew 0.033 vs eps 0.3) -> `T11` — ovlfile12 is never loaded in the reachable window. SNP_OVL=1, 45s autostart, VERDICT=CLEAN: 37 o
 - roll #59: **EXPLOIT** (drew 0.723 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #60: **EXPLORE** (drew 0.123 vs eps 0.3) -> `B36` — BOUNDED CHECK 2026-08-19 (roll #42): the tool RUNS and its output is self-consistent, but the va
+- roll #61: **EXPLOIT** (drew 0.750 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
