@@ -226,6 +226,32 @@ def main():
     # is malformed", and the fix for the former is not to edit the ledger.
     reminders = []
 
+    # 3c-bis. MERGED rows must point somewhere real.
+    #
+    # Merging two entries that record the same lesson is allowed (T53), but it
+    # is the one edit here that can destroy structure rather than prose, so it
+    # carries its own rules:
+    #
+    #   * the merged-away ID is NEVER deleted -- it stays as a stub, so every
+    #     existing citation still resolves and the visited set is preserved;
+    #   * the stub must name its target, and the target must exist.
+    #
+    # Without this check a stub could name a typo'd or later-archived ID and the
+    # content would be unreachable from the citation -- which is T21's dangling
+    # citation, manufactured deliberately by our own housekeeping.
+    for eid, (tag, body, n) in rows.items():
+        if "MERGED" not in tag:
+            continue
+        m = re.search(r"MERGED into ([A-Z]+\d+[a-z]?)", tag)
+        if not m:
+            problems.append(
+                (n, f"{eid}: status says MERGED but names no target. "
+                    f"Write 'MERGED into <ID>' so the citation still resolves."))
+        elif m.group(1) not in rows:
+            problems.append(
+                (n, f"{eid}: MERGED into {m.group(1)}, which does not exist. "
+                    f"The stub is a dead end -- exactly the T21 defect."))
+
     # 3d. entry LENGTH. This is the one that actually controls the file's size,
     # and it went unmeasured for two days while the size threshold pointed at
     # archiving instead.

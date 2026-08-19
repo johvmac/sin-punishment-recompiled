@@ -72,6 +72,20 @@ CASES = [
     (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
      f"| ZZ1 | WD | This cites ZZ9 but is itself withdrawn | 2026-01-01 |",
      False, "a withdrawn row citing a withdrawn row is not a problem"),
+
+    # --- MERGED stubs must point somewhere real (T53) ---------------------
+    # A stub that names a missing target manufactures T21's dangling citation
+    # out of our own housekeeping, which is why this is checked rather than
+    # trusted. The must-NOT-flag case matters equally: merging is allowed.
+    ("| ZZ1 | **MERGED into ZZ8 (2026-01-01)** | Folded away | 2026-01-01 |",
+     True,  "THE RISK: stub names a target that does not exist"),
+
+    ("| ZZ1 | **MERGED** | Folded away but says nothing about where | 2026-01-01 |",
+     True,  "stub with no target named at all"),
+
+    (f"| ZZ8 | MEASURED | class entry that absorbed ZZ1 | 2026-01-01 |\n"
+     f"| ZZ1 | **MERGED into ZZ8 (2026-01-01)** | Folded away | 2026-01-01 |",
+     False, "a stub naming an existing target is fine"),
 ]
 
 ANCHOR = "## Tools and methods"
