@@ -18,6 +18,11 @@ ignored = [
 ]
 
 stubs = [
+    "boot_func_8004BA10",   # A144/A150/A151: was MISNAMED osSpTaskYield, 21KB from the real one
+                            # at 0x800464A0. Its body is __osSpSetPc(0), which is meaningless when the
+                            # RSP is emulated by calling ucode functions -- librecomp's __osSpSetPc_recomp
+                            # is assert(false). STUBBED, not renamed: a plain rename recompiles the body
+                            # and routes its one live caller (0x8004E1F8) straight into that assert.
     "ovlfile25_func_802C3D74",   # auto(warn-batch): branches to 0x802C3DB4 (target lands inside small (0xc-byte) neighbor ovlfile25_func_802C3DB0, consistent with data-gap pattern)
     "ovlfile04_func_80104EB8",   # seeded gap symbol (0x5C38 bytes, trailing to the section's declared end) fails with "Unhandled instruction: INVALID" -- genuine non-code bytes, i.e. trailing data at the end of the file, same pattern as the .ovl1 tail region found earlier this session
     "ovlfile04_func_800E4AEC",   # tail-calls to 0x800E49D8, which splat's own disassembly explicitly marks as "alabel func_800E49D8" (embedded data, not code) inside ovlfile04_func_800E49B8's body. N64Recomp auto-synthesizes a placeholder function there instead of raising a normal catchable error, which then fails on the data bytes further in (surfaced as "Error recompiling static_6_80104EB8" -- an internal name, not addressable via this stub list, hence stubbing the caller instead).
