@@ -61,6 +61,16 @@ case "$BIN" in
        echo "         condition will silently fail (A122). Continuing anyway." >&2 ;;
 esac
 
+# The printf format has exactly four %08X. Fewer arguments makes gdb error at
+# every hit and the trace silently logs nothing; more silently drops them. Count
+# top-level commas and refuse -- this costs nothing and a bad trace costs a run.
+_ncomma=$(printf '%s' "$ARGS" | tr -cd ',' | wc -c)
+if [[ "$_ncomma" -ne 3 ]]; then
+    echo "ERROR: <printf-args> must be exactly 4 comma-separated expressions" >&2
+    echo "       (the format string carries four %08X); got $((_ncomma + 1))." >&2
+    exit 2
+fi
+
 GDB_SCRIPT="$(mktemp /tmp/gdb_trace_XXXXXX.gdb)"
 
 # QUOTED delimiter -- an unquoted one expands the backticks in the comments and
@@ -98,11 +108,16 @@ ignore 1 1000000000
 break __LOC__ if __COND__
 commands 2
 silent
-printf "HIT a0=%08X a1=%08X a2=%08X sp=%08X\n", __ARGS__
+# Generic labels + a header naming the expressions. The labels used to be
+# hardcoded "a0/a1/a2/sp", which was right for the first trace and WRONG for
+# the second (r16/r3/r6/r29 logged under a0/a1/a2 headings). A mislabelled
+# log is worse than no log: it is evidence that reads as something else.
+printf "HIT %08X %08X %08X %08X\n", __ARGS__
 continue
 end
 
 info breakpoints
+echo \nFIELDS (in HIT order): __ARGS__\n
 echo \n===== CONTINUING =====\n
 continue
 

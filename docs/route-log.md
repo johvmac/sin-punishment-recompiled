@@ -86,3 +86,4 @@ A gap in the numbering means a roll was skipped.
 - roll #67: **EXPLOIT** (drew 0.742 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #68: **EXPLOIT** (drew 0.846 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #69: **EXPLORE** (drew 0.080 vs eps 0.3) -> `A96` — DO NOT APPLY THE OLD TWO-OVERLAY FIX. func_800E4780 is defined in 23 overlays. The symbol file d
+- roll #70: **EXPLOIT** (drew 0.781 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
