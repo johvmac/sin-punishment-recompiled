@@ -39,6 +39,12 @@
 #     the fault but no hits and a healthy reach count, the condition is wrong,
 #     not the timing.
 #
+# LOG (T47): defaults to <archive>/evidence/<today>/gdb_trace-<HHMMSS>.log, NOT
+# /tmp -- a trace log is the evidence for whatever the run concludes, and the
+# old /tmp default both died with the session and overwrote itself run to run.
+# If the archive drive is not mounted it REFUSES rather than falling back.
+# SNP_EVIDENCE_DIR overrides the directory; arg 6 overrides the whole path.
+#
 # BUILD: use build-debug. Against the release build `ctx` does not resolve and
 # every condition silently errors (A122 cost a whole run to this).
 #
@@ -62,7 +68,22 @@ COND="${2:?need a condition -- an unconditional trace at a hot line will not fin
 ARGS="${3:?need printf arguments}"
 ARM_AFTER="${4:-150}"
 DEADLINE="${5:-280}"
-LOG_FILE="${6:-/tmp/gdb_trace.log}"
+# T47: EVIDENCE GOES TO THE ARCHIVE DRIVE, NEVER /tmp. This defaulted to
+# /tmp/gdb_trace.log, which is the exact trap T47 records -- 11 cited filenames
+# in the ledger are already unrecoverable because of it, and a trace log IS the
+# evidence for whatever the run concludes. It also silently overwrote itself run
+# to run, so a second trace destroyed the first one's record. Same convention
+# and same failure behaviour as display_isolate.sh's recorder: name the run, and
+# if the drive is absent say so rather than quietly writing somewhere that will
+# not survive the session.
+_default_log_dir="${SNP_EVIDENCE_DIR:-/media/joh/extra/sin-punishment-archive/evidence/$(date +%Y-%m-%d)}"
+if [[ -z "${6:-}" ]] && ! mkdir -p "$_default_log_dir" 2>/dev/null; then
+    echo "ERROR: cannot write $_default_log_dir -- the archive drive is not"  >&2
+    echo "       mounted. Refusing to fall back to /tmp (T47): a trace log is" >&2
+    echo "       evidence. Mount it, or pass an explicit log path as arg 6."   >&2
+    exit 1
+fi
+LOG_FILE="${6:-$_default_log_dir/gdb_trace-$(date +%H%M%S).log}"
 BIN="${7:-./build-debug/SinPunishmentRecompiled}"
 
 if [[ ! -x "$BIN" ]]; then
