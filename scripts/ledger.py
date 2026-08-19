@@ -208,15 +208,38 @@ def cmd_index(rows, width=118):
 
 def cmd_show(rows, ids):
     want = {i.upper() for i in ids}
-    seen = set()
+    seen, shown = set(), []
+    allids = {r[0].upper() for r in rows}
     for eid, _s, _b, _e, raw in rows:
         if eid.upper() in want:
             seen.add(eid.upper())
+            shown.append(raw)
             print(raw + "\n")
     missing = want - seen
     if missing:
         print(f"[ledger] no such entry: {', '.join(sorted(missing))}", file=sys.stderr)
         return 1
+
+    # CITES footer (T70). On 2026-08-19 rolls #62 and #65 re-derived most of
+    # A104 -- the mechanism, both branch arms, and the never-returns
+    # observation -- while working A97, whose own text says "See A104, which
+    # answered it". The pointer was there and was not followed, twice. A
+    # visited set you have to remember to traverse is not a visited set, so
+    # --show now names what these entries cite. Unprompted, every time.
+    cited = set()
+    for raw in shown:
+        for m in re.finditer(r"\b([A-Z]{1,2}\d{1,3})\b", raw):
+            c = m.group(1).upper()
+            if c in allids and c not in want:
+                cited.add(c)
+    if cited:
+        print(f"[ledger] these entries CITE {len(cited)} other(s). Read them before "
+              f"deriving anything -- they may already answer it:")
+        idx = {e: (t, c) for e, t, c in index_lines(rows)}
+        for c in sorted(cited, key=lambda x: (x[0], int(re.sub(r"\D", "", x)))):
+            t, cl = idx.get(c, ("", ""))
+            print(f"   {c:6} {t:20} {cl[:88]}")
+        print(f"[ledger] expand:  scripts/ledger.py --show {' '.join(sorted(cited))}")
     return 0
 
 
@@ -284,6 +307,24 @@ def self_check():
                    raw_wd == shown and len(raw_wd) > 0,
                    f"{len(shown)}/{len(raw_wd)} shown"
                    + (f"; HIDDEN: {', '.join(sorted(raw_wd - shown))}" if raw_wd - shown else "")))
+
+    # The CITES footer must actually fire (T70). A97's text says "See A104,
+    # which answered it"; two rolls re-derived A104 anyway. A reminder that
+    # does not appear is not a reminder -- the T56 shape.
+    import io, contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        cmd_show(rows, ["A97"])
+    out = buf.getvalue()
+    # Key off the footer's OWN line, not the whole output. The first version of
+    # this check split on "CITE" and searched the tail -- with the footer
+    # disabled, split returns the entire string, and A97's body says "See A104",
+    # so it passed either way. A control that cannot fail is not a control
+    # (T65), and this one was written minutes after recording T70.
+    expand = [l for l in out.splitlines() if l.startswith("[ledger] expand:")]
+    ok = bool(expand) and "A104" in expand[0]
+    checks.append(("--show names the entries it cites", ok,
+                   "A97's footer lists A104" if ok else "footer absent or missing A104"))
 
     for name, ok, detail in checks:
         bad += not ok

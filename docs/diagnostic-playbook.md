@@ -1804,6 +1804,19 @@ scripts/ledger.py --open                # the frontier
 scripts/ledger.py --cited-by A54        # what rests on A54 — run this before trusting A54
 ```
 
+### Follow the citations — the index does not carry them
+
+`--index` gives you the claim, not what the entry rests on. That is a real cost
+of the two-tier design and it bit immediately: rolls #62 and #65 re-derived most
+of A104 while working A97, **whose own body says "See A104, which answered it"**
+(T70).
+
+So `--show` prints a **CITES footer** naming every ledger ID the shown entries
+reference, plus the command to expand them. Read them before deriving anything.
+`--self-check` asserts the footer fires and names a known citation — and it
+discriminates: 5/6 with the footer disabled, and 5/6 with a footer that prints
+but omits the IDs.
+
 ### The rule that makes two tiers safe
 
 **The index tells you WHETHER something was checked. It never tells you WHAT it
