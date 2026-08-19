@@ -2039,13 +2039,23 @@ Minimum bar:
 * **Sourced isolation** (`display_isolate.sh`) and a **hard deadline** for
   anything that launches the game.
 
-**Calibration for `gdb_trace.sh`, measured (A138): traps are free, STOPS are
-not.** 183,194 breakpoint traps with zero stops perturbed nothing and A99
-reproduced normally. **93 stops changed which bug the run hit** — the run took a
-crash in `osSpTaskYield` instead, because each stop halts every thread and
-resumes them in a new order. So: keep expected stops in the **low tens**, and
-tighten the condition until they are. The reach counter costs a trap and is
-free; the `printf` costs a stop and is not.
+**Calibration for `gdb_trace.sh`: traps are free.** 183,194 breakpoint traps
+with zero stops perturbed nothing and A99 reproduced normally (A138's surviving
+half).
+
+**The second half of that calibration was WRONG and is corrected here.** It used
+to read "93 stops changed which bug the run hit — the run took a crash in
+`osSpTaskYield` instead, because each stop halts every thread and resumes them
+in a new order." **T72 withdrew that causal claim** (the yield crash also occurs
+with ZERO stops, so it was causation inferred from n=1 vs n=1), and **A159
+confirms the withdrawal directly: three runs with ZERO conditional stops all
+three took the yield crash**, at a point clustered within 0.65%.
+
+So do NOT reason "few stops, therefore the run is undisturbed" — the yield crash
+is not evidence that your trace perturbed anything, and on the current build it
+is what a run does anyway. **Keep stops in the low tens for the DEADLINE's sake**
+— a `printf` stop at a line hit 79,000 times is a run that never finishes — and
+establish perturbation, if you need to claim it, against a no-probe control.
 
 ### 3. WRITTEN UP HERE — in the same checkpoint
 
@@ -2114,6 +2124,54 @@ and **a ucode that does that also invalidates static reading of its text past
 the overlay point**, because the bytes at a given IMEM address at runtime are
 not the bytes RSPRecomp compiled there. Check for an IMEM-targeted DMA *before*
 trusting any whole-file static scan of a ucode.
+
+---
+
+## Two trace sites in ONE run (added 2026-08-19, roll #86, T81)
+
+`gdb_trace.sh` takes an optional SECOND location through the environment:
+
+```bash
+SNP_TRACE_LOC2='funcs_4.c:661' \
+SNP_TRACE_COND2='((ctx->r16 & 0xFFFFFFFF) >= 0x8013A000 && (ctx->r16 & 0xFFFFFFFF) <= 0x8013D000)' \
+SNP_TRACE_ARGS2='ctx->r16, ctx->r3, ctx->r6, ctx->r29' \
+scripts/gdb_trace.sh 'funcs_4.c:228' '<cond1>' '<args1>' 20 280 <log>
+```
+
+All three or none — a partial set **refuses**, because silently tracing one site
+would produce a log that reads exactly like the two-site run you asked for.
+Hits are prefixed `HIT1` and `HIT2`, and each site gets its own reach counter.
+
+**Why it exists.** A99's central contradiction survived six rolls only because
+its three measurements were three separate runs (A157). Comparing sites ACROSS
+runs cannot separate "the instrument is wrong" from "the two runs differed" —
+and on this target the runs genuinely do differ, which is the whole point of
+T72. Within one run, that ambiguity is gone.
+
+**The failure mode it is built against, because it has no symptom.** gdb numbers
+breakpoints in creation order, so the second site's are 3 and 4. Aim `ignore` or
+`commands` at the wrong number and nothing complains:
+
+* `ignore` on a *conditional* breakpoint — it stops the inferior on every hit
+  instead of counting silently. At a line reached ~79,000 times per run, that is
+  a run that never finishes. (Do NOT justify this with A138's "stops change
+  which bug you hit" — T72 withdrew that causal claim. The deadline argument is
+  enough and it stands on its own.)
+* `commands` on the *reach counter* — the printf never fires, and an empty log
+  reads exactly like "the condition was never true".
+
+Both cost a full deadline to discover and both produce evidence that looks fine.
+So `scripts/test_gdb_trace.py` (`gdb_trace.sh --self-check`, 14 controls)
+**parses the generated script**, numbers the `break` statements in source order
+as gdb would, and asserts every `ignore` targets a reach breakpoint and every
+`commands` targets a conditional one. Asserting against the literals 3 and 4
+would merely restate the bug if it were present. Verified to FAIL: swapping the
+second site's numbers scores 13/14 and names both halves; pointing `commands` at
+the reach counter scores 12/14.
+
+**Always dry-run first** (`SNP_TRACE_DRYRUN=1`) — it prints the generated script
+and exits without launching. A gdb syntax error otherwise costs one full
+deadline to discover.
 
 ---
 
