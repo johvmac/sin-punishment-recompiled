@@ -132,13 +132,24 @@ echo \n===== WRITER BACKTRACE (full depth) =====\n
 # NOT `bt 20`. The first use of this script truncated at 20 frames and the
 # recursion under investigation turned out to be far deeper than that -- the
 # depth IS the finding. Print everything and summarise afterwards.
-bt -1
+#
+# NOT `bt -1` EITHER. That was the "unlimited" fix and it is the opposite:
+# in gdb a NEGATIVE count prints the OUTERMOST n frames, so `bt -1` printed
+# exactly one frame -- clone3 -- on every run since. Found 2026-08-19 when the
+# writer of 0x8013C278 was caught and the backtrace contained nothing but the
+# thread entry point. A bare `bt` prints all frames, which is what was meant.
+bt
 echo \n===== FAULTING INSTRUCTION =====\n
 # Which register did the store use? Without debug info we cannot name ctx
 # fields, but the instruction itself names its base register, which settles
 # "wrote via the game's \$sp" vs "wrote via an explicit destination pointer".
-x/12i \$pc-40
-info registers rip rax rbx rcx rdx rsi rdi
+# `disassemble` with NO range: it decodes the WHOLE current function from its
+# own entry point, so every boundary is right. A range starting at $pc-N is
+# still an arbitrary offset and still resyncs through garbage first -- the
+# 2026-08-19 fix to this line swapped x/i for a RANGED disassemble and got
+# `add %al,(%rax)` for its first three lines anyway. Verbose beats wrong.
+disassemble
+info registers rip rax rbx rcx rdx rsi rdi rbp
 quit
 EOF
 
@@ -148,6 +159,31 @@ sed -i \
     -e "s|__VRAM__|${VRAM}|g" \
     -e "s|__WATCH_COND__|${WATCH_COND}|g" \
     "$GDB_SCRIPT"
+
+# --- Display isolation (added 2026-08-19, T59) ------------------------------
+# The game window takes focus when it appears and RecompFrontend binds ordinary
+# letters to N64 buttons, so a run on the real display both interrupts whoever
+# is using the machine AND can be contaminated by their typing -- T23 measured a
+# single injected `A` press turning a healthy run into a SIGSEGV.
+# `run_game.sh` has isolated on a nested Xephyr since it was written; the gdb
+# wrappers did not, and nobody noticed until the user asked why a game window
+# had appeared on their desktop. Same isolation, same override.
+XEPHYR_PID=""
+if [[ "${SNP_VISIBLE:-0}" == "0" ]] && command -v Xephyr >/dev/null 2>&1; then
+    ISO_DISPLAY=":${SNP_ISO_DISPLAY:-7}"
+    Xephyr "$ISO_DISPLAY" -screen 1280x720 -nolisten tcp > /dev/null 2>&1 &
+    XEPHYR_PID=$!
+    sleep 2
+    if kill -0 "$XEPHYR_PID" 2>/dev/null; then
+        export DISPLAY="$ISO_DISPLAY"
+        echo "[gdb] isolated on $ISO_DISPLAY (Xephyr pid $XEPHYR_PID) -- SNP_VISIBLE=1 to watch it" >&2
+    else
+        XEPHYR_PID=""
+        echo "[gdb] WARNING: Xephyr failed to start; running on the REAL display -- keystrokes can reach the game (T23)" >&2
+    fi
+fi
+cleanup_xephyr() { [ -n "$XEPHYR_PID" ] && kill "$XEPHYR_PID" 2>/dev/null; }
+trap 'rm -f "$GDB_SCRIPT"; cleanup_xephyr' EXIT INT TERM
 
 echo "launching $BIN under gdb; arm at ${ARM_AFTER}s, hard deadline ${DEADLINE}s..."
 SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 \

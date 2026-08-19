@@ -34,7 +34,6 @@ esac
 [ -x "$BIN" ] || { echo "no binary at $BIN" >&2; exit 1; }
 
 GDB_SCRIPT="$(mktemp /tmp/gdb_fault_XXXXXX.gdb)"
-trap 'rm -f "$GDB_SCRIPT"' EXIT
 
 cat > "$GDB_SCRIPT" <<'EOF'
 set pagination off
@@ -91,13 +90,43 @@ echo \n===== FAULTING INSTRUCTION =====\n
 # misled by exactly this once, and the first version of THIS script repeated it
 # (`rorb $0x84,(%rdi)` in the middle of a load sequence). `disassemble` decodes
 # from the function's own start, so the boundaries are right.
-disassemble $pc-32,+48
+# `disassemble` with NO range: it decodes the WHOLE current function from its
+# own entry point, so every boundary is right. A range starting at $pc-N is
+# still an arbitrary offset and still resyncs through garbage first -- the
+# 2026-08-19 fix to this line swapped x/i for a RANGED disassemble and got
+# `add %al,(%rax)` for its first three lines anyway. Verbose beats wrong.
+disassemble
 echo \n===== HOST REGISTERS (for when ctx is unavailable) =====\n
 info registers rip rax rbx rcx rdx rsi rdi rbp
 quit
 EOF
 
 sed -i -e "s|__DEADLINE__|${DEADLINE}|g" "$GDB_SCRIPT"
+
+# --- Display isolation (added 2026-08-19, T59) ------------------------------
+# The game window takes focus when it appears and RecompFrontend binds ordinary
+# letters to N64 buttons, so a run on the real display both interrupts whoever
+# is using the machine AND can be contaminated by their typing -- T23 measured a
+# single injected `A` press turning a healthy run into a SIGSEGV.
+# `run_game.sh` has isolated on a nested Xephyr since it was written; the gdb
+# wrappers did not, and nobody noticed until the user asked why a game window
+# had appeared on their desktop. Same isolation, same override.
+XEPHYR_PID=""
+if [[ "${SNP_VISIBLE:-0}" == "0" ]] && command -v Xephyr >/dev/null 2>&1; then
+    ISO_DISPLAY=":${SNP_ISO_DISPLAY:-7}"
+    Xephyr "$ISO_DISPLAY" -screen 1280x720 -nolisten tcp > /dev/null 2>&1 &
+    XEPHYR_PID=$!
+    sleep 2
+    if kill -0 "$XEPHYR_PID" 2>/dev/null; then
+        export DISPLAY="$ISO_DISPLAY"
+        echo "[gdb] isolated on $ISO_DISPLAY (Xephyr pid $XEPHYR_PID) -- SNP_VISIBLE=1 to watch it" >&2
+    else
+        XEPHYR_PID=""
+        echo "[gdb] WARNING: Xephyr failed to start; running on the REAL display -- keystrokes can reach the game (T23)" >&2
+    fi
+fi
+cleanup_xephyr() { [ -n "$XEPHYR_PID" ] && kill "$XEPHYR_PID" 2>/dev/null; }
+trap 'rm -f "$GDB_SCRIPT"; cleanup_xephyr' EXIT INT TERM
 
 echo "launching $BIN under gdb; hard deadline ${DEADLINE}s..."
 SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 \

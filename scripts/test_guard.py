@@ -37,6 +37,21 @@ CASES = [
     ("scripts/run_game.sh 25 /tmp/x.log",  0, "the sanctioned runner"),
     ("scripts/build.sh --no-recomp",       0, "the sanctioned builder"),
     ("echo hello world",                   0, "unrelated command"),
+
+    # The gdb wrappers take the binary as an ARGUMENT, and `\bgdb\b` does not
+    # match `gdb_watch.sh` because `_` is a word character. That refused the
+    # project's own supervised debugger tools -- the case most likely to make
+    # someone reach for a bypass.
+    (f"scripts/gdb_watch.sh 0x8013C278 140 230 /tmp/w.log {B} '== 0x02000000'",
+     0, "gdb_watch.sh with an explicit binary argument"),
+    (f"scripts/gdb_fault.sh 210 /tmp/f.log {B}",
+     0, "gdb_fault.sh with an explicit binary argument"),
+    (f"scripts/gdb_threads.sh 90 /tmp/t.log {B}",
+     0, "gdb_threads.sh with an explicit binary argument"),
+
+    # ...but the exemption must stay inside its own statement (T40).
+    (f"scripts/gdb_watch.sh 0x1 1 1 /tmp/w.log; ./{B}",
+     2, "a sanctioned runner must NOT vouch for a launch beside it"),
 ]
 
 

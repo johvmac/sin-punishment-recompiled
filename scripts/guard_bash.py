@@ -52,7 +52,17 @@ RULES = [
 # bypasses the watchdog. A debugger session is deliberate and supervised, so
 # gdb is allowed through: blocking it would push debugging outside the tooling
 # rather than into it, which is the opposite of the point.
-SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|readelf|du|gdb)\b")
+#
+# The project's own supervised runners are listed explicitly. `\bgdb\b` does NOT
+# match `gdb_watch.sh` -- `_` is a word character, so the boundary fails -- and
+# on 2026-08-19 that blocked `scripts/gdb_watch.sh <addr> ... build/Sin...`,
+# whose entire job is to run the binary under a debugger with its own deadline
+# thread. Those scripts each own a watchdog, which is the property this rule is
+# protecting; refusing them pushes debugging OUT of the tooling, which the
+# comment above says is the opposite of the point. Per-statement evaluation
+# (T40) keeps the exemption from vouching for a launch sitting beside it.
+SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|readelf|du|gdb)\b"
+                  r"|scripts/(gdb_watch|gdb_threads|gdb_fault|run_game)\.sh")
 
 # Rules are evaluated PER STATEMENT, not against the whole command (T40).
 #
