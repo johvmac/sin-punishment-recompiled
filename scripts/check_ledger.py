@@ -226,6 +226,36 @@ def main():
     # is malformed", and the fix for the former is not to edit the ledger.
     reminders = []
 
+    # 3d. entry LENGTH. This is the one that actually controls the file's size,
+    # and it went unmeasured for two days while the size threshold pointed at
+    # archiving instead.
+    #
+    # Measured 2026-08-19 (T51): the 2026-08-18 entries average 112 words and
+    # top out at 324. The 2026-08-19 entries average 398 and top out at 846 --
+    # 3.6x, for the same kind of content. 43 entries were 25% of the ledger by
+    # count and 55% by words. Archiving 26 rows of genuine history recovered
+    # 1,037 words; compressing one session's prose was worth ~12,000.
+    #
+    # So the file does not grow because findings accumulate. It grows because
+    # entries get written long, and that is visible AT WRITE TIME with no
+    # hindsight at all -- unlike archiving, which needs to know what turned out
+    # to matter (T46).
+    #
+    # A warning, never a gate. Some entries have earned their length: a
+    # correction that must stop a resurrection, or a load-bearing claim with its
+    # controls. The check exists so that length is a DECISION rather than an
+    # accident, which is all it was on 2026-08-19.
+    LONG = 250
+    long_rows = sorted(((len(b.split()), e) for e, (t, b, n) in rows.items()
+                        if len(b.split()) > LONG), reverse=True)
+    if long_rows:
+        worst = ", ".join(f"{e} ({w}w)" for w, e in long_rows[:5])
+        reminders.append(
+            f"LENGTH: {len(long_rows)} entr{'y' if len(long_rows)==1 else 'ies'} "
+            f"over {LONG} words ({sum(w for w, _ in long_rows):,} words total). "
+            f"Longest: {worst}. Median entry is ~124w and carries claim, status, "
+            f"evidence and falsifier fine. Trim, or decide the length is earned.")
+
     # Ledger size. The file is meant to be read IN FULL at session start, so its
     # cost is paid every time; past ~30k words that starts crowding out the work
     # it exists to serve. Measured 2026-08-18 at 194 entries / 18.9k words, with

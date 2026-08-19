@@ -116,6 +116,32 @@ def main():
             bad += not ok
             print(f"{'ok  ' if ok else 'FAIL'}  flagged={flagged!s:<5} want={should_flag!s:<5} {label}")
 
+    # --- check 3d: entry length (T51) -------------------------------------
+    # Not a CASES entry: the length finding is a REMINDER, so it carries no
+    # "file:line: ID:" prefix and the flag regex above cannot see it. Asserting
+    # both directions here is the point -- a checker that fired on every row
+    # would be ignored within a day (T29), so the short case matters as much as
+    # the long one.
+    with tempfile.TemporaryDirectory() as td:
+        long_row = "| ZZ2 | MEASURED | " + ("padding " * 300) + "| 2026-01-01 |"
+        short_row = "| ZZ2 | MEASURED | " + ("padding " * 40) + "| 2026-01-01 |"
+        # Assert on the COUNT, not on the name. The reminder only names the
+        # five longest, so a 300-word probe row is invisible beside the real
+        # ledger's 800-word entries -- the first version of this test asserted
+        # on the name and failed for that reason, not because the check was
+        # broken. Counting is what the check actually claims.
+        def n_long(out):
+            m = re.search(r"LENGTH: (\d+) entr", out)
+            return int(m.group(1)) if m else 0
+        base = n_long(run_case("| ZZ3 | MEASURED | tiny | 2026-01-01 |", td))
+        long_flagged = n_long(run_case(long_row, td)) == base + 1
+        short_flagged = n_long(run_case(short_row, td)) == base + 1
+        for got, want, label in ((long_flagged, True, "a 300-word entry is COUNTED as long"),
+                                 (short_flagged, False, "a 40-word entry is NOT counted")):
+            ok = got == want
+            bad += not ok
+            print(f"{'ok  ' if ok else 'FAIL'}  flagged={got!s:<5} want={want!s:<5} {label}")
+
     # The real ledger must be untouched and must still pass cleanly.
     assert LEDGER.read_bytes() == before, "TEST MUTATED THE REAL LEDGER"
     p = subprocess.run([sys.executable, str(CHECKER)], capture_output=True, text=True)
@@ -123,7 +149,8 @@ def main():
     print(f"\n{'ok  ' if real_clean else 'FAIL'}  real ledger unmodified and free of cost warnings")
     bad += not real_clean
 
-    print(f"\n{len(CASES) + 1 - bad}/{len(CASES) + 1} correct")
+    total = len(CASES) + 3
+    print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 
 
