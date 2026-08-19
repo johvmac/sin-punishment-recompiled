@@ -71,3 +71,4 @@ A gap in the numbering means a roll was skipped.
 - roll #52: **EXPLOIT** (drew 0.619 vs eps 0.3) -> `A99` — >>> 2026-08-19 (roll #45) READ A110, A111, A112 FIRST, THEN A106. A106 is corrected by A112 — it
 - roll #53: **EXPLORE** (drew 0.082 vs eps 0.3) -> `A96` — BOUNDED CHECK 2026-08-19 (roll #39, EXPLORE): the top candidate is a REAL truncation, and the ga
 - roll #54: **EXPLOIT** (drew 0.305 vs eps 0.3) -> `A99` — >>> 2026-08-19 (roll #45) READ A110, A111, A112 FIRST, THEN A106. A106 is corrected by A112 — it
+- roll #55: **EXPLOIT** (drew 0.747 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
