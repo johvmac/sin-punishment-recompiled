@@ -101,7 +101,28 @@ def main():
         fails.append(f"FAIL: a seen entry reports staleness {old_stale}, want 3 "
                      f"(the fix must not flatten real staleness)")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 3
+    # Cost ties must break on STALENESS, not document order. Document order was
+    # removed as the primary ranking long ago but survived as the tie-break, and
+    # since new entries are written near the top of the ledger a new cost-2 row
+    # outranked every older cost-2 row forever. Roll #75 picked B67 over A99 on
+    # exactly that -- both cost=2, B67 merely 81 lines higher.
+    real = route.open_items()
+    by_cost = {}
+    for eid, _b, c in real:
+        by_cost.setdefault(c, []).append(eid)
+    ties = [v for c, v in by_cost.items() if c is not None and len(v) > 1]
+    if ties:
+        st_now = route.load()
+        for grp in ties:
+            stales = [route.staleness(st_now, e) for e in grp]
+            if stales != sorted(stales, reverse=True):
+                fails.append(f"FAIL: cost-tied rows {grp} are not ordered most-stale-first "
+                             f"(staleness {stales}) — document order is deciding again")
+    else:
+        print("tie-break: NOTE — no cost ties in the current ledger, so this check "
+              "is inert right now. The ordering rule still holds.")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 4
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -114,7 +135,7 @@ def main():
         print(f)
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
-          f"1 closing-requirement, 1 staleness)")
+          f"1 closing-requirement, 1 staleness, 1 tie-break)")
     return 1 if fails else 0
 
 

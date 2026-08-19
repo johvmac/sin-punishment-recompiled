@@ -114,8 +114,21 @@ def open_items():
             cost = int(c.group(1)) if c else None
             body = re.sub(r"[*`~]", "", COST_RE.sub("", raw)).strip()
             items.append((m.group(1), body[:96], cost))
-    # None sorts last; ties keep file order (sort is stable)
-    items.sort(key=lambda x: (x[2] is None, x[2] if x[2] is not None else 0))
+    # None sorts last. TIES BREAK ON STALENESS, most-stale first -- NOT on file
+    # order.
+    #
+    # This function's docstring above records that document order was removed as
+    # the primary ranking. It survived as the tie-break, and that is just as
+    # wrong: new entries are written near the top of the ledger, so a new cost-2
+    # row outranks every older cost-2 row FOREVER. Roll #75 picked B67 over A99
+    # on exactly that, both cost=2, purely because B67 sat 81 lines higher.
+    #
+    # Staleness is the right tie-break because it is the one metric that already
+    # exists for "which of these has been neglected", and it cannot be gamed by
+    # where an entry happens to be written.
+    st = load()
+    items.sort(key=lambda x: (x[2] is None, x[2] if x[2] is not None else 0,
+                              -staleness(st, x[0])))
     return items
 
 
