@@ -39,6 +39,32 @@ from pathlib import Path
 
 LEDGER = Path(__file__).resolve().parent.parent / "docs" / "findings-ledger.md"
 
+
+def is_open(tag):
+    """Is this status cell tagged OPEN -- as opposed to merely containing the word?
+
+    ONE definition, imported from route.py, because there were two and they were
+    both wrong in the same way (T66). route.py put A124 on the frontier for
+    saying "answers A99's open question"; this script then flagged T66 as an
+    unpriced OPEN row for saying route.py "decided which items were OPEN by
+    substring". The tool that ranks the work and the tool that checks the ledger
+    must agree on what OPEN means, or the checker reports defects in rows the
+    ranker never sees.
+
+    Falls back to a local copy if route.py is unavailable -- this script runs as
+    a git hook and must not fail closed on an import.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_route", Path(__file__).resolve().parent / "route.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        globals()["is_open"] = lambda t: bool(mod.OPEN_RE.match(t))
+    except Exception:
+        globals()["is_open"] = lambda t: bool(re.match(r"\s*\**OPEN\b", t, re.I))
+    return globals()["is_open"](tag)
+
 # A claim asserting an absence. These are the phrasings that actually burned us.
 NEGATIVE = re.compile(
     r"\b(nothing|never|no other|zero (?:callers|hits|writes|gaps|matches)|"
@@ -108,7 +134,7 @@ def main():
 
     # 1. negatives without a scope
     for eid, (tag, body, n) in rows.items():
-        if "WD" in tag or "OPEN" in tag:
+        if "WD" in tag or is_open(tag):
             continue
         if NEGATIVE.search(body) and not SCOPE.search(body):
             problems.append(
@@ -206,13 +232,19 @@ def main():
     cost_ok = re.compile(r"\[cost=\d+\]")
     mentions_cost = re.compile(r"cost", re.I)
     for eid, (tag, body, n) in rows.items():
+        # Only OPEN rows are ranked, so only OPEN rows can be mis-priced. This
+        # used to run over every row and fired on T67, whose status says the
+        # ledger "costs 83k tokens" -- prose, in a MEASURED entry route.py will
+        # never rank. Same shape as T66: a word matched where a tag was meant.
+        if not is_open(tag):
+            continue
         if mentions_cost.search(tag) and not cost_ok.search(tag):
             problems.append(
                 (n, f"{eid}: malformed cost in the status column -> '{tag.strip()}'. "
                     f"route.py parses exactly [cost=N] (digits only); anything else "
                     f"drops this row out of the ranking as UNPRICED, silently. "
                     f"Use [cost=N] and put any history in the finding text."))
-        elif "OPEN" in tag and not cost_ok.search(tag):
+        elif not cost_ok.search(tag):
             problems.append(
                 (n, f"{eid}: OPEN but carries no [cost=N], so route.py cannot rank "
                     f"it and sorts it last. Price it, or the ordering is not a ranking."))

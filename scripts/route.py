@@ -57,6 +57,21 @@ EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.30"))
 
 COST_RE = re.compile(r"\[cost=(\d+)\]")
 
+# The status cell must OPEN with the tag, not merely contain the word.
+#
+# This used to be `"OPEN" in status.upper()`, and on 2026-08-19 that put **A124**
+# on the frontier -- a READ entry whose status cell says "answers A99's *open*
+# question". Ordinary English prose, matched as a status tag. It also reported
+# A124 as UNPRICED, so `--status` ended with "the ordering is not a ranking":
+# a real warning about an entry that was never open. Six items were claimed;
+# five existed.
+#
+# That is the ledger's own rule 2 failing inside the tooling that enforces it --
+# a test that could not distinguish the tag from the word cannot have been
+# evidence for either. Anchoring is what makes it discriminate; `test_route.py`
+# asserts the discrimination, using A124's literal status string as the negative.
+OPEN_RE = re.compile(r"\s*\**OPEN\b", re.I)
+
 
 def open_items():
     """OPEN rows, CHEAPEST FIRST.
@@ -78,7 +93,7 @@ def open_items():
     items = []
     for line in LEDGER.read_text().split("\n"):
         m = re.match(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|", line)
-        if m and "OPEN" in m.group(2).upper():
+        if m and OPEN_RE.match(m.group(2)):
             raw = m.group(3)
             # the marker may sit in the status cell (`| A18 | OPEN [cost=2] |`)
             # or in the body; accept either

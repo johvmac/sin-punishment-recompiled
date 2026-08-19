@@ -74,3 +74,4 @@ A gap in the numbering means a roll was skipped.
 - roll #55: **EXPLOIT** (drew 0.747 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #56: **EXPLOIT** (drew 0.308 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3, walking the title scene. One-shot at t157, not per-fram
 - roll #57: **EXPLORE** (drew 0.038 vs eps 0.3) -> `A124` — The walk carries THREE PARALLEL ARRAYS, all indexed by one child byte, and NONE of them is bound
+- roll #58: **EXPLORE** (drew 0.033 vs eps 0.3) -> `T11` — ovlfile12 is never loaded in the reachable window. SNP_OVL=1, 45s autostart, VERDICT=CLEAN: 37 o
