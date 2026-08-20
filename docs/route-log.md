@@ -126,3 +126,4 @@ A gap in the numbering means a roll was skipped.
 - roll #107: **EXPLOIT** (drew 0.412 vs eps 0.3) -> `A188` [witness `beea07`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
 - roll #108: **EXPLOIT** (drew 0.866 vs eps 0.3) -> `A188` [witness `d495ee`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
 - roll #109: **EXPLOIT** (drew 0.547 vs eps 0.3) -> `A188` [witness `1f41b1`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
+- roll #110: **EXPLOIT** (drew 0.333 vs eps 0.3) -> `A188` [witness `8f17c2`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
