@@ -1058,6 +1058,13 @@ useful it is.
 
 ## G7 — Live debugging (gdb on our build)
 
+> **BEFORE WRITING ANY CONDITION, READ `docs/instrument-semantics.md` (T108).**
+> It is the premise list this gate's failures came from: `ctx` is one struct per
+> THREAD (not per frame), a breakpoint fires BEFORE its line, reach counts scale
+> with the arm window and must never be compared across windows, and a zero is
+> meaningless without a healthy reach counter. Two multi-roll dead ends (A166's
+> sp-pairing, A157's two-writer premise) die at birth against that table.
+
 Most expensive gate. Real time cost, and it distorts the thing you're
 measuring. Everything above should be exhausted first.
 
@@ -1249,6 +1256,73 @@ where each record is one real invocation and a leftover cannot appear.
 **Preserve snapshots to the archive drive, not `/tmp`** — evidence cited from
 session-scoped paths does not survive (T47).
 
+
+## THE IMPOSSIBLE-RESULT RULE — a contradiction is a premise audit, not a new experiment (added 2026-08-20, T107)
+
+**The single most expensive failure this project has recorded.** A99's third
+circle cost roughly **15 rolls**, and every experiment inside it was
+well-controlled: positive controls on conditions, exact-value pairing,
+whole-run arming, thread logging. The discipline was flawless and it was
+pointed at the wrong thing.
+
+At roll #84, A157 concluded *"these three measurements cannot all be right."*
+That was the correct instinct attached to the wrong object: it went on to
+dismiss a **measurement** (A141) while leaving its own **premise** — "the
+walker writes `$s0` in exactly two places" — unexamined. Six further
+experiments then ran *under* that premise, each honestly excluding another
+possibility *within* it. The premise was finally checked at roll #103 and fell
+in two greps: the count had been taken inside ONE function, while `ctx` is one
+struct per THREAD and **9,199 write sites exist**.
+
+> **THE RULE. When a checkpoint concludes that measurements are mutually
+> impossible — or uses the words paradox, contradiction, cannot all be right —
+> the NEXT checkpoint on that item MUST enumerate the premises under the
+> contradiction and attack the LEAST-VERIFIED one. It may not run another
+> experiment under them.**
+
+Enumerating premises is cheap and static almost every time. The two greps that
+broke circle 3 cost seconds; the six experiments that preceded them cost rolls
+and runs each.
+
+**How to enumerate.** Write the contradiction as *"A and B and C cannot all
+hold."* Then list, for each term, what makes it true — including the things so
+obvious they were never written down. Those are the candidates. In circle 3 the
+unwritten one was *"`$s0` belongs to this function"*, which is false for a
+shared per-thread context.
+
+**Smell tests that this rule is being violated:**
+
+* the word "paradox" appears and the next action is a trace
+* an experiment is designed to distinguish two options *inside* a frame that
+  has never itself been tested
+* a **measured** result is being explained away rather than a premise being
+  checked (see the dismissal bar below)
+* the excluded-possibilities list is growing while the question is unchanged
+
+**Its own falsifier:** a recorded case where running one more experiment under
+the premise was cheaper than enumerating the premises. None exists yet.
+
+---
+
+### The dismissal bar — overturning a measurement needs a measurement (added 2026-08-20, T107)
+
+**A141 was dismissed twice on plausibility arguments and vindicated twice by
+measurement.** A157 called its reach count "impossible" by comparing it against
+a count taken over a **different arm window** (A173 later showed the error), and
+the second dismissal rested on the same premise circle 3 was built on. At
+209,649 reaches, A180 confirmed A141's original negative exactly.
+
+> **A MEASURED entry may be FLAGGED by an argument, but may only be
+> OVERTURNED by evidence at the same standard — same-run or same-window
+> measurement, or a static proof.** A plausibility argument raises a question;
+> it does not answer one.
+
+The asymmetry to watch for: making a claim here requires controls, repeats and
+a stated scope. Dismissing one has historically required only a confident
+sentence. **That gap is the defect** — it lets the cheapest possible evidence
+overturn the most expensive.
+
+---
 
 ## EV — The evidence gate (applies to every observation, at every gate)
 
@@ -2376,6 +2450,7 @@ below is installed and verified working.
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
 | `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
+| **`docs/instrument-semantics.md`** | repo | **what a reading MEANS** — `ctx` is per-THREAD, breakpoints fire BEFORE their line, reach counts scale with the arm window, RDRAM snapshots are host-endian. **Read before designing any condition.** Every row names the incident that paid for it (T108) |
 | `scripts/audio_capture.sh` | repo | **game-ONLY audio capture, routed BEFORE launch** via `PULSE_SINK` so nothing is missed at startup (T104). One LOSSLESS FLAC pass, master removed. **Isolation asserted behaviourally by a two-tone control.** `prepare`/`finish`/`attach`, `--self-check` (4), `--dry-run`, `--cleanup` |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
 | `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |

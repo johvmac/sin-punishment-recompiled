@@ -107,6 +107,14 @@ never a quiet correction.**
   instances now (T100). Assemble the needle from parts; never exempt the file.
 * **A new checker whose FIRST real run finds nothing should be suspected,
   not celebrated** (T100). Working checkers surprise you on day one.
+* **A CONTRADICTION IS A PREMISE AUDIT, NOT A NEW EXPERIMENT** (T107). If a
+  checkpoint concludes measurements "cannot all be right", the next one on
+  that item **enumerates the premises and attacks the least-verified**, and may
+  not run another experiment under them. A99's third circle cost ~15 rolls to
+  a premise that fell in two greps.
+* **A MEASURED entry may be FLAGGED by an argument but only OVERTURNED by
+  measurement** (T107) — same-run/same-window, or a static proof. A141 was
+  dismissed twice on plausibility and vindicated twice by measurement.
 * **Every negative names its scope inside the claim** — "nothing in splat's
   asm calls this", not "nothing calls this".
 * **A single-run claim answers for itself, in the entry** (T99). If an
