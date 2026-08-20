@@ -59,6 +59,26 @@ Real work for a complete port; not on the critical path.
 **B36** — validate the derived unpack addresses against a running build before
 relying on them.
 
+**Mouse aiming — read how DNZH Recomp did it.** *(User-flagged 2026-08-20.)*
+Duke Nukem Zero Hour Recomp reportedly added mouse control to its first-person
+aiming: <https://github.com/worleydl/DNZHRecomp-uwp>. **Why it is worth reading
+rather than inventing: they are on the same stack we are** — N64: Recompiled,
+RT64, and the same runtime family — so whatever they did to route a relative
+pointer into an N64 analogue stick is likely to port almost directly. S&P is
+rail-shooter aiming rather than FPS look, which is arguably a *better* fit for a
+mouse than the stick the original had.
+
+**Scope check before spending anything on it:** the linked repo's README
+describes mouse only for MENU navigation ("used with mouse, controller, or
+keyboard") and describes gameplay aiming purely in terms of stick deadzone and
+axis inversion. So the gameplay mouse support is **not confirmed from the
+README** — it may live in the source, in a branch, or in the non-UWP upstream.
+**Establish it exists before planning around it.**
+
+**Not on the critical path, and deliberately not an OPEN frontier item** — the
+render and audio faults come first. This is a capability for a port that
+already draws and sounds correct.
+
 ## Publication — when the current bug is closed
 
 These are deliberately *not* now. A half-finished investigation reads worse than

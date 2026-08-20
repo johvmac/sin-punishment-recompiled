@@ -2502,6 +2502,26 @@ hand-assembled `G_MOVEWORD` with the index byte one position out. Both would
 have been invisible in a probe that only printed. Build fixture constants from
 named parts, not hex literals.
 
+### A SATURATING COUNTER LOOKS EXACTLY LIKE THE ANSWER YOU ARE LOOKING FOR
+
+The per-child counter first stored at most 48 children and reported `nchild`
+from the same variable. Across the whole tutorial it read a flat **48** — and
+the question being asked was *"has the count stopped growing?"*. The array
+bound was answering the question.
+
+**Count and storage are now separate fields**, the overflow is printed, and a
+control asserts the count keeps counting past the store limit. Whenever a
+measurement has a buffer behind it, ask what the buffer would report if it
+overflowed, and make sure that is distinguishable from the result you expect.
+
+### DO NOT COMPARE LIST ENTRIES BY INDEX ACROSS FRAMES
+
+Comparing child `k` at two times showed swings of +57 and −66 commands, which
+reads as violent growth and shrinkage. It is neither: the list is rebuilt every
+frame and entries shift position, so index `k` is a **different object** at two
+different times. Only the aggregate is comparable across frames. An index-wise
+reading of the same log would have supported almost any story you wanted.
+
 ---
 
 ## Tool inventory (added 2026-08-18) — check here before building anything
