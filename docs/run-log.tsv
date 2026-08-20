@@ -123,3 +123,10 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T09:06:44+10:00	60	60	0	0	0	1746	30	CLEAN	f1-full.log	none
 2026-08-21T09:08:02+10:00	60	60	0	0	0	1746	30	CLEAN	f1-full2.log	none
 2026-08-21T09:11:08+10:00	55	55	0	2	0	1594	30	CONTAMINATED	startkey.log	none
+2026-08-21T09:16:04+10:00	15	15	0	0	0	395	30	CLEAN	devmode-probe.log	none
+2026-08-21T09:17:27+10:00	300	36	139	0	0	968	30	CRASHED	vanilla.log	none
+2026-08-21T09:23:28+10:00	600	158	137	0	0	2254	0	CRASHED	vanilla-inspect.log	none
+2026-08-21T09:33:45+10:00	600	600	0	0	0	6169	0	DEGRADED	vanilla-inspect.log	none
+2026-08-21T09:42:16+10:00	900	453	137	0	0	6169	0	CRASHED	vanilla-inspect2.log	none
+2026-08-21T09:44:31+10:00	60	60	0	0	0	1744	30	CLEAN	dev-on.log	none
+2026-08-21T09:45:39+10:00	60	60	0	0	0	1745	30	CLEAN	dev-off.log	none
