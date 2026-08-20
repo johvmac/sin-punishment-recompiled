@@ -256,6 +256,42 @@ def cmd_show(rows, ids):
             t, cl = idx.get(c, ("", ""))
             print(f"   {c:6} {t:20} {cl[:88]}")
         print(f"[ledger] expand:  scripts/ledger.py --show {' '.join(sorted(cited))}")
+
+    # CITED-BY footer (T129). The CITES footer above is structurally blind to
+    # the failure that matters most when you are about to DO something: an
+    # entry cannot cite the entry that supersedes it, because that one did not
+    # exist yet. A181's named NEXT step was "disassemble around the failing
+    # address to decide code-vs-data". A182 did exactly that ONE ROLL LATER,
+    # and A207 then measured the follow-on question closed. A181's text still
+    # says NEXT, unchanged, because nothing edits an entry when a later one
+    # answers it.
+    #
+    # On 2026-08-20 (roll #136) I read A181, took its NEXT at face value and
+    # re-derived A182 in full. Worse, I was heading for a conclusion -- exclude
+    # the region from the text range -- that A207 had already MEASURED to be
+    # wrong. `--cited-by A181` would have shown A182 on its first line.
+    #
+    # So the same rule T70 applied to citations applies here: a visited set you
+    # have to remember to traverse is not a visited set. Unprompted, every time.
+    citedby = {}
+    for e in sorted(want):
+        who = []
+        for r_eid, _s, _b, _e, r_raw in rows:
+            rid = r_eid.upper()
+            if rid in want:
+                continue
+            if re.search(rf"\b{re.escape(e)}\b", r_raw):
+                who.append(rid)
+        if who:
+            citedby[e] = who
+    if citedby:
+        print(f"[ledger] LATER ENTRIES REFER TO WHAT YOU JUST READ. A 'NEXT' step may "
+              f"ALREADY BE DONE -- check before running it:")
+        idx = {e: (t, c) for e, t, c in index_lines(rows)}
+        for e, who in citedby.items():
+            for c in who:
+                t, cl = idx.get(c, ("", ""))
+                print(f"   {e} <- {c:6} {t:20} {cl[:70]}")
     return 0
 
 
@@ -521,6 +557,32 @@ def self_check():
     # "nothing corrected this".
     rc_bad, _ = _chain("ZZ999")
     checks.append(("--chain refuses an unknown ID", rc_bad == 2, f"rc={rc_bad}, want 2"))
+
+    # CITED-BY footer (T129). THE NEGATIVE HALF IS THE LOAD-BEARING ONE: a
+    # footer that printed for every entry would be wallpaper within a day (T29)
+    # and indistinguishable from one that always fires. So this asserts BOTH
+    # that a superseded entry surfaces its successor AND that the newest entry
+    # -- which nothing can yet refer to -- surfaces nothing.
+    import io as _io
+    from contextlib import redirect_stdout as _rso
+
+    def _show(eid):
+        buf = _io.StringIO()
+        with _rso(buf):
+            cmd_show(rows, [eid])
+        return buf.getvalue()
+
+    _a181 = _show("A181")
+    checks.append(("--show surfaces LATER entries that refer to what you read",
+                   "LATER ENTRIES REFER" in _a181 and "A182" in _a181,
+                   "A181 must surface A182, which performed its NEXT step"))
+
+    # The newest entry in the file: nothing can refer to it yet.
+    _newest = rows[0][0].upper()
+    _new_out = _show(_newest)
+    checks.append(("--show stays SILENT when nothing refers to the entry",
+                   "LATER ENTRIES REFER" not in _new_out,
+                   f"{_newest} is newest; a footer here would mean it always fires"))
 
     for name, ok, detail in checks:
         bad += not ok
