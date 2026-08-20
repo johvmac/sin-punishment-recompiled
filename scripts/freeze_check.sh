@@ -29,6 +29,16 @@ cd "$(dirname "$0")/.." || exit 1
 
 TIMES="${1:-10 15 25 35 50 70}"
 BIN="${2:-./build/SinPunishmentRecompiled}"
+
+# T125 staleness. Wired 2026-08-20 after the control was rewritten to DISCOVER
+# the list of scripts that use the binary instead of declaring it -- the
+# declared version hardcoded three names and could not notice a fourth. This
+# script does not LAUNCH the binary, it reads SYMBOLS from it, and a stale
+# binary there yields wrong function names rather than a wrong run: the same
+# hazard wearing a quieter disguise.
+. "$(dirname "$0")/build_staleness.sh"
+snp_warn_if_stale "$BIN"
+
 OUTDIR="${3:-/tmp/freeze_check}"
 mkdir -p "$OUTDIR"
 
@@ -38,6 +48,16 @@ for _pid in $(pgrep -f SinPunishmentRecompiled 2>/dev/null); do
     [[ "$(readlink -f "/proc/$_pid/exe" 2>/dev/null)" == "$_self_exe" ]] && kill -9 "$_pid" 2>/dev/null
 done
 sleep 1
+
+# DISPLAY ISOLATION. Wired 2026-08-20: this launches the binary DIRECTLY and
+# inherited DISPLAY, so it put a live game window on the real desktop with the
+# keyboard connected to it -- the incident T59 records. It was the fifth
+# launcher found uncovered once the isolation control was rewritten to DISCOVER
+# its list instead of declaring three names.
+# shellcheck source=scripts/display_isolate.sh
+. "$(dirname "$0")/display_isolate.sh"
+snp_isolate_display freeze_check
+trap 'snp_display_cleanup' EXIT INT TERM
 
 # SDL_VIDEODRIVER=x11: same reason as boot_screen_check.sh -- xwd silently
 # reads a stale backing store for Wayland-backed windows.

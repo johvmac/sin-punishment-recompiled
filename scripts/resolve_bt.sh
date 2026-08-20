@@ -22,6 +22,16 @@ esac
 LOG="${1:?usage: resolve_bt.sh <logfile> [binary]}"
 BIN="${2:-./build/SinPunishmentRecompiled}"
 
+# T125 staleness. Wired 2026-08-20 after the control was rewritten to DISCOVER
+# the list of scripts that use the binary instead of declaring it -- the
+# declared version hardcoded three names and could not notice a fourth. This
+# script does not LAUNCH the binary, it reads SYMBOLS from it, and a stale
+# binary there yields wrong function names rather than a wrong run: the same
+# hazard wearing a quieter disguise.
+. "$(dirname "$0")/build_staleness.sh"
+snp_warn_if_stale "$BIN"
+
+
 cd "$(dirname "$0")/.." || exit 1
 
 [[ -r "$LOG" ]] || { echo "[resolve_bt] ERROR: cannot read $LOG" >&2; exit 1; }

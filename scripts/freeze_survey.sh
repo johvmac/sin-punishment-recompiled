@@ -28,6 +28,16 @@ cd "$(dirname "$0")/.." || exit 1
 
 N="${1:-5}"
 BIN="${2:-./build/SinPunishmentRecompiled}"
+
+# T125 staleness. Wired 2026-08-20 after the control was rewritten to DISCOVER
+# the list of scripts that use the binary instead of declaring it -- the
+# declared version hardcoded three names and could not notice a fourth. This
+# script does not LAUNCH the binary, it reads SYMBOLS from it, and a stale
+# binary there yields wrong function names rather than a wrong run: the same
+# hazard wearing a quieter disguise.
+. "$(dirname "$0")/build_staleness.sh"
+snp_warn_if_stale "$BIN"
+
 OUTDIR="${3:-/tmp/freeze_survey}"
 TIMES="${4:-15 30 45 60}"
 mkdir -p "$OUTDIR"

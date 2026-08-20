@@ -31,6 +31,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ISO = ROOT / "scripts" / "display_isolate.sh"
+SCRIPTS = ROOT / "scripts"
 
 
 def sh(script, env=None, timeout=90):
@@ -143,6 +144,32 @@ def main():
             add("pipeline finalizes: cropped 640x480 .mp4, lossless master removed",
                 dims == "640,480" and not mkv,
                 f"dims={dims or 'none'}, leftover masters={len(mkv)}")
+
+    # ---- COVERAGE: every launcher must actually source the one copy --------
+    #
+    # T59's fix wired "the three callers". There were FOUR: gdb_threads.sh
+    # launches the binary under gdb and inherited DISPLAY, so it would have put
+    # a live game window on the real desktop with the keyboard connected to it
+    # -- the exact incident T59 records. It sat uncovered because nothing
+    # checked the LIST, only the file.
+    #
+    # So the list is DISCOVERED, not declared: anything under scripts/ that
+    # launches the binary under gdb/rr, or via SDL_VIDEODRIVER, must source
+    # display_isolate.sh. Add a launcher and this fails until it is wired.
+    launchers, unwired = [], []
+    for f in sorted(SCRIPTS.glob("*.sh")):
+        s = f.read_text()
+        if f.name in ("display_isolate.sh", "build_staleness.sh"):
+            continue
+        launches = ("SDL_VIDEODRIVER" in s) or bool(re.search(r"gdb .*--args|rr record", s))
+        if not launches:
+            continue
+        launchers.append(f.name)
+        if "display_isolate.sh" not in s:
+            unwired.append(f.name)
+    add("every launcher sources the ONE copy (list DISCOVERED, not declared)",
+        not unwired,
+        f"{len(launchers)} launcher(s); unwired: {' '.join(unwired) if unwired else 'none'}")
 
     bad = 0
     for name, ok, detail in checks:

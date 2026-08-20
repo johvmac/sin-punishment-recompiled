@@ -67,12 +67,34 @@ chk "returns 0 for an empty argument" \
     "$([[ "$out" == *"rc=0"* ]] && echo 1 || echo 0)" "would abort a caller"
 
 # --- the runners must actually CALL it, or none of the above matters --------
-wired=0
-for f in gdb_fault.sh gdb_trace.sh run_game.sh; do
-    grep -q 'snp_warn_if_stale' "$ROOT/scripts/$f" 2>/dev/null && wired=$((wired+1))
+#
+# THE LIST WAS WRONG WHEN THIS WAS WRITTEN and the control could not tell:
+# it asserted "all three" against a hardcoded three, so gdb_threads.sh -- a
+# FOURTH runner that launches the binary under gdb -- was silently uncovered
+# for a day. A control that counts a list it also defines cannot notice a
+# missing member.
+#
+# So the list is now DISCOVERED, not declared: anything in scripts/ that
+# launches the binary must call the check. Add a runner and this fails until
+# it is wired, which is the whole point.
+# Scripts that only COPY or ARCHIVE the binary cannot debug the wrong code, so
+# they are exempt -- named individually, with the reason, so the exemption is
+# auditable rather than a pattern that quietly grows.
+exempt_copy_only="build.sh snapshot_build.sh"
+
+unclassified=(); missing=()
+for f in "$ROOT"/scripts/*.sh; do
+    b="$(basename "$f")"
+    grep -qE 'SinPunishmentRecompiled' "$f" 2>/dev/null || continue
+    grep -q 'build_staleness.sh' "$f" 2>/dev/null && continue      # it IS the check
+    case " $exempt_copy_only " in *" $b "*) continue ;; esac
+    # Delegating to run_game.sh inherits its warning; no need to warn twice.
+    grep -qE 'run_game\.sh|display_isolate' "$f" 2>/dev/null && continue
+    grep -q 'snp_warn_if_stale' "$f" 2>/dev/null || missing+=("$b")
 done
-chk "all three runners call it (a check nobody invokes is decoration)" \
-    "$([[ "$wired" -eq 3 ]] && echo 1 || echo 0)" "only $wired/3 runners wired"
+chk "every script that runs the binary or reads symbols from it calls the check" \
+    "$([[ "${#missing[@]}" -eq 0 ]] && echo 1 || echo 0)" \
+    "not wired: ${missing[*]:-none}"
 
 echo
 echo "$((n-fails))/$n controls pass"
