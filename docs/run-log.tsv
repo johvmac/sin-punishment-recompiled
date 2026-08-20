@@ -95,3 +95,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-20T14:41:41+10:00	180	180	0	0	0	1	0	DEGRADED	symfix-confirm-run1.log	none
 2026-08-20T14:45:58+10:00	180	158	139	0	0	4658	30	CRASHED	symfix-confirm-run2.log	none
 2026-08-20T16:41:01+10:00	25	25	0	0	0	700	30	CLEAN	regen-smoke-164033.log	none
+2026-08-20T17:23:24+10:00	25	25	0	0	0	699	30	CLEAN	regen-smoke-172255.log	none

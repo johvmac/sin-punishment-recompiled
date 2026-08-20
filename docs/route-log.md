@@ -128,3 +128,4 @@ A gap in the numbering means a roll was skipped.
 - roll #109: **EXPLOIT** (drew 0.547 vs eps 0.3) -> `A188` [witness `1f41b1`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
 - roll #110: **EXPLOIT** (drew 0.333 vs eps 0.3) -> `A188` [witness `8f17c2`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
 - roll #111: **EXPLORE** (drew 0.215 vs eps 0.3) -> `A97` [witness `32d1a5`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #112: **EXPLOIT** (drew 0.534 vs eps 0.3) -> `A188` [witness `eeab7b`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
