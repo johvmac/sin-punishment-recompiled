@@ -7039,11 +7039,8 @@ size = 0x1DFA0
 
 functions = [
     { name = "ovlfile25_func_802C3DB0", vram = 0x802C3DB0, size = 0xC },
-    { name = "ovlfile25_func_802C3BA0", vram = 0x802C3BA0, size = 0x18 },
-    { name = "ovlfile25_func_802C3BB8", vram = 0x802C3BB8, size = 0x2C },
-    { name = "ovlfile25_func_802C3BE4", vram = 0x802C3BE4, size = 0x14 },
     { name = "ovlfile25_func_802C3B30", vram = 0x802C3B30, size = 0x2C },
-    { name = "ovlfile25_func_802C3B5C", vram = 0x802C3B5C, size = 0x44 },
+    { name = "ovlfile25_func_802C3B5C", vram = 0x802C3B5C, size = 0x9C },
     { name = "ovlfile25_func_802C3BF8", vram = 0x802C3BF8, size = 0x40 },
     { name = "ovlfile25_func_802C3C38", vram = 0x802C3C38, size = 0x38 },
     { name = "ovlfile25_func_802C3C70", vram = 0x802C3C70, size = 0x4C },
@@ -7062,11 +7059,8 @@ vram = 0x802C3B30
 size = 0x1D1C0
 
 functions = [
-    { name = "ovlfile26_func_802C3BA0", vram = 0x802C3BA0, size = 0x18 },
-    { name = "ovlfile26_func_802C3BB8", vram = 0x802C3BB8, size = 0x2C },
-    { name = "ovlfile26_func_802C3BE4", vram = 0x802C3BE4, size = 0x14 },
     { name = "ovlfile26_func_802C3B30", vram = 0x802C3B30, size = 0x2C },
-    { name = "ovlfile26_func_802C3B5C", vram = 0x802C3B5C, size = 0x44 },
+    { name = "ovlfile26_func_802C3B5C", vram = 0x802C3B5C, size = 0x9C },
     { name = "ovlfile26_func_802C3BF8", vram = 0x802C3BF8, size = 0x40 },
     { name = "ovlfile26_func_802C3C38", vram = 0x802C3C38, size = 0x38 },
     { name = "ovlfile26_func_802C3C70", vram = 0x802C3C70, size = 0x4C },

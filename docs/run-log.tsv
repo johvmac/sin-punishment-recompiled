@@ -92,3 +92,5 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-20T10:28:53+10:00	60	60	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	audiotest2.log	none
 2026-08-20T10:41:48+10:00	180	158	139	0	0	NA	NA	CRASHED	observed-103900.log	none
 2026-08-20T10:55:59+10:00	30	30	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	observed-105523.log	none
+2026-08-20T14:41:41+10:00	180	180	0	0	0	1	0	DEGRADED	symfix-confirm-run1.log	none
+2026-08-20T14:45:58+10:00	180	158	139	0	0	4658	30	CRASHED	symfix-confirm-run2.log	none
