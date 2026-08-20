@@ -143,3 +143,4 @@ A gap in the numbering means a roll was skipped.
 - roll #124: **EXPLOIT** (drew 0.560 vs eps 0.3) -> `A211` [witness `04030b`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #125: **EXPLOIT** (drew 0.737 vs eps 0.3) -> `A220` [witness `32ff77`] — Named as a defect in A203 and left unfiled; it has now mislabelled THREE runs including the one 
 - roll #126: **EXPLOIT** (drew 0.339 vs eps 0.3) -> `A211` [witness `61c430`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #127: **EXPLOIT** (drew 0.809 vs eps 0.3) -> `A218` [witness `f2a11d`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
