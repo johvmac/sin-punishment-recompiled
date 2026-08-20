@@ -1,5 +1,6 @@
 {
  "known": [
+  "ares_capture.sh",
   "ares_peek.py",
   "ares_watch.sh",
   "audio_capture.sh",
@@ -62,7 +63,7 @@
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 8,
+ "runs": 10,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
