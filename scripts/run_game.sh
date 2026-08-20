@@ -204,11 +204,31 @@ GFX_LINE=$(grep '^\[heartbeat\]' "$OUT" 2>/dev/null | tail -1)
 GFX_TOTAL=$(sed -nE 's/.*gfx_tasks=([0-9]+).*/\1/p' <<< "$GFX_LINE")
 GFX_RATE=$(sed -nE 's/.*gfx_tasks=[0-9]+ +\+([0-9]+).*/\1/p' <<< "$GFX_LINE")
 
+# STALLED IS NOT DEGRADED (A220). The rule above reads only the LAST heartbeat,
+# so a run that played the whole tutorial and then stopped scored identically to
+# one that never rendered a frame -- and got told "not evidence about the
+# build". It mislabelled three runs, including the one the user watched reach a
+# section this project had never rendered.
+#
+# The fix needs no new threshold: reuse the same 25/s bar and ask whether the
+# run spent MORE of its life healthy than stalled. A run that worked for 200
+# seconds and stopped for 40 is not the same object as one that never started,
+# and only the first is evidence about what the build can do.
+# `grep -c` PRINTS 0 AND EXITS 1 when there are no matches, so `|| echo 0`
+# appends a SECOND zero and the arithmetic below dies on "0\n0". Caught by
+# re-grading real logs rather than by reading this back.
+HEALTHY_SECS=$(grep -c 'gfx_tasks=[0-9]* *+\(2[5-9]\|[3-9][0-9]\)' "$OUT" 2>/dev/null || true)
+STALLED_SECS=$(grep -c 'NO GFX TASKS' "$OUT" 2>/dev/null || true)
+HEALTHY_SECS=${HEALTHY_SECS:-0}
+STALLED_SECS=${STALLED_SECS:-0}
+
 VERDICT="CLEAN"
 if   [[ "$INPUT" -gt 0 ]];                     then VERDICT="CONTAMINATED"
 elif [[ -n "$EARLY" ]];                        then VERDICT="CRASHED"
 elif [[ -z "$GFX_LINE" ]];                     then VERDICT="UNKNOWN(no SNP_HEARTBEAT)"
-elif [[ "${GFX_RATE:-0}" -lt 25 ]];            then VERDICT="DEGRADED"
+elif [[ "${GFX_RATE:-0}" -lt 25 ]]; then
+    if [[ "$HEALTHY_SECS" -gt "$STALLED_SECS" ]]; then VERDICT="STALLED"
+    else                                             VERDICT="DEGRADED"; fi
 fi
 
 printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events=%s  VERDICT=%s\n' \
@@ -216,7 +236,10 @@ printf '[run_game] ran %ss  pid=%s  log=%s (%s lines)  leftover=%s  input_events
 
 case "$VERDICT" in
   DEGRADED)
-    echo "[run_game] NOT COMPARABLE: gfx ended at +${GFX_RATE:-?}/s (healthy holds +30). This run is not evidence about the build (T22)." >&2 ;;
+    echo "[run_game] NOT COMPARABLE: gfx ended at +${GFX_RATE:-?}/s and was never sustained (${HEALTHY_SECS}s healthy vs ${STALLED_SECS}s stalled). This run is not evidence about the build (T22)." >&2 ;;
+  STALLED)
+    echo "[run_game] IT RAN, THEN STOPPED: ${HEALTHY_SECS}s at a healthy rate, then ${STALLED_SECS}s with no graphics." >&2
+    echo "[run_game] This IS evidence -- it is not rate-comparable to a CLEAN run, but the part before the stall is real (A220)." >&2 ;;
   "UNKNOWN(no SNP_HEARTBEAT)")
     echo "[run_game] No liveness signal, and SNP_HEARTBEAT defaults ON (T111) — so this is a\n[run_game] REAL anomaly, not a forgotten flag: the build may lack the hook, or the run\n[run_game] may have died before emitting one. Do not judge this run valid (T22)." >&2 ;;
 esac
