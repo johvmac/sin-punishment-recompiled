@@ -152,10 +152,15 @@ if [[ "${1:-}" == "--self-check" ]]; then
     #    passed with the code path deleted. Assembling from parts is not enough
     #    on its own: prose that explains the check will also contain the words
     #    the check looks for. Match the ASSIGNMENT, which only code can contain.
-    _rc="RCROW=\$(""tail"
-    got=0; grep -q "$_rc" "$0" && grep -q 'cut -f''4' "$0" && got=1
-    chk "records the outcome from the run log, not the runner's exit code" "$got" \
-        "would record rc=0 for a crashed run"
+    #    AND IT MUST REACH THE RECORD, NOT JUST THE TERMINAL. The first version
+    #    of this control checked only that run-log.tsv was CONSULTED -- so it
+    #    passed while the verdict was printed to the screen and left out of the
+    #    stanza entirely. **A control that verifies the mechanism instead of the
+    #    result is the same false-pass shape as control 6.** Check the template.
+    _rc="RCROW=\$(""tail"; _vt="requested, rc=\$RC (\$VER""DICT)"
+    got=0; grep -q "$_rc" "$0" && grep -q 'cut -f''4' "$0" && grep -q "$_vt" "$0" && got=1
+    chk "the run log's rc AND verdict reach the permanent record" "$got" \
+        "would record rc=0, or drop the verdict, for a crashed run"
 
     echo; echo "$((n-fails))/$n controls pass"
     [[ $fails -eq 0 ]] || exit 1
@@ -244,7 +249,7 @@ correction.
 HDR
 
 cat >> "$LOG" <<EOF
-## $STAMP — build \`$HASH\`, ${SECS}s requested, rc=$RC
+## $STAMP — build \`$HASH\`, ${SECS}s requested, rc=$RC ($VERDICT)
 - run log: \`$(basename "$RUNLOG")\`
 - **audio:** $A_AUDIO
 - **last 10s / scene:** $A_SCENE

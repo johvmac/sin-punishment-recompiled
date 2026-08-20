@@ -14,3 +14,12 @@ correction.
 - **feel:** NA
 - **CONTRADICTS MY CLAIMS:** only audio seems to be worth investigating further
 
+## 2026-08-20T10:55:23+10:00 — build `c372311fc9fe1fca`, 30s requested, rc=0
+- run log: `observed-105523.log`
+- **audio:** nothing
+- **last 10s / scene:** attract
+- **title screen:** NA
+- **how it died:** vanish
+- **feel:** NA
+- **CONTRADICTS MY CLAIMS:** no
+
