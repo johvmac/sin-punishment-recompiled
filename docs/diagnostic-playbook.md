@@ -2436,6 +2436,74 @@ and it is much cheaper now that a START press reaches the title screen in ~40 s
 
 ---
 
+## `SNP_DL_CENSUS` — how much is actually in the display list (added 2026-08-20, A234)
+
+**The question it exists for.** The tutorial draws a character and two pylons
+against black where the reference (A222) shows a city. Four explanations were
+open and nothing separated them: the geometry is never SUBMITTED, is submitted
+and SKIPPED, is drawn OFF-SCREEN, or is drawn BLACK. The first is upstream of
+the renderer and the rest are inside it, so the cheapest cut is to ask how much
+arrives at the renderer's door.
+
+**Where it measures, and why there.** At `on_displaylist_submitted` in
+`gfx_thread_func`, with the list pointer in hand at the moment it is handed
+over. RT64's parse callback is not wired (there is a standing TODO at
+`on_displaylist_parsed`), so the count has to come from walking it ourselves —
+and a live walk, because a snapshot cannot tell a live frame from a leftover.
+
+### Three design choices, each paid for by a specific failure mode
+
+**The opcode table is DETECTED, never assumed.** F3D and F3DEX2 disagree about
+the two opcodes the walk depends on (`G_DL`/`G_ENDDL` = `0xDE`/`0xDF` versus
+`0x06`/`0xB8`). The walk runs under both and a table counts only if the list
+TERMINATES CLEANLY under it. Guessing would have produced a confident wrong
+number, which is this project's single most repeated failure.
+
+**The histogram needs no table at all.** Counting commands per opcode byte is
+interpretation-free; only the WALK needs an opcode table. So the payload
+survives even if the naming of any individual opcode turns out wrong, and two
+scenes can be compared without deciding in advance which byte means "triangle".
+
+**An unresolvable branch is REJECTED, never defaulted.** Segment 0 is physical
+by convention and is pre-set; every other segment must be seen in a
+`G_MOVEWORD` before a branch through it is followed. Defaulting an unset
+segment to base 0 would turn every unresolvable branch into a plausible address
+and walk garbage confidently — the exact failure the probe was built to avoid.
+
+### The instrument's own gap was nearly reported as a fault in the GAME
+
+The first version had no segment resolution. It reported **0 % clean walks
+across the whole tutorial window against 58 % in the window just before** — a
+sharp transition exactly at the scene boundary, which reads irresistibly like a
+finding. It was not. Every one of those walks had stopped at a branch to
+`0x08000000` or `0x00040600`: ordinary segmented addresses that the walker
+refused to follow. **The stop-REASON field is what made that legible;** a bare
+`ok`/`not ok` cannot tell "the list is malformed" from "my walker is
+incomplete", and those are opposite conclusions about the game. With resolution
+added, **5,374 of 5,374 tasks terminate cleanly.**
+
+### The controls, and which of them can fail
+
+`SNP_DL_CENSUS=selftest` runs 8 controls at gfx-thread start over synthetic
+lists, needing no game state. Three discriminate:
+
+* an **unterminated** list must be REJECTED;
+* an **F3D** list must be rejected by the F3DEX2 table and accepted by the F3D one;
+* a branch into an **unset segment** must be rejected, not guessed.
+
+**Verified to fail, not merely to pass** (T65): the walker was sabotaged to
+return `ok` unconditionally, rebuilt and re-run — it scored **4/6**, and exactly
+the two discriminating controls of that version failed while the other four
+passed on a knowingly broken walker.
+
+**Twice the controls caught a bad FIXTURE rather than a bad parser** — a
+segment base that collided with the test's own base address, and a
+hand-assembled `G_MOVEWORD` with the index byte one position out. Both would
+have been invisible in a probe that only printed. Build fixture constants from
+named parts, not hex literals.
+
+---
+
 ## Tool inventory (added 2026-08-18) — check here before building anything
 
 Half of one session's friction was not knowing what already existed. Everything
@@ -2465,6 +2533,7 @@ below is installed and verified working.
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
 | **scene reference frames** | `<archive>/scene-refs/*.png` | labelled 640x480 frames from OUR build. **Never build these from the ares captures** — different renderer, ~240p + VI filtering (T88) |
 | **PIL, numpy** | system python3 | `scripts/shrink_shot.py`, capture analysis |
+| **`SNP_DL_CENSUS`** | runtime probe, `ultramodern/src/events.cpp` | **how much is in the display list the renderer is handed, per frame.** Walks it at the submission point — not from a snapshot (T69). Detects the microcode table instead of assuming it, resolves segmented branches from `G_MOVEWORD`, and prints an opcode histogram every 300 tasks. `SNP_DL_CENSUS=selftest` runs 8 controls, **3 of them verified to fail** (A234) |
 
 **No MIPS toolchain is installed, and none is needed.** m2c parses assembly as
 text; splat has already produced it. Don't go looking for `mips-linux-gnu-*`.
