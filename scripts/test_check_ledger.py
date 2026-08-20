@@ -122,6 +122,11 @@ def main():
 
     before = LEDGER.read_bytes()
     bad = 0
+    # SELF-COUNTING. This was `len(CASES) + 9`, a tally maintained by hand --
+    # and adding two checks left it reading 27/27 while 29 ran. A hard-coded
+    # expected count is the exact trap the handoff warns about (T80/T89): it
+    # makes a NEW check invisible and a REGRESSION look expected. Counted now.
+    extra = 0
     with tempfile.TemporaryDirectory() as td:
         for row, should_flag, label in CASES:
             out = run_case(row, td)
@@ -153,7 +158,7 @@ def main():
         for got, want, label in ((long_flagged, True, "a 300-word entry is COUNTED as long"),
                                  (short_flagged, False, "a 40-word entry is NOT counted")):
             ok = got == want
-            bad += not ok
+            extra += 1; bad += not ok
             print(f"{'ok  ' if ok else 'FAIL'}  flagged={got!s:<5} want={want!s:<5} {label}")
 
     # The real ledger must be untouched and must still pass cleanly.
@@ -161,7 +166,7 @@ def main():
     p = subprocess.run([sys.executable, str(CHECKER)], capture_output=True, text=True)
     real_clean = "ZZ1" not in p.stdout and "malformed cost" not in p.stdout
     print(f"\n{'ok  ' if real_clean else 'FAIL'}  real ledger unmodified and free of cost warnings")
-    bad += not real_clean
+    extra += 1; bad += not real_clean
 
     # The LAST line must disclose that reminders precede it. The
     # per-checkpoint routine pipes this through `tail -1`, which silently ate
@@ -174,7 +179,7 @@ def main():
     last = lines[-1] if lines else ""
     disclosed = (n_notes == 0) or ("note(s) above" in last)
     print(f"{'ok  ' if disclosed else 'FAIL'}  last line discloses the {n_notes} reminder(s) above it")
-    bad += not disclosed
+    extra += 1; bad += not disclosed
 
     # ...and it must disclose FINDINGS too, not only reminders.
     #
@@ -190,7 +195,7 @@ def main():
             n_probs = int(m.group(1))
     probs_disclosed = (n_probs == 0) or ("thing(s)" in last and "above" in last)
     print(f"{'ok  ' if probs_disclosed else 'FAIL'}  last line discloses the {n_probs} finding(s) above it")
-    bad += not probs_disclosed
+    extra += 1; bad += not probs_disclosed
 
     # THE ROLL WITNESS (T98), asserted BOTH WAYS in one helper. A one-sided
     # version -- "it fires when the witness is missing" -- would also pass if the
@@ -238,7 +243,7 @@ def main():
     print(f"{'ok  ' if w_ok else 'FAIL'}  roll witness: fires when uncited, silent when cited, "
           f"lags one roll  — missing={fires_when_missing}, cited-silent={silent_when_cited}, "
           f"lagged={lagged}")
-    bad += not w_ok
+    extra += 1; bad += not w_ok
 
     # SINGLE-RUN AT WRITE TIME (T99). Two-sided, and it must run the checker
     # TWICE: the first run seeds the high-water mark and deliberately flags
@@ -272,7 +277,76 @@ def main():
     print(f"{'ok  ' if sr_ok else 'FAIL'}  single-run asked at write time: fires bare, exempt on "
           f"2 logs / plural / justification  — fires={sr_fires}, two-logs={sr_two_logs}, "
           f"plural={sr_plural}, justified={sr_justified}")
-    bad += not sr_ok
+    extra += 1; bad += not sr_ok
+
+    # THE CLOSING SENTENCE, IN THE ENTRY (T120).
+    #
+    # FOUR CASES, AND THE THIRD IS THE ONE THAT MATTERS. A presence-only check
+    # is satisfied by pasting the entry's own jargon after the label -- which is
+    # precisely the sentence the rule exists to prevent -- so a control that
+    # only tested "missing fires, present does not" would pass on a useless
+    # checker. The jargon case is what makes this discriminate.
+    def sowhat_case(row):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            led = root / "docs" / "findings-ledger.md"
+            head = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+            base = "| A1 | MEASURED (2 runs) | baseline | x.log, y.log |\n"
+            led.write_text(head + base)
+            chk = [sys.executable, str(root / "scripts" / "check_ledger.py")]
+            subprocess.run(chk, capture_output=True, text=True)      # seeds the mark
+            led.write_text(head + base + row)
+            p = subprocess.run(chk, capture_output=True, text=True)
+            return "SO WHAT" in (p.stdout + p.stderr)
+
+    sw_missing = sowhat_case(
+        "| A2 | MEASURED (2 runs) | a finding with no closing sentence | a.log, b.log |\n")
+    sw_present = sowhat_case(
+        "| A3 | MEASURED (2 runs) | a finding. **SO WHAT: the game now gets further "
+        "before it stops.** | a.log, b.log |\n")
+    sw_jargon = sowhat_case(
+        "| A4 | MEASURED (2 runs) | a finding. **SO WHAT: 0x800F91B0 no longer clobbers "
+        "ctx->r16 per A188.** | a.log, b.log |\n")
+    sw_stub = sowhat_case(
+        "| A5 | MEASURED (2 runs) | a finding. **SO WHAT: done.** | a.log, b.log |\n")
+    sw_ok = sw_missing and not sw_present and sw_jargon and sw_stub
+    print(f"{'ok  ' if sw_ok else 'FAIL'}  SO WHAT asked at write time: fires when missing, "
+          f"quiet when plain, FIRES ON JARGON and on a stub — missing={sw_missing}, "
+          f"plain={sw_present}, jargon={sw_jargon}, stub={sw_stub}")
+    extra += 1; bad += not sw_ok
+
+    # ...and it must not FORGET. The single-run mark advances to the current
+    # maximum every run, so its findings are reported exactly once. Here that
+    # would erase a gap the moment it was first mentioned, so the mark stops
+    # below the lowest failure and the same gap is reported again next run.
+    def sowhat_persists():
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            led = root / "docs" / "findings-ledger.md"
+            head = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+            base = "| A1 | MEASURED (2 runs) | baseline | x.log, y.log |\n"
+            led.write_text(head + base)
+            chk = [sys.executable, str(root / "scripts" / "check_ledger.py")]
+            subprocess.run(chk, capture_output=True, text=True)
+            led.write_text(head + base +
+                           "| A2 | MEASURED (2 runs) | no sentence | a.log, b.log |\n")
+            first = subprocess.run(chk, capture_output=True, text=True)
+            second = subprocess.run(chk, capture_output=True, text=True)
+            return ("SO WHAT" in first.stdout + first.stderr,
+                    "SO WHAT" in second.stdout + second.stderr)
+
+    sw_first, sw_again = sowhat_persists()
+    sw_p_ok = sw_first and sw_again
+    print(f"{'ok  ' if sw_p_ok else 'FAIL'}  SO WHAT keeps reporting an unfixed gap "
+          f"(the mark must not step over a known failure) — first={sw_first}, "
+          f"second={sw_again}")
+    extra += 1; bad += not sw_p_ok
 
     # OBSERVED-RUN PROGRESS TRIGGER (T101). Two-sided, because a trigger that
     # fires on every run is noise that costs the USER's time, and one that never
@@ -299,7 +373,7 @@ def main():
     print(f"{'ok  ' if pr_ok else 'FAIL'}  observed-run progress trigger: fires on survival, "
           f"quiet on a normal crash and a short run  — survived={survived}, "
           f"normal-crash={normal}, short={shortrun}")
-    bad += not pr_ok
+    extra += 1; bad += not pr_ok
 
     # THE COMPOSING-STEP CHECK (T112). Three directions, because the failure
     # modes are opposite: not firing at all (T57 stays prose), or firing on
@@ -336,9 +410,9 @@ def main():
     print(f"{'ok  ' if c_ok else 'FAIL'}  composing-step check: fires cross-date, silent when marked / "
           f"single-date / withdrawn  — fires={c_fires}, marked={c_marked}, "
           f"single={c_single}, wd={c_wd}")
-    bad += not c_ok
+    extra += 1; bad += not c_ok
 
-    total = len(CASES) + 9
+    total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 

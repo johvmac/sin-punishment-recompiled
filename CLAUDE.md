@@ -53,6 +53,14 @@ that distinction is the whole point of the sentence.
 closing one at the end — and `scripts/test_route.py` asserts each is defined,
 is printed, and (for the opening one) is printed *before* the roll it refers to.
 
+**THE CLOSING SENTENCE ALSO GOES IN THE ENTRY, as `SO WHAT: <sentence>` (T120).**
+Saying it aloud is not enough: it was the only part of a checkpoint with no
+mechanical check, and it is the part that got skipped — on the same checkpoint
+that drifted. `check_ledger.py` now asks at write time, and it checks the
+sentence is **plain**, not merely present: an address, an entry ID, a filename
+or a register fails it. Everything that was checked survived; the one thing
+that was not, did not.
+
 ## New tools — three gates (T71)
 
 Before a new tool's output counts as evidence:

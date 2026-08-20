@@ -584,6 +584,104 @@ def main():
         except Exception:
             pass
 
+    # 4e. THE CLOSING SENTENCE, IN THE ENTRY (T120).
+    #
+    # WHY IT MOVED INTO THE LEDGER. `route.py` has always printed "close this
+    # checkpoint with one plain-language sentence". On 2026-08-20 the user asked
+    # what had happened to it, and the answer was: written for 5 checkpoints of
+    # 6, skipped on the one that also drifted (T119), and absent entirely from
+    # every piece of user-directed work that day -- which was most of it.
+    #
+    # THE REASON IT IS THE PART THAT SLIPS: it was the ONLY element of a
+    # checkpoint with no mechanical check. The roll lands in route-log.md, the
+    # finding in the ledger, the change in git; the sentence existed only in
+    # chat, where nothing could notice its absence. `test_route.py` asserts that
+    # route.py PRINTS the requirement -- never that anyone met it. Everything
+    # that was checked survived that day; the one thing that was not, did not.
+    #
+    # So it now lives in the entry, where check_ledger can see it.
+    #
+    # TWO CHECKS, AND THE SECOND IS THE DISCRIMINATING ONE. Presence alone is
+    # satisfied by pasting the entry's own jargon after the label, which is
+    # exactly the sentence the rule exists to prevent -- CLAUDE.md's wording is
+    # "no hex, no entry IDs, no tool names". So the text is also checked for
+    # being plain: an address, an entry ID, a filename, a register or a `ctx->`
+    # expression means it was not written for a human.
+    _swp = LEDGER.parent / ".check-ledger-state.json"
+    try:
+        _sws = json.loads(_swp.read_text()) if _swp.exists() else {}
+    except Exception:
+        _sws = {}
+    # BOOTSTRAP, done once and recorded in the state file rather than in code.
+    # A baseline seeded to the current maximum makes a new checker's first real
+    # run find nothing, and T100 says that is the case to SUSPECT rather than
+    # celebrate. So on 2026-08-20 this was seeded by hand to the session
+    # boundary (A187/T117) instead, and its first run reported 15 genuine gaps
+    # -- every entry written that day, including the ones being written while it
+    # was built. That bootstrap is spent; the mark now lives in the state file.
+    #
+    # The default below is the ordinary one -- start from here -- because a
+    # hard-coded boundary would silently make this check INERT for any ledger
+    # whose IDs are lower than it, including every test fixture.
+    _swcur = {}
+    for eid in rows:
+        m = re.match(r"([A-Z]+)(\d+)", eid)
+        if m:
+            _swcur[m.group(1)] = max(_swcur.get(m.group(1), 0), int(m.group(2)))
+    _swb = _sws.get("sw_baseline", _swcur)
+    JARGON = [
+        (r"0[xX][0-9A-Fa-f]{2,}", "an address"),
+        (r"\b[ATBI]\d{1,3}\b", "an entry ID"),
+        (r"scripts/|\.py\b|\.sh\b|\.log\b|\.toml\b|\.c:\d|\bgdb\b", "a tool or filename"),
+        (r"ctx->|\$[a-z]\d|\$sp\b|\$ra\b", "a register or generated-code expression"),
+    ]
+    _swfail = {}
+    for eid, (tag, body, n) in rows.items():
+        m = re.match(r"([A-Z]+)(\d+)", eid)
+        if not m or int(m.group(2)) <= _swb.get(m.group(1), 10 ** 9):
+            continue
+        pre, num = m.group(1), int(m.group(2))
+
+        def _fail(msg):
+            _swfail[pre] = min(_swfail.get(pre, 10 ** 9), num)
+            problems.append((n, msg))
+
+        blob = tag + " " + body
+        got = re.search(r"SO WHAT:\s*(.+?)(?:\*\*|\||$)", blob, re.S)
+        if not got:
+            _fail(f"{eid}: has no SO WHAT line. One plain sentence saying what this "
+                  f"achieved -- no hex, no entry IDs, no tool names. 'Nothing moved "
+                  f"forward, I fixed a measuring instrument' is a valid answer and "
+                  f"exposing that is the point (T120).")
+            continue
+        sentence = got.group(1).strip()
+        if len(sentence) < 15:
+            _fail(f"{eid}: its SO WHAT is too short to be a sentence.")
+            continue
+        for pat, what in JARGON:
+            if re.search(pat, sentence):
+                _fail(f"{eid}: its SO WHAT contains {what}, so it is not plain "
+                      f"language. Rewrite it for someone who has not read the "
+                      f"entry (T120): \"{sentence[:70]}...\"")
+                break
+    if not hook:
+        # THE MARK MUST NOT STEP OVER A KNOWN FAILURE. The single-run check
+        # advances its baseline to the current maximum every run, so anything it
+        # reports is reported EXACTLY ONCE and then forgotten -- tolerable there
+        # because that check fires rarely. Here it would mean today's missing
+        # sentences vanish from the record the moment they are first mentioned,
+        # which is the opposite of moving the discipline somewhere it can be
+        # seen. So the mark stops one below the lowest still-failing entry, and
+        # a gap keeps being reported until it is actually filled.
+        _swnew = dict(_swcur)
+        for pre, lowest in _swfail.items():
+            _swnew[pre] = min(_swnew.get(pre, lowest - 1), lowest - 1)
+        _sws["sw_baseline"] = _swnew
+        try:
+            _swp.write_text(json.dumps(_sws, indent=1))
+        except Exception:
+            pass
+
     # 4d. THE ROLL WITNESS (T98). route.py stamps each roll with a random token
     # and records it in route-log.md. Quoting it proves the tool ran, because it
     # cannot be written before it existed -- T91 fabricated a whole roll line and
