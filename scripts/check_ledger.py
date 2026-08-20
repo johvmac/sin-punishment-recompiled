@@ -245,10 +245,41 @@ def main():
     supersedes = re.compile(
         r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~)", re.I)
     NEAR = 150
+
+    # CITING A WITHDRAWN ENTRY AS A CAUTIONARY EXAMPLE (T126).
+    #
+    # Six findings in one day were all this shape: entries naming A161 or A196
+    # as "the mistake this is an instance of". None RESTED on the withdrawn
+    # claim being true -- a withdrawn entry is the BEST example of its own error
+    # class, and its withdrawal strengthens the citation rather than weakening
+    # it. The correction-word exemption above does not cover it, because
+    # nothing is being corrected.
+    #
+    # THE WAIVER IS DELIBERATE AND NAMES THE ENTRY, for the reason the comment
+    # above gives: an entry-level match on ordinary prose once exempted 62 of
+    # 185 rows, including the very case this check exists for. `CITED AS
+    # PRECEDENT` is a token nobody writes by accident, and it must appear
+    # within 200 characters of the ID it excuses -- so it waives ONE named
+    # citation, not every withdrawn entry a row happens to mention.
+    #
+    # Same shape as the single-run waiver: you may do it, but you must say you
+    # thought about it, and say which one.
+    # THE MARKER MUST NAME THE ENTRY IMMEDIATELY, not merely nearby. The first
+    # version allowed the ID anywhere within 200 characters, and its own control
+    # caught it: a marker reading "CITED AS PRECEDENT: ZZ8 ..." silenced a
+    # separate citation of ZZ9 further along the same row, because ZZ9 fell
+    # inside the window. That is a blanket off-switch on the highest-value
+    # check here -- the exact failure this waiver was written to avoid.
+    def _precedent(body_text, w):
+        return re.search(rf"CITED AS PRECEDENT[:\s]*\**\s*(?<![\w./]){w}(?![\w./])",
+                         body_text, re.S) is not None
+
     for eid, (tag, body, n) in rows.items():
         if is_withdrawn(tag):
             continue
         for w in sorted(withdrawn):
+            if _precedent(body, w):
+                continue
             for m in re.finditer(rf"(?<![\w./]){w}(?![\w./])", body):
                 window = body[max(0, m.start() - NEAR):m.end() + NEAR]
                 if supersedes.search(window):

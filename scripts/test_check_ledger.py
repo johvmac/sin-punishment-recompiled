@@ -73,6 +73,32 @@ CASES = [
      f"| ZZ1 | WD | This cites ZZ9 but is itself withdrawn | 2026-01-01 |",
      False, "a withdrawn row citing a withdrawn row is not a problem"),
 
+    # --- CITED AS PRECEDENT (T126) ----------------------------------------
+    # A waiver on the highest-value check is the most dangerous thing in this
+    # file. The ONLY control that matters is the third: a marker naming a
+    # DIFFERENT entry must NOT silence the citation. Without it the token is a
+    # blanket off-switch, and an entry-level match once exempted 62 of 185
+    # rows including the very case this check exists for.
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | this rests on ZZ9 with no acknowledgement | 2026-01-01 |",
+     True,  "a BARE citation of a withdrawn entry still fires"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | the sampling error ZZ9 records. CITED AS PRECEDENT: ZZ9 is "
+     f"withdrawn and named as an example, not relied upon | 2026-01-01 |",
+     False, "the marker naming THAT entry waives it"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ8 | WD | Another retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | CITED AS PRECEDENT: ZZ8 is an example. Separately this "
+     f"rests on ZZ9 | 2026-01-01 |",
+     True,  "THE ONE THAT MATTERS: a marker naming a DIFFERENT entry does NOT waive"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | CITED AS PRECEDENT: some other point entirely. "
+     f"{'padding text ' * 30} and this rests on ZZ9 | 2026-01-01 |",
+     True,  "a marker FAR from the citation does not waive it"),
+
     # --- MERGED stubs must point somewhere real (T53) ---------------------
     # A stub that names a missing target manufactures T21's dangling citation
     # out of our own housekeeping, which is why this is checked rather than

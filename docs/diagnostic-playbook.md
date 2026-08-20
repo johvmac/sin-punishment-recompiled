@@ -2950,6 +2950,14 @@ failures, none of which need judgement:
    replacement are exempted by wording ("supersedes", "corrects", "retract");
 4. duplicate IDs (six appeared in one session of incremental edits).
 
+**Citing a withdrawn entry AS AN EXAMPLE is allowed, with a named waiver (T126).**
+`CITED AS PRECEDENT: <ID>` waives exactly that one citation. A withdrawn
+entry is the best example of its own error class, and six findings in one day
+were all that shape. **The ID must follow the marker DIRECTLY** — the first
+version allowed it anywhere within 200 characters, and its own control caught
+a marker naming one entry silencing a citation of another. That would have
+been a blanket off-switch on the highest-value check here.
+
 **5. A MISSING OR JARGON-LADEN `SO WHAT:` LINE (T120).** Every entry written
 after the 2026-08-20 mark must carry one plain sentence saying what the work
 achieved — the checkpoint-closing sentence, moved out of chat and into the
