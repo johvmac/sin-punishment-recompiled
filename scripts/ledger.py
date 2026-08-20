@@ -37,6 +37,7 @@ Usage:
     scripts/ledger.py --open               # the frontier, cost-ranked by route.py
     scripts/ledger.py --wd                 # withdrawn entries (index form)
     scripts/ledger.py --cited-by A54       # what rests on A54
+    scripts/ledger.py --chain A99          # the correction chain, chronological
     scripts/ledger.py --self-check         # ALWAYS, before trusting output
 """
 import re
@@ -278,6 +279,118 @@ def cmd_cited_by(rows, target):
     return 0
 
 
+
+# The correction verbs, in the forms the ledger actually uses. Kept as one list
+# so --chain and the self-check cannot drift apart.
+CHAIN_VERBS = (r"CORRECTED(?: IN PART)? by|REFUTED by|WITHDRAWN by|WD (?:IN PART )?"
+               r"(?:as to [a-z ]+ )?by|SUPERSEDED by|CLOSED by|UPGRADED by|"
+               r"SCOPE-FLAGGED by|ANSWERED by|corrects|refutes|supersedes")
+
+
+def _roll_of(row):
+    """(roll, date) for ordering. Rolls are the project's real clock; dates tie-break."""
+    m = re.search(r"roll #(\d+)", row[4])
+    d = re.search(r"(\d{4}-\d{2}-\d{2})", row[3] or "")
+    return (int(m.group(1)) if m else -1, d.group(1) if d else "")
+
+
+def cmd_chain(rows, target):
+    """Chronological correction/citation chain for one entry.
+
+    WHY (T110): A99's third circle ran ~15 rolls because nobody could SEE the
+    shape of the argument while it was happening -- which entry corrected which,
+    in what order, and how many corrections were corrections-of-corrections.
+    Reconstructing that by hand took hours in the 2026-08-20 retrospective. This
+    derives the skeleton in a second, so a circle is visible while there is
+    still time to break it.
+
+    It is a SKELETON, not a narrative: it says WHO corrected WHOM and WHEN. It
+    never says what was established -- same rule as --index (read the entries).
+    """
+    t = target.upper()
+    by_id = {r[0].upper(): r for r in rows}
+    if t not in by_id:
+        print(f"[ledger] no entry {t}", file=sys.stderr)
+        return 2
+    idpat = re.compile(r"\b([ABTIL]\d{1,3}[a-z]?)\b")
+    verb = re.compile(CHAIN_VERBS, re.I)
+
+    # TRAVERSE THE CORRECTION GRAPH, NOT THE CITATION GRAPH.
+    #
+    # The first version followed every citation transitively and returned 267 of
+    # 296 entries for A99 -- true, useless, and exactly the failure mode a new
+    # checker is supposed to surprise you with on day one (T100). Nearly
+    # everything cites nearly everything eventually.
+    #
+    # An edge exists only where a CORRECTION VERB sits within NEAR characters of
+    # the citation, i.e. "X corrected/refuted/withdrew Y" -- the relationship the
+    # narrative is actually made of. Same windowing principle as check_ledger's
+    # withdrawn-citation exemption (T48): a verb anywhere in a 900-word row says
+    # nothing about a citation at the other end of it.
+    NEAR = 120
+
+    def edges(row):
+        out = set()
+        for m in idpat.finditer(row[4]):
+            x = m.group(1).upper()
+            if x == row[0].upper() or x not in by_id:
+                continue
+            w = row[4][max(0, m.start() - NEAR):m.end() + NEAR]
+            if verb.search(w):
+                out.add(x)
+        return out
+
+    # SEED with the entries that cite the target at DEPTH 1 -- the investigation
+    # OF it -- then close over correction edges only. Without the seed the chain
+    # stops at entries that correct the target and misses the work done under it
+    # (A99's whole 2026-08-20 cluster investigates A99 without correcting it).
+    # Without the correction-only closure it returns the entire ledger.
+    tpat = re.compile(rf"\b{re.escape(t)}\b")
+    seed = {eid for eid, r in by_id.items() if tpat.search(r[4].upper())}
+    seen = {t} | seed
+    frontier = list(seen)
+    while frontier:
+        cur = frontier.pop()
+        row = by_id.get(cur)
+        if row:
+            for x in edges(row) - seen:
+                seen.add(x); frontier.append(x)
+        for eid, r in by_id.items():          # who corrected THIS one
+            if eid not in seen and cur in edges(r):
+                seen.add(eid); frontier.append(eid)
+
+    chain = sorted((by_id[e] for e in seen), key=_roll_of)
+    corrections = 0
+    print(f"# CHAIN for {t}: {len(chain)} entries, ordered by roll then date.")
+    print(f"# A SKELETON -- who corrected whom and when. It never says what was "
+          f"established; read the entries (--show).\n")
+    for r in chain:
+        roll, date = _roll_of(r)
+        tag = tag_of(r[1])[:20]
+        corrected = bool(verb.search(r[1]))
+        corrections += corrected
+        mark = "  <-- corrected/withdrawn" if corrected else ""
+        rl = f"#{roll}" if roll >= 0 else "--"
+        print(f"{r[0]:6} roll {rl:>5}  {date:10}  {tag:20}{mark}")
+    # A LIFETIME AVERAGE HIDES A CIRCLE. Circles are LOCAL: A99's whole chain
+    # averages ~26% corrections, while its third circle (rolls #84-#103) was far
+    # denser. Averaging over three days dilutes exactly the signal that matters,
+    # so the recent window is reported separately and is what triggers the
+    # warning. "Am I circling?" is a question about now, not about the mean.
+    WIN = 15
+    recent = chain[-WIN:] if len(chain) > WIN else chain
+    rc = sum(1 for r in recent if verb.search(r[1]))
+    print(f"\n# {corrections} of {len(chain)} entries carry a correction verb "
+          f"({100*corrections//max(len(chain),1)}% lifetime).")
+    print(f"# Last {len(recent)}: {rc} corrections ({100*rc//max(len(recent),1)}% recent).")
+    if len(recent) >= 6 and rc * 3 >= len(recent):
+        print("#\n# **A THIRD OR MORE OF THE RECENT WINDOW IS CORRECTIONS. That is the shape "
+              "of a circle.**\n# Apply the IMPOSSIBLE-RESULT RULE before the next experiment: "
+              "enumerate the premises\n# under the disagreement and attack the least-verified "
+              "one -- do NOT run another\n# experiment under them (T107). A99's third circle "
+              "cost ~15 rolls to a premise\n# that fell in two greps.")
+    return 0
+
 # Controls. Each asserts something a degenerate version of this tool would fail.
 # A tool that sits between you and the evidence can lie confidently -- three did
 # in one session (T61, T64, T66) -- so this is asserted, not eyeballed.
@@ -343,6 +456,47 @@ def self_check():
     checks.append(("--show names the entries it cites", ok,
                    "A97's footer lists A104" if ok else "footer absent or missing A104"))
 
+    # --- --chain (T110) ----------------------------------------------------
+    # THE CONTROL THAT MATTERS IS THE BOUND. The first version followed every
+    # citation transitively and returned 267 of 296 entries for A99 -- true,
+    # useless, and caught only because the output was obviously absurd. A chain
+    # that returns most of the ledger is not a chain.
+    import io as _io, contextlib as _ctx
+    def _chain(tid):
+        buf = _io.StringIO()
+        with _ctx.redirect_stdout(buf):
+            rc = cmd_chain(rows, tid)
+        return rc, buf.getvalue()
+
+    rc_c, out_c = _chain("A99")
+    _m = re.search(r"CHAIN for A99: (\d+) entries", out_c)
+    n_chain = int(_m.group(1)) if _m else 10**6
+    checks.append((f"--chain is BOUNDED (A99 -> {n_chain} of {len(rows)})",
+                   rc_c == 0 and n_chain < len(rows) * 0.5,
+                   f"{n_chain} entries; one returning most of the ledger is not a chain"))
+
+    # It must reach the RECENT work, not stop at the last entry that happens to
+    # correct the target. A99's 2026-08-20 cluster investigates it without
+    # correcting it, and that is the part a live reader needs.
+    checks.append(("--chain reaches the most recent work on the target",
+                   "roll  #10" in out_c or "roll  #9" in out_c,
+                   "reaches the latest rolls" if ("roll  #10" in out_c or "roll  #9" in out_c)
+                   else "stops before the latest rolls"))
+
+    # DISCRIMINATION, both directions: the circle warning must fire on a dense
+    # chain and stay silent on a sparse one. A warning that always fires is
+    # noise, and noise is how a discipline stops being read (T29).
+    _, out_a97 = _chain("A97")
+    fires99 = "shape of a circle" in out_c
+    fires97 = "shape of a circle" in out_a97
+    checks.append(("circle warning fires on A99, silent on A97 (discriminates)",
+                   fires99 and not fires97, f"A99={fires99}, A97={fires97}"))
+
+    # An unknown ID must refuse, never return an empty chain that reads as
+    # "nothing corrected this".
+    rc_bad, _ = _chain("ZZ999")
+    checks.append(("--chain refuses an unknown ID", rc_bad == 2, f"rc={rc_bad}, want 2"))
+
     for name, ok, detail in checks:
         bad += not ok
         print(f"{'ok  ' if ok else 'FAIL'}  {name:52} — {detail}")
@@ -370,6 +524,9 @@ def main():
     if cmd == "--grep":
         return cmd_grep(rows, a[1]) if len(a) > 1 else (
             print("[ledger] --grep needs a term", file=sys.stderr) or 2)
+    if cmd == "--chain":
+        return (cmd_chain(rows, a[1]) if len(a) > 1 else
+                (print("[ledger] --chain needs an ID", file=sys.stderr) or 2))
     if cmd == "--cited-by":
         return cmd_cited_by(rows, a[1]) if len(a) > 1 else (
             print("[ledger] --cited-by needs an ID", file=sys.stderr) or 2)
@@ -380,7 +537,7 @@ def main():
     # An unrecognised flag must never fall through to a default action. It did
     # once in route.py and consumed a routing roll (T37).
     print(f"[ledger] unknown argument: {cmd}", file=sys.stderr)
-    print(f"[ledger] known: --index --show --grep --open --wd --cited-by "
+    print(f"[ledger] known: --index --show --grep --open --wd --cited-by --chain "
           f"--self-check --help", file=sys.stderr)
     return 2
 

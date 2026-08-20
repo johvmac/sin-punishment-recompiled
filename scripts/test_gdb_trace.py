@@ -143,6 +143,44 @@ def main():
     rc6, _ = gen(args=[LOC1, COND1, "ctx->r4, ctx->r5, ctx->r6", "150", "280"])
     add("refuses 3 printf args for the first site", rc6 == 2, f"rc={rc6}, want 2")
 
+    # --- WATCH MODE (T109) ------------------------------------------------
+    # Four controls, each guarding a way the mode fails SILENTLY -- which is
+    # the danger, because a watchpoint that never installs produces a clean,
+    # empty, confident log.
+    rcw, w = gen(args=["--watch", LOC1, "ctx->r16",
+                       "((ctx->r16 & 0xFFFFFFFF) == 0x8013C270)",
+                       "ctx->r16, ctx->r29, $_thread, ctx->r31", "155", "360"])
+    add("watch mode generates a script", rcw == 0 and "watch -l" in w, f"rc={rcw}")
+
+    # ORDER IS THE WHOLE DESIGN. `ctx` is a function parameter, so it is only in
+    # scope inside a recompiled function. A `watch` issued before the anchor
+    # breakpoint has been HIT cannot resolve the address -- gdb would error and
+    # the run would proceed with no watchpoint at all.
+    i_anchor = w.find("break " + LOC1)
+    i_cont = w.find("continue", i_anchor) if i_anchor >= 0 else -1
+    i_watch = w.find("watch -l")
+    add("watch is installed AFTER the anchor is hit (ctx in scope)",
+        0 <= i_anchor < i_cont < i_watch,
+        f"anchor@{i_anchor}, continue@{i_cont}, watch@{i_watch}")
+
+    # Without this the anchor keeps stopping the inferior on every walker entry
+    # and the run never reaches the fault.
+    add("the anchor breakpoint is DELETED once used", "delete 1" in w,
+        "present" if "delete 1" in w else "MISSING — anchor would stop every entry")
+
+    # THE INSTALLATION CONTROL. A conditional watchpoint has no free reach
+    # counter (its hit count only counts condition-true stops), so `info
+    # watchpoints` printed right after creation is what distinguishes "never
+    # fired" from "never existed".
+    i_info = w.find("info watchpoints")
+    add("prints info watchpoints immediately after creation (the control)",
+        0 <= i_watch < i_info, f"watch@{i_watch}, info@{i_info}")
+
+    # T47: a watch log is evidence.
+    _leak = "/tmp/gdb_watch" in w.replace("mktemp /tmp/gdb_watch", "")
+    add("watch mode does not default its log to /tmp (T47)", not _leak,
+        "archive path" if not _leak else "WOULD WRITE EVIDENCE TO /tmp")
+
     bad = 0
     for name, ok, detail in checks:
         bad += not ok

@@ -2450,6 +2450,8 @@ below is installed and verified working.
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
 | `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
+| `scripts/gdb_trace.sh --watch` | repo | **the only instrument here that needs no LIST.** Anchors on a line to resolve `ctx`, then installs a location watchpoint — catches ANY writer without anyone enumerating them. **Arm LATE; it stops on every write.** 4 controls, verified to fail (T109) |
+| `scripts/ledger.py --chain` | repo | **the correction chain, chronological** — makes a circle visible while it is happening. Reports the correction rate lifetime AND over the last 15; warns at 1/3 recent. Skeleton only, never says what was established (T110) |
 | **`docs/instrument-semantics.md`** | repo | **what a reading MEANS** — `ctx` is per-THREAD, breakpoints fire BEFORE their line, reach counts scale with the arm window, RDRAM snapshots are host-endian. **Read before designing any condition.** Every row names the incident that paid for it (T108) |
 | `scripts/audio_capture.sh` | repo | **game-ONLY audio capture, routed BEFORE launch** via `PULSE_SINK` so nothing is missed at startup (T104). One LOSSLESS FLAC pass, master removed. **Isolation asserted behaviourally by a two-tone control.** `prepare`/`finish`/`attach`, `--self-check` (4), `--dry-run`, `--cleanup` |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
@@ -2586,6 +2588,89 @@ would see "does not fire" and read it as a passing negative.
 
 Controls verified to fail in both directions: exemption widened to always-exempt →
 `fires=False`; plural exemption removed → fires on a legitimate 2-run entry.
+
+---
+
+## `ledger.py --chain <id>` — see the circle while it is happening (added 2026-08-20, T110)
+
+Reconstructing A99's shape by hand took hours in the retrospective, and by then
+the ~15 rolls were already spent. **This derives the skeleton in a second.**
+
+It prints every entry in the target's chain, ordered by roll, marking those
+carrying a correction verb — then reports the correction rate **twice**:
+
+* **lifetime**, over the whole chain, and
+* **over the last 15**, which is the one that triggers the warning.
+
+**A lifetime average hides a circle.** A99's full chain averages 26%
+corrections; its recent window ran 40%. Circles are *local* — averaging over
+three days dilutes exactly the signal that matters. *"Am I circling?"* is a
+question about now.
+
+At ≥1/3 corrections in the recent window it prints the **impossible-result
+rule** verbatim, because that is the moment the rule applies.
+
+**Two design decisions, both paid for on the first run:**
+
+* **It traverses the CORRECTION graph, not the citation graph.** The first
+  version followed citations transitively and returned **267 of 296 entries**
+  for A99 — true and useless. An edge now requires a correction verb within
+  120 characters of the citation (same windowing principle as T48).
+* **It is SEEDED with depth-1 citations of the target.** Correction edges alone
+  stopped at roll #87 and missed A99's entire 2026-08-20 cluster, which
+  investigates it without correcting it — the part a live reader most needs.
+
+**It is a skeleton, never a narrative.** It says who corrected whom and when; it
+never says what was established. Same rule as `--index`: read the entries.
+
+Controls (10 total, 6 -> **10**), verified to fail: the **bound** (reverting to
+citation traversal → `267 of 296`, FAIL), recency, warning **discrimination**
+(forced always-on → fires on both → FAIL), and unknown-ID refusal.
+
+```bash
+scripts/ledger.py --chain A99
+```
+
+---
+
+## `gdb_trace.sh --watch` — the instrument that needs no list (added 2026-08-20, T109)
+
+**Every other mode here needs an enumeration** — of sites, of callees, of
+writers — and A99's third circle is what enumeration failure costs. "`$s0` has
+exactly two writers" was counted inside ONE function while `ctx` is per-THREAD:
+**9,199 write sites exist, so the list was 0.02% complete**, and six
+well-controlled experiments ran on top of it. A watchpoint catches a writer
+**without anyone naming it first.**
+
+**Why it needs an anchor.** `ctx` is a function parameter, so it is only in
+scope inside a recompiled function; the address cannot be resolved cold. The
+sequence is: arm late → break once at an anchor line → resolve `ctx` there →
+`watch -l` (address fixed at that moment) → **delete the anchor** → continue.
+Skipping the delete leaves the anchor stopping the inferior on every entry and
+the run never reaches the fault.
+
+**ARM LATE — this is the cost, and it is real.** gdb stops on *every* write to
+that address to evaluate the condition. At arm=155 s the walker is entered ~15
+times; at arm=1 s it is ~210,000. **This mode is for the last seconds of a run.**
+
+**Its control is weaker than the other modes' and you must compensate.** A
+conditional watchpoint's hit count only counts stops where the condition held,
+so there is no free reach counter. Two substitutes, both printed:
+
+* `info watchpoints` **immediately after creation** — an uninstalled watchpoint
+  is the silent failure, producing a clean, empty, confident log;
+* **run a POSITIVE CONTROL first** — watch for a value you already know occurs.
+  A zero from an unvalidated watch condition means nothing (I1/I13).
+
+Controls (in `test_gdb_trace.py`, 15 -> **19**), each verified to fail: script
+generation; watch-after-anchor ordering (reordered → FAIL); anchor deletion
+(removed → FAIL); the installation print; and the T47 log path.
+
+```bash
+scripts/gdb_trace.sh --watch funcs_4.c:228 'ctx->r16' \
+  '((ctx->r16 & 0xFFFFFFFF) == 0x8013C270)' \
+  'ctx->r16, ctx->r29, $_thread, ctx->r31' 155 360
+```
 
 ---
 

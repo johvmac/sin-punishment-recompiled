@@ -63,6 +63,115 @@ case "${1:-}" in
 esac
 cd "$(dirname "$0")/.." || exit 1
 
+# --- WATCH MODE (T109) ---------------------------------------------------
+# WHY IT EXISTS: every trace mode above needs a LIST -- of sites, of callees, of
+# writers. A180/A183/A184 showed the list is exactly what fails: "$s0 has two
+# writers" was counted inside ONE function while `ctx` is per-THREAD, so 9,199
+# write sites existed and the enumeration was 0.02% complete. **A watchpoint
+# needs no list.** It is the only instrument here that catches a writer without
+# anyone naming it first.
+#
+# WHY IT NEEDS AN ANCHOR: `ctx` is a function parameter, so it is only in scope
+# inside a recompiled function. The address cannot be resolved from cold. So:
+# arm late -> break once at an anchor line -> resolve `ctx` there -> install a
+# LOCATION watchpoint (`watch -l`, address fixed at that moment) -> drop the
+# anchor -> continue.
+#
+# COST, STATED PLAINLY: gdb stops on EVERY write to that address to evaluate the
+# condition. On a per-thread context written by every function, that is a lot.
+# ARM LATE. At arm=155 the walker is entered ~15 times; at arm=1 it is ~210,000.
+# This mode is for the last seconds of a run, not for a whole one.
+#
+# THE CONTROL IS DIFFERENT FROM THE OTHER MODES, and weaker: a conditional
+# watchpoint's hit count only counts stops where the condition held, so there is
+# no free "reach counter". Two things substitute, and BOTH are printed:
+#   * the script verifies the watchpoint was INSTALLED (`info watchpoints` right
+#     after creation) -- an uninstalled watchpoint is the silent failure here;
+#   * you are expected to run a POSITIVE CONTROL first: watch for a value you
+#     already know occurs. A zero from an unvalidated watch condition means
+#     nothing (I1/I13).
+if [[ "${1:-}" == "--watch" ]]; then
+    shift
+    W_ANCHOR="${1:?usage: gdb_trace.sh --watch <anchor file:line> <watch-expr> <cond> <printf-args> [arm_s] [deadline_s] [log] [bin]}"
+    W_EXPR="${2:?need the expression to watch, e.g. ctx->r16}"
+    W_COND="${3:?need a condition -- an unconditional watch on a per-thread ctx field will not finish}"
+    W_ARGS="${4:?need printf arguments}"
+    W_ARM="${5:-155}"
+    W_DEAD="${6:-360}"
+    _wdir="${SNP_EVIDENCE_DIR:-/media/joh/extra/sin-punishment-archive/evidence/$(date +%Y-%m-%d)}"
+    if [[ -z "${7:-}" ]] && ! mkdir -p "$_wdir" 2>/dev/null; then
+        echo "ERROR: cannot write $_wdir -- refusing to fall back to /tmp (T47)." >&2
+        exit 1
+    fi
+    W_LOG="${7:-$_wdir/gdb_watch-$(date +%H%M%S).log}"
+    W_BIN="${8:-./build-debug/SinPunishmentRecompiled}"
+    case "$W_BIN" in
+        *build-debug*) ;;
+        *) echo "WARNING: $W_BIN is not build-debug; ctx will not resolve (T85/A122)." >&2 ;;
+    esac
+    W_SCRIPT="$(mktemp /tmp/gdb_watch_XXXXXX.gdb)"
+    {
+        echo "set pagination off"; echo "set confirm off"; echo "set print elements 0"
+        echo "python"
+        echo "import threading, gdb"
+        echo "def arm():"
+        echo "    import time; time.sleep(${W_ARM})"
+        echo "    gdb.post_event(lambda: gdb.execute(\"interrupt\"))"
+        echo "def deadline():"
+        echo "    import time, os, signal; time.sleep(${W_DEAD})"
+        echo "    os.killpg(os.getpgid(0), signal.SIGKILL)"
+        echo "threading.Thread(target=arm, daemon=True).start()"
+        echo "threading.Thread(target=deadline, daemon=True).start()"
+        echo "end"
+        echo ""
+        echo "run"
+        echo ""
+        echo "echo \\n===== ARMED, RESOLVING ctx AT THE ANCHOR =====\\n"
+        echo "break ${W_ANCHOR}"
+        echo "continue"
+        echo "delete 1"
+        echo "watch -l ${W_EXPR} if ${W_COND}"
+        echo "echo \\n===== WATCHPOINT INSTALLED -- THE CONTROL =====\\n"
+        echo "info watchpoints"
+        echo "commands"
+        echo "silent"
+        echo "printf \"WATCH %08X %08X %08X %08X\\n\", ${W_ARGS}"
+        echo "bt"
+        echo "continue"
+        echo "end"
+        echo "echo \\nFIELDS (in WATCH order): ${W_ARGS}\\n"
+        echo "echo \\n===== CONTINUING =====\\n"
+        echo "continue"
+        echo "echo \\n===== STOPPED (fault, or deadline) =====\\n"
+        echo "bt"
+        echo "echo \\n===== WATCHPOINT COUNTS -- THE CONTROL =====\\n"
+        echo "info watchpoints"
+        echo "quit"
+    } > "$W_SCRIPT"
+    if [[ -n "${SNP_TRACE_DRYRUN:-}" ]]; then
+        echo "=== generated gdb WATCH script (SNP_TRACE_DRYRUN, not launching) ==="
+        cat "$W_SCRIPT"; rm -f "$W_SCRIPT"; exit 0
+    fi
+    # shellcheck source=scripts/display_isolate.sh
+    . "$(dirname "$0")/display_isolate.sh"
+    snp_isolate_display gdb_watchmode
+    trap 'rm -f "$W_SCRIPT"; snp_display_cleanup' EXIT INT TERM
+    echo "launching $W_BIN under gdb; WATCH ${W_EXPR} anchored at ${W_ANCHOR}, arm ${W_ARM}s, deadline ${W_DEAD}s..."
+    SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 \
+        setsid stdbuf -oL -eL gdb -batch -x "$W_SCRIPT" --args "$W_BIN" > "$W_LOG" 2>&1
+    echo "gdb exited; log: $W_LOG ($(wc -l < "$W_LOG") lines)"
+    echo "watch hits: $(grep -c '^WATCH ' "$W_LOG" 2>/dev/null || true)"
+    _self_exe="$(readlink -f "$W_BIN" 2>/dev/null)"
+    for _pid in $(pgrep -f SinPunishmentRecompiled 2>/dev/null); do
+        [[ "$_pid" == "$$" ]] && continue
+        if [[ "$(readlink -f "/proc/$_pid/exe" 2>/dev/null)" == "$_self_exe" ]]; then
+            kill -9 "$_pid" 2>/dev/null
+        fi
+    done
+    rm -f "$W_SCRIPT"
+    exit 0
+fi
+
 LOC="${1:?usage: gdb_trace.sh <file:line> <cond> <printf-args> [arm_s] [deadline_s] [log] [bin]}"
 COND="${2:?need a condition -- an unconditional trace at a hot line will not finish}"
 ARGS="${3:?need printf arguments}"
