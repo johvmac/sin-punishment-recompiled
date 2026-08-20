@@ -133,3 +133,4 @@ A gap in the numbering means a roll was skipped.
 - roll #114: **EXPLOIT** (drew 0.383 vs eps 0.3) -> `A97` [witness `f895fc`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #115: **EXPLOIT** (drew 0.341 vs eps 0.3) -> `A97` [witness `922f32`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #116: **EXPLOIT** (drew 0.482 vs eps 0.3) -> `A97` [witness `d436a6`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #117: **EXPLOIT** (drew 0.364 vs eps 0.3) -> `A97` [witness `895c99`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
