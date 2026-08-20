@@ -167,6 +167,32 @@ def self_check():
             checks.append((label, ok, f"brightest outside = {worst}"
                            + (f" at {at[0]},{at[1]}" if at and not want_ok else "")))
 
+        # A REFUSAL MUST STILL COMPRESS AND STILL DROP THE MASTER (T113).
+        # Refusing is about not DISCARDING pixels spatially; it says nothing
+        # against compressing them. Keeping a lossless master per run defeated
+        # the pipeline -- 511 MB accumulated in one day -- so the refusal path
+        # now encodes UNCROPPED and removes the master. Asserted end-to-end
+        # through the real CLI, because that is where the behaviour lives.
+        td_path = Path(d)
+        shutil.copy(bad, td_path / "refuse.mkv")
+        rp = subprocess.run([str(Path(__file__).resolve()), "--finalize",
+                             str(td_path / "refuse.mkv")], capture_output=True, text=True)
+        out_mp4 = td_path / "refuse.mp4"
+        master_gone = not (td_path / "refuse.mkv").exists()
+        uncropped = False
+        if out_mp4.exists():
+            ow, oh, _ = probe_size(out_mp4)
+            uncropped = (ow, oh) == (1280, 720)
+        checks.append(("a REFUSAL still compresses, UNCROPPED, and drops the master",
+                       out_mp4.exists() and master_gone and uncropped and rp.returncode == 0,
+                       f"mp4={out_mp4.exists()}, master_removed={master_gone}, "
+                       f"uncropped={uncropped}, rc={rp.returncode}"))
+        # And it must SHOUT. A refusal that reads as a status line was missed for
+        # a whole day.
+        checks.append(("the refusal is LOUD (banner, not a status line)",
+                       "!!!!" in (rp.stdout + rp.stderr) and "CROP REFUSED" in (rp.stdout + rp.stderr),
+                       "banner present" if "CROP REFUSED" in (rp.stdout + rp.stderr) else "no banner"))
+
         # duration must be recoverable from a container with no stream duration
         checks.append(("duration is recovered (3-way fallback)",
                        probe_size(good)[2] is not None,
@@ -241,10 +267,40 @@ def main():
           f"brightest pixel OUTSIDE the crop = {worst}"
           + (f" at x={at[0]} y={at[1]} t={at[2]}s" if at else ""))
     if not ok:
-        print(f"REFUSING   : something outside the proposed crop is not black "
-              f"({worst} > {BLACK}). Cropping would DISCARD it. Pass --geom "
-              f"explicitly if you know better.", file=sys.stderr)
-        return 1
+        # LOUD (T113). This used to print as one more line in a tidy column of
+        # pipeline output and was missed for a whole day, during which 511 MB of
+        # lossless masters accumulated. A refusal is not a status line.
+        banner = "!" * 72
+        print(f"\n{banner}\n!! CROP REFUSED — something outside the game rect is NOT BLACK\n"
+              f"!! brightest = {worst} (limit {BLACK})"
+              + (f" at x={at[0]} y={at[1]} t={at[2]}s" if at else "") + "\n"
+              f"!! Cropping would DISCARD it, so the frame is kept WHOLE.\n"
+              f"!! Look at that pixel before assuming it is noise — under xephyr the\n"
+              f"!! commonest cause was the recorder drawing the POINTER (T113, fixed).\n"
+              f"!! Pass --geom explicitly if you know better.\n{banner}", file=sys.stderr)
+        if not (a.finalize or a.replace) or a.check:
+            return 1
+        # COMPRESS ANYWAY (T113). The refusal is about not DISCARDING pixels
+        # spatially; it says nothing against compressing them. Keeping an 80 MB
+        # lossless master per run defeats the whole pipeline, and the pipeline
+        # already accepts lossy compression for scene evidence. So: same encode,
+        # no crop, master removed. **Every pixel survives; only the bitrate
+        # changes.**
+        out = src.with_suffix(".mp4")
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                            "-i", str(src), "-c:v", "libx264", "-preset", "veryfast",
+                            "-crf", str(a.crf), "-pix_fmt", "yuv420p", str(out)],
+                           capture_output=True, text=True)
+        if r.returncode != 0 or not out.exists() or out.stat().st_size <= 1000:
+            print(f"KEEPING master: uncropped compress failed: {r.stderr[:200]}",
+                  file=sys.stderr)
+            return 1
+        print(f"compressed : {out.name}  {out.stat().st_size/1e6:.1f} MB "
+              f"({100*out.stat().st_size/src.stat().st_size:.0f}% of original) "
+              f"— UNCROPPED, every pixel kept")
+        src.unlink()
+        print(f"finalized  : {out.name}  (lossless master removed; NOT cropped)")
+        return 0
     print(f"verdict    : OK — everything outside the crop is black, nothing to lose")
 
     if a.check:

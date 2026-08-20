@@ -83,6 +83,16 @@ snp_start_recording() {
         echo "[$label] WARNING: cannot write $dir -- this run is NOT recorded (T47)" >&2
         return 0
     fi
+    # -draw_mouse 0: DO NOT RECORD THE POINTER (T113). x11grab draws it by
+    # default. Under xvfb nothing moves it so it never showed; under XEPHYR --
+    # which every user-observed run uses -- the host pointer sits over the
+    # window and is composited into the capture. It is NOT game output, and it
+    # broke the pipeline: crop_recording.py correctly refused to crop because a
+    # 255-white cursor sat OUTSIDE the game rect, so 511 MB of lossless masters
+    # accumulated in one day. The cursor is an artefact of the instrument, and
+    # an instrument must not write itself into its own evidence (cf. T83's
+    # never-film-the-desktop rule, same principle).
+    #
     # CAPTURE IS LOSSLESS (`-qp 0`), and the single compression happens later in
     # the same pass as the crop. Capturing lossy and then cropping meant TWO
     # generations of loss stacked on each other -- measured at crf28-then-crf26,
@@ -94,7 +104,8 @@ snp_start_recording() {
     # at ~50x realtime. The intermediate is deleted once the final file exists.
     SNP_REC_FILE="$dir/${label}-$(date +%H%M%S).mkv"
     ffmpeg -nostdin -loglevel error -y \
-        -f x11grab -framerate "${SNP_REC_FPS:-30}" -video_size "${SNP_ISO_GEOM_WH:-1280x720}" \
+        -f x11grab -draw_mouse 0 \
+        -framerate "${SNP_REC_FPS:-30}" -video_size "${SNP_ISO_GEOM_WH:-1280x720}" \
         -i "$DISPLAY" -t "${SNP_REC_MAX:-400}" \
         -c:v libx264 -qp 0 -preset ultrafast -pix_fmt yuv444p \
         "$SNP_REC_FILE" > /tmp/snp_rec_ffmpeg.log 2>&1 &
