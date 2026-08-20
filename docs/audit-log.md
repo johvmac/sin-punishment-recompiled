@@ -223,3 +223,24 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
 - suppressed as superseded (4): A204 (single-run, superseded by A214); A200 (single-run, superseded by A202); A194 (single-run, justified in the entry); A191 (single-run, justified in the entry)
 
+## Audit #12 — since f6b6a64a
+- ledger: 370 entries (+23 this window), 38 withdrawn
+- rolls: 10 this window; runs: 17 (0 exited early, 0 contaminated)
+- **5 thing(s) to look at:**
+  - A233: rests on ONE run (roll131-tasktypes-201015.log). Repeat it or say why one is enough.
+  - A232: rests on ONE run (roll130-poststall-200318.log). Repeat it or say why one is enough.
+  - A228: rests on ONE run (roll126-taskbt-193955.log). Repeat it or say why one is enough.
+  - A228: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (1): T127 (single-run, justified in the entry)
+
+- **cron finding RESOLVED, same checkpoint, by checking rather than assuming:**
+  the 18:30 refusal was the four withdrawn-citation warnings, which **T126 fixed
+  later that same evening**. `check_ledger.py --strict` — the exact invocation
+  `daily_push.sh:49` gates on — now exits 0. The refusal is stale and tomorrow's
+  push will go. **Nothing was changed to make this true; it was already true and
+  the audit was reading a log older than the fix.**
+- **The four remaining findings are NOT resolved and are carried forward:**
+  A233/A232/A228 single-run, and A228's probe with no control mentioned. Each
+  needs a repeat run, a second log, or an explicit `ONE RUN IS ENOUGH` — they
+  predate the write-time check that would have asked at the time.
