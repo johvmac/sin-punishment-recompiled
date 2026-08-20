@@ -2514,6 +2514,18 @@ control asserts the count keeps counting past the store limit. Whenever a
 measurement has a buffer behind it, ask what the buffer would report if it
 overflowed, and make sure that is distinguishable from the result you expect.
 
+### THE SAMPLE INTERVAL MUST FIT THE WINDOW YOU ARE ASKING ABOUT
+
+The histogram printed every 300 tasks — once per ~10 s, i.e. 18 samples over a
+180 s run. The opening-logo window is **4.5 seconds long** and fell entirely
+between two of them, so the richest part of the instrument had nothing to say
+about the question it was pointed at. `SNP_DL_CENSUS=<N>` now sets the interval:
+`=15` for a dense look at a short opening, the default `300` for a long run.
+
+Before running, ask how long the window of interest is and divide. This is the
+same sparse-sampling failure as A223 wearing different clothes — there the
+samples existed and went unread, here the samples were never taken.
+
 ### DO NOT COMPARE LIST ENTRIES BY INDEX ACROSS FRAMES
 
 Comparing child `k` at two times showed swings of +57 and −66 commands, which

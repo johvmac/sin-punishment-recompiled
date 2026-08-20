@@ -150,3 +150,4 @@ A gap in the numbering means a roll was skipped.
 - roll #131: **EXPLORE** (drew 0.160 vs eps 0.3) -> `A97` [witness `58eeaa`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #132: **EXPLOIT** (drew 0.736 vs eps 0.3) -> `A218` [witness `8970cf`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #133: **EXPLOIT** (drew 0.306 vs eps 0.3) -> `A219` [witness `3b2a40`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #134: **EXPLOIT** (drew 0.545 vs eps 0.3) -> `A225` [witness `716bd5`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
