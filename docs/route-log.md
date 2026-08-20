@@ -109,3 +109,4 @@ A gap in the numbering means a roll was skipped.
 - roll #90: **EXPLOIT** (drew 0.920 vs eps 0.3) -> `A99` — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
 - roll #91: **EXPLORE** (drew 0.107 vs eps 0.3) -> `A97` [witness `60755e`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #92: **EXPLOIT** (drew 0.887 vs eps 0.3) -> `A99` [witness `dafa38`] — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
+- roll #93: **EXPLOIT** (drew 0.501 vs eps 0.3) -> `A99` [witness `d26dc8`] — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
