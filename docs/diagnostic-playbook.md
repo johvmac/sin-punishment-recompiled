@@ -2655,7 +2655,9 @@ rule** verbatim, because that is the moment the rule applies.
 **It is a skeleton, never a narrative.** It says who corrected whom and when; it
 never says what was established. Same rule as `--index`: read the entries.
 
-Controls (10 total, 6 -> **10**), verified to fail: the **bound** (reverting to
+**A third defect, and the most instructive: its verdict depended on `PYTHONHASHSEED`.** 271 of 302 entries shared a `(roll, date)` sort key, so ties resolved in set-iteration order, the last-15 window changed between processes, and the circle warning fired or not by chance. It surfaced as an **intermittent** self-check — 9/10 one run, 10/10 the next. **Any ordering that feeds a threshold needs a TOTAL key.**
+
+Controls (11 total, 6 -> **11**), verified to fail: the **bound** (reverting to
 citation traversal → `267 of 296`, FAIL), recency, warning **discrimination**
 (forced always-on → fires on both → FAIL), and unknown-ID refusal.
 

@@ -288,10 +288,24 @@ CHAIN_VERBS = (r"CORRECTED(?: IN PART)? by|REFUTED by|WITHDRAWN by|WD (?:IN PART
 
 
 def _roll_of(row):
-    """(roll, date) for ordering. Rolls are the project's real clock; dates tie-break."""
+    """A TOTAL order for chain output. Rolls are the project's real clock, dates
+    tie-break, and the ID breaks the remaining ties.
+
+    THE ID COMPONENT IS NOT COSMETIC. Without it, 271 of 302 entries shared a
+    (roll, date) key, so `sorted` left them in set-iteration order -- which
+    varies with PYTHONHASHSEED BETWEEN PROCESSES. The last-15 window then held
+    different entries run to run, the recent-correction rate moved, and the
+    circle warning fired or not depending on the hash seed. The self-check
+    caught it as an intermittent 9/10 vs 10/10.
+
+    **A tool whose verdict depends on the hash seed is not reproducible
+    evidence.** Numeric ID ordering (A9 before A10), not lexicographic.
+    """
     m = re.search(r"roll #(\d+)", row[4])
     d = re.search(r"(\d{4}-\d{2}-\d{2})", row[3] or "")
-    return (int(m.group(1)) if m else -1, d.group(1) if d else "")
+    im = re.match(r"([A-Z]+)(\d+)", row[0])
+    ident = (im.group(1), int(im.group(2))) if im else (row[0], 0)
+    return (int(m.group(1)) if m else -1, d.group(1) if d else "", ident)
 
 
 def cmd_chain(rows, target):
@@ -365,7 +379,7 @@ def cmd_chain(rows, target):
     print(f"# A SKELETON -- who corrected whom and when. It never says what was "
           f"established; read the entries (--show).\n")
     for r in chain:
-        roll, date = _roll_of(r)
+        roll, date, _ = _roll_of(r)
         tag = tag_of(r[1])[:20]
         corrected = bool(verb.search(r[1]))
         corrections += corrected
@@ -491,6 +505,16 @@ def self_check():
     fires97 = "shape of a circle" in out_a97
     checks.append(("circle warning fires on A99, silent on A97 (discriminates)",
                    fires99 and not fires97, f"A99={fires99}, A97={fires97}"))
+
+    # DETERMINISM. `--chain`'s verdict must not depend on PYTHONHASHSEED. It did:
+    # 271 of 302 entries shared a (roll, date) key, `sorted` left them in
+    # set-iteration order, and the last-15 window -- hence the circle warning --
+    # changed between processes. Caught as an intermittent 9/10 vs 10/10. A tool
+    # whose verdict depends on the hash seed is not reproducible evidence.
+    _keys = [_roll_of(r) for r in rows]
+    checks.append(("--chain's sort key is TOTAL (no PYTHONHASHSEED dependence)",
+                   len(set(_keys)) == len(_keys),
+                   f"{len(_keys) - len(set(_keys))} tied keys would sort nondeterministically"))
 
     # An unknown ID must refuse, never return an empty chain that reads as
     # "nothing corrected this".
