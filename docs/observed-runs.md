@@ -32,3 +32,12 @@ correction.
 - **feel:** (no answer)
 - **CONTRADICTS MY CLAIMS:** (no answer)
 
+## 2026-08-20T20:30:04+10:00 — build `22142687add36d70`, 180s requested, rc=0 (CLEAN)
+- run log: `observed-203004.log`
+- **audio:** none
+- **last 10s / scene:** tutorial
+- **title screen:** correct
+- **how it died:** black screen then window closed
+- **feel:** NA
+- **CONTRADICTS MY CLAIMS:** NA
+
