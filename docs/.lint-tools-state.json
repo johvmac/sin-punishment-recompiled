@@ -45,6 +45,7 @@
   "route.py",
   "rr_record.sh",
   "run_game.sh",
+  "session.py",
   "shrink_shot.py",
   "snapshot_build.sh",
   "snp-shader-tool.sh",
@@ -60,7 +61,7 @@
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 4,
+ "runs": 6,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

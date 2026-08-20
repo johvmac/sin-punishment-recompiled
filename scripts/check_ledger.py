@@ -40,6 +40,28 @@ from pathlib import Path
 LEDGER = Path(__file__).resolve().parent.parent / "docs" / "findings-ledger.md"
 
 
+# WHAT MAKES A CLOSING SENTENCE "PLAIN" (T120/T121).
+#
+# MODULE LEVEL, AND IMPORTED BY `session.py` RATHER THAN COPIED. Two definitions
+# of the same rule is the failure the single-run check already warns about --
+# entries would pass one checker and fail the other, and nobody would be able to
+# say which was authoritative. One list, one meaning.
+PLAIN_LANGUAGE_JARGON = [
+    (r"0[xX][0-9A-Fa-f]{2,}", "an address"),
+    (r"\b[ATBI]\d{1,3}\b", "an entry ID"),
+    (r"scripts/|\.py\b|\.sh\b|\.log\b|\.toml\b|\.c:\d|\bgdb\b", "a tool or filename"),
+    (r"ctx->|\$[a-z]\d|\$sp\b|\$ra\b", "a register or generated-code expression"),
+]
+
+
+def not_plain(sentence):
+    """Return what makes `sentence` jargon, or None if it reads as plain language."""
+    for pat, what in PLAIN_LANGUAGE_JARGON:
+        if re.search(pat, sentence):
+            return what
+    return None
+
+
 def is_open(tag):
     """Is this status cell tagged OPEN -- as opposed to merely containing the word?
 
@@ -629,12 +651,6 @@ def main():
         if m:
             _swcur[m.group(1)] = max(_swcur.get(m.group(1), 0), int(m.group(2)))
     _swb = _sws.get("sw_baseline", _swcur)
-    JARGON = [
-        (r"0[xX][0-9A-Fa-f]{2,}", "an address"),
-        (r"\b[ATBI]\d{1,3}\b", "an entry ID"),
-        (r"scripts/|\.py\b|\.sh\b|\.log\b|\.toml\b|\.c:\d|\bgdb\b", "a tool or filename"),
-        (r"ctx->|\$[a-z]\d|\$sp\b|\$ra\b", "a register or generated-code expression"),
-    ]
     _swfail = {}
     for eid, (tag, body, n) in rows.items():
         m = re.match(r"([A-Z]+)(\d+)", eid)
@@ -647,7 +663,26 @@ def main():
             problems.append((n, msg))
 
         blob = tag + " " + body
-        got = re.search(r"SO WHAT:\s*(.+?)(?:\*\*|\||$)", blob, re.S)
+        # TAKE THE REAL SENTENCE, NOT A QUOTED TEMPLATE (T121).
+        #
+        # The first version took the FIRST match, and flagged T120 -- the entry
+        # that INTRODUCED this rule -- because that entry quotes the format
+        # (`SO WHAT: <one plain sentence>`) before using it. A checker cannot
+        # tell mention from use, and this is the third time that has bitten in
+        # two days: the bash guard refused a ledger entry for quoting a refused
+        # command, and a control once matched its own text and passed.
+        #
+        # So: discard placeholders (`<...`) and backtick-quoted mentions, and
+        # take the LAST surviving match -- the sentence sits at the end of an
+        # entry by convention, after everything it is summarising.
+        got = None
+        for _m in re.finditer(r"SO WHAT:\s*(.+?)(?:\*\*|\||$)", blob, re.S):
+            _txt = _m.group(1).strip()
+            if _txt.startswith("<"):
+                continue
+            if _m.start() > 0 and blob[_m.start() - 1] == "`":
+                continue
+            got = _m
         if not got:
             _fail(f"{eid}: has no SO WHAT line. One plain sentence saying what this "
                   f"achieved -- no hex, no entry IDs, no tool names. 'Nothing moved "
@@ -658,12 +693,11 @@ def main():
         if len(sentence) < 15:
             _fail(f"{eid}: its SO WHAT is too short to be a sentence.")
             continue
-        for pat, what in JARGON:
-            if re.search(pat, sentence):
-                _fail(f"{eid}: its SO WHAT contains {what}, so it is not plain "
-                      f"language. Rewrite it for someone who has not read the "
-                      f"entry (T120): \"{sentence[:70]}...\"")
-                break
+        what = not_plain(sentence)
+        if what:
+            _fail(f"{eid}: its SO WHAT contains {what}, so it is not plain "
+                  f"language. Rewrite it for someone who has not read the "
+                  f"entry (T120): \"{sentence[:70]}...\"")
     if not hook:
         # THE MARK MUST NOT STEP OVER A KNOWN FAILURE. The single-run check
         # advances its baseline to the current maximum every run, so anything it

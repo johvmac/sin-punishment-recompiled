@@ -312,10 +312,19 @@ def main():
         "ctx->r16 per A188.** | a.log, b.log |\n")
     sw_stub = sowhat_case(
         "| A5 | MEASURED (2 runs) | a finding. **SO WHAT: done.** | a.log, b.log |\n")
-    sw_ok = sw_missing and not sw_present and sw_jargon and sw_stub
+    # AN ENTRY THAT DOCUMENTS THE FORMAT MUST NOT BE FLAGGED FOR DOING SO (T121).
+    # The first version took the first match and flagged T120 -- the entry that
+    # introduced the rule -- because it quotes the template before using it.
+    sw_quotes_template = sowhat_case(
+        "| A6 | MEASURED (2 runs) | we added a `SO WHAT: <one plain sentence>` line to "
+        "every entry. **SO WHAT: the summary now lives in the record instead of only "
+        "being said out loud.** | a.log, b.log |\n")
+    sw_ok = (sw_missing and not sw_present and sw_jargon and sw_stub
+             and not sw_quotes_template)
     print(f"{'ok  ' if sw_ok else 'FAIL'}  SO WHAT asked at write time: fires when missing, "
-          f"quiet when plain, FIRES ON JARGON and on a stub — missing={sw_missing}, "
-          f"plain={sw_present}, jargon={sw_jargon}, stub={sw_stub}")
+          f"quiet when plain, FIRES ON JARGON and on a stub, and does NOT flag an entry that "
+          f"quotes the template — missing={sw_missing}, plain={sw_present}, jargon={sw_jargon}, "
+          f"stub={sw_stub}, quotes-template={sw_quotes_template}")
     extra += 1; bad += not sw_ok
 
     # ...and it must not FORGET. The single-run mark advances to the current

@@ -31,6 +31,10 @@ known_good_builds/
 .DS_Store
 .claude/*
 !.claude/settings.json
+# Project-authored skills are tracked; the vendored n64-decomp-* ones are not.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/timed-session/
 # ^ the hook config is the enforcement layer (check_ledger + guard_bash);
 #   without it a clone has the scripts but nothing that runs them.
 
