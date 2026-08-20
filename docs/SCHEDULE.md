@@ -41,6 +41,37 @@ each checkpoint. Tick the box when done.
          each checked against splat's `endlabel`. Fix only genuine truncations
          (the L1/L7 class). Bounded: stop at 20 checked, record the hit rate.
       *(moved up from 08-22 when PR 2 was closed.)*
+- [ ] **2026-08-21** — **RT64 debugger inspector on a paused tutorial frame.**
+      *(User-requested 2026-08-20; sequenced AFTER the T11 triage above.)*
+      **Setup is already done and verified** — `developer_mode` is `true` in
+      `~/.config/sinpunishment/graphics.json` (backup at `.pre-devmode.bak`),
+      a run with it on is CLEAN, and the census output is **identical over 400
+      tasks** with it on versus off, so it does not perturb what is measured.
+      145 `RT64::DebuggerInspector::*` symbols are in the binary including
+      `enableFreeCamera` and `highlightDrawCall`. **The one thing NOT verified
+      is that F1 opens the panel** — that needs a keypress into a deliberately
+      input-isolated window, so it is the first ten seconds of this task.
+
+      Run it visible: `SNP_ISO=xephyr scripts/run_game.sh 240 <log>`, get to the
+      tutorial (~155 s), press **F1**. **THIS IS A USER-DRIVEN INSTRUMENT — I
+      cannot click an ImGui panel.** Three measurements, in this order:
+
+      1. **Frame stats → triangle count.** Cross-check against the census:
+         ~525 `G_TRI2` + 32 `G_TRI1` ≈ **1,082 triangles/frame** submitted
+         (A234). Two instruments on opposite sides of the renderer measuring
+         the same quantity — **if they disagree, that is the finding**, and
+         nothing below should be trusted until it is understood.
+      2. **Free Camera → fly away from the origin.** Separates *drawn
+         off-screen* from *not drawn*. If the city geometry is sitting outside
+         the viewport, this is the only tool we have that finds it.
+      3. **View Depth Buffer.** Separates *drawn black* from *not drawn* —
+         geometry rasterised in black still writes depth, so a background
+         silhouette in the depth buffer means a combiner/texture/lighting
+         fault, not a geometry one.
+
+      **Caution (T88 family):** this shows RT64's interpretation of the list,
+      so it is authoritative for presence, identity and "is this geometry
+      anywhere", and NOT for pixel-accuracy claims.
 *(Nothing else scheduled. The two remaining upstream slots were removed —
 see "Closed without doing" below.)*
 
