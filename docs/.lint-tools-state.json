@@ -2,6 +2,7 @@
  "known": [
   "ares_peek.py",
   "ares_watch.sh",
+  "audio_capture.sh",
   "audit.py",
   "audit_l2.py",
   "audit_l3.py",
@@ -31,11 +32,13 @@
   "lint_hooks.py",
   "lint_tools.py",
   "minimize_window.py",
+  "observed_run.sh",
   "overlay_map.py",
   "patch_si_stubs.py",
   "probe_stubs.py",
   "rdram_peek.py",
   "recompile.sh",
+  "regenerate.sh",
   "resolve_bt.sh",
   "rom_disasm.py",
   "rom_info.py",
@@ -43,6 +46,7 @@
   "rr_record.sh",
   "run_game.sh",
   "shrink_shot.py",
+  "snapshot_build.sh",
   "snp-shader-tool.sh",
   "strip_scratch_hooks.sh",
   "symbol_gaps.py",
@@ -56,7 +60,7 @@
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 2,
+ "runs": 3,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
