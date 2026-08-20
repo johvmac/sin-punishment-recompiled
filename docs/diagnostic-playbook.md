@@ -2591,6 +2591,38 @@ Controls verified to fail in both directions: exemption widened to always-exempt
 
 ---
 
+## Two rules that stopped being prose (added 2026-08-20, T111/T112)
+
+**`SNP_HEARTBEAT` now defaults ON (T111).** It is the liveness signal the run
+verdict is computed from, and **10 of 93 logged runs were recorded `UNKNOWN`
+purely because nobody passed it** — a wasted verdict on a run already paid for
+in wall-clock. It is **opt-out**: an explicit `SNP_HEARTBEAT=` still wins,
+because `env` takes the last assignment of a name. The operator advice on an
+`UNKNOWN` verdict changed accordingly — it now says this is a **real anomaly**
+(missing hook, or the run died before emitting one), not a forgotten flag.
+
+**T57's composing-step rule now has a checker (T112).** It was the project's
+most-violated prose rule — written, cited in `CLAUDE.md`, violated at least
+twice afterwards, most expensively in **A179**, where an address measured in one
+run was matched against contents from a snapshot of another.
+
+The heuristic is narrow: a `MEASURED`/`READ` entry whose **evidence cell names
+artifacts from two or more distinct dates** is stitching across runs. That is
+not automatically wrong — it is exactly the moment T57 says to name the stitch.
+
+**Noise was measured before shipping (T29): across 296 entries it fires ONCE**,
+on A161 — a withdrawn, user-caught entry of precisely this class. Withdrawn
+entries are skipped, so it starts at zero standing noise.
+
+Its control asserts four directions, and **one of them was vacuous on the first
+attempt**: a bare `WD` test row never reaches the withdrawn check because the
+`MEASURED|READ` filter skips it first, so removing the withdrawn-skip did *not*
+break the test. The case now carries `WD as to cause — was MEASURED`, matching
+what real withdrawn entries look like. **A control that passes for the wrong
+reason is the fifth instance of that pattern here** — see T100.
+
+---
+
 ## `ledger.py --chain <id>` — see the circle while it is happening (added 2026-08-20, T110)
 
 Reconstructing A99's shape by hand took hours in the retrospective, and by then

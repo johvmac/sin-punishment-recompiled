@@ -115,7 +115,13 @@ export SNP_VISIBLE="${WANT_VISIBLE:-0}"
 snp_isolate_display run_game
 trap snp_display_cleanup EXIT INT TERM
 
-env SP_AUTOSTART=1 "$@" "$BIN" > "$OUT" 2>&1 &
+# SNP_HEARTBEAT DEFAULTS ON (T111). It is the liveness signal the validity
+# verdict is computed from, and without it a run is recorded UNKNOWN and cannot
+# be judged valid (T22). **10 of 93 logged runs were UNKNOWN purely because
+# nobody passed it** -- a wasted verdict on a run already paid for in
+# wall-clock. It is opt-OUT, not opt-in: an explicit SNP_HEARTBEAT in "$@"
+# still wins, because `env` takes the LAST assignment of a name.
+env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" "$BIN" > "$OUT" 2>&1 &
 PID=$!
 
 # --- Detached hard-deadline watchdog ---------------------------------------
@@ -212,7 +218,7 @@ case "$VERDICT" in
   DEGRADED)
     echo "[run_game] NOT COMPARABLE: gfx ended at +${GFX_RATE:-?}/s (healthy holds +30). This run is not evidence about the build (T22)." >&2 ;;
   "UNKNOWN(no SNP_HEARTBEAT)")
-    echo "[run_game] No liveness signal — pass SNP_HEARTBEAT=1 or the run cannot be judged valid (T22)." >&2 ;;
+    echo "[run_game] No liveness signal, and SNP_HEARTBEAT defaults ON (T111) — so this is a\n[run_game] REAL anomaly, not a forgotten flag: the build may lack the hook, or the run\n[run_game] may have died before emitting one. Do not judge this run valid (T22)." >&2 ;;
 esac
 
 if [[ "$INPUT" -gt 0 ]]; then

@@ -434,6 +434,40 @@ def main():
         except Exception:
             reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
 
+    # 4a2. THE COMPOSING STEP, CHECKED (T112).
+    #
+    # T57 ("when an entry stitches verified parts into a story, say which step is
+    # the stitch and mark it unverified") was the project's MOST-VIOLATED prose
+    # rule -- written, cited in CLAUDE.md, and violated at least twice
+    # afterwards, most expensively in A179, where an ADDRESS measured in one run
+    # was matched against CONTENTS from a snapshot of another. A rule with no
+    # checker is a preference.
+    #
+    # THE HEURISTIC, deliberately narrow: a MEASURED/READ entry whose evidence
+    # cell names artifacts from TWO OR MORE DISTINCT DATES is stitching across
+    # runs. That is not automatically wrong -- it is exactly the moment T57 says
+    # to name the stitch.
+    #
+    # NOISE MEASURED BEFORE SHIPPING (T29): across 296 entries this fires ONCE,
+    # on A161 -- a withdrawn, user-caught entry of precisely this class. A
+    # heuristic whose only historical positive is a known-bad entry is worth
+    # having. Withdrawn entries are skipped, so it starts at zero standing noise.
+    _mark = re.compile(r"composing step|inferred, not measured|INFERRED, NAMED", re.I)
+    for eid, (tag, body, n) in rows.items():
+        if is_withdrawn(tag) or not re.search(r"MEASURED|READ", tag):
+            continue
+        raw = text.split("\n")[n - 1] if 0 < n <= len(text.split("\n")) else ""
+        cells = [c.strip() for c in raw.strip().strip("|").split("|")]
+        if len(cells) < 4:
+            continue
+        dates = set(re.findall(r"\d{4}-\d{2}-\d{2}", cells[-1]))
+        if len(dates) >= 2 and not _mark.search(raw):
+            problems.append(
+                (n, f"{eid}: cites evidence from {len(dates)} different dates "
+                    f"({', '.join(sorted(dates))}) and names no COMPOSING STEP. "
+                    f"Stitching across runs is where A179 went wrong — say which "
+                    f"step is the stitch and mark it unverified (T57/T112)."))
+
     # 4b2. USER-OBSERVED RUNS (T101). Two triggers, and the second is the point.
     #
     # I cannot perceive audio at all -- the capture pipeline records video only

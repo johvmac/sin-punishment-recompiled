@@ -301,7 +301,44 @@ def main():
           f"normal-crash={normal}, short={shortrun}")
     bad += not pr_ok
 
-    total = len(CASES) + 8
+    # THE COMPOSING-STEP CHECK (T112). Three directions, because the failure
+    # modes are opposite: not firing at all (T57 stays prose), or firing on
+    # every multi-artifact entry (noise, and noise is how a discipline stops
+    # being read -- T29).
+    def compose_case(row):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            (root / "docs" / "findings-ledger.md").write_text(
+                "| # | status | finding | evidence |\n|---|---|---|---|\n" + row)
+            p2 = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
+                                capture_output=True, text=True)
+            return "COMPOSING STEP" in (p2.stdout + p2.stderr)
+
+    c_fires = compose_case(
+        "| A1 | MEASURED (2 runs) | a claim | 2026-08-19 a.log; 2026-08-20 b.log |\n")
+    c_marked = compose_case(
+        "| A1 | MEASURED (2 runs) | a claim, COMPOSING STEP named and unverified "
+        "| 2026-08-19 a.log; 2026-08-20 b.log |\n")
+    c_single = compose_case(
+        "| A1 | MEASURED (2 runs) | a claim | 2026-08-20 a.log, b.log |\n")
+    # THIS CASE MUST CARRY "MEASURED" TOO, or it is vacuous. A bare "WD" status
+    # is skipped by the MEASURED|READ filter and never reaches the withdrawn
+    # check at all -- the first version passed for that reason, and removing the
+    # withdrawn-skip did NOT break it. Real withdrawn entries look like this
+    # (A138 "WD as to cause", A169 "WD AS TO ITS HEADLINE ... Was: MEASURED").
+    c_wd = compose_case(
+        "| A1 | WD as to cause — was MEASURED (2 runs) | a withdrawn claim "
+        "| 2026-08-19 a.log; 2026-08-20 b.log |\n")
+    c_ok = c_fires and not c_marked and not c_single and not c_wd
+    print(f"{'ok  ' if c_ok else 'FAIL'}  composing-step check: fires cross-date, silent when marked / "
+          f"single-date / withdrawn  — fires={c_fires}, marked={c_marked}, "
+          f"single={c_single}, wd={c_wd}")
+    bad += not c_ok
+
+    total = len(CASES) + 9
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 
