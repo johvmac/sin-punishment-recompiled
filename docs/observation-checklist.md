@@ -11,10 +11,13 @@ Two failure classes motivate it, and they are different:
    the *observation* was right and the **quantifier** was wrong — "at these two
    sampled instants" silently became "never". Sampling cannot support a claim
    about all the moments it did not sample. You watching continuously can.
-2. **I cannot perceive audio AT ALL.** The recorder captures video only — no
-   audio input exists in the capture pipeline. **A97 is entirely about audio
-   silence, and every claim in it rests on reading source code, never on
-   hearing anything.** Ten seconds of you listening outranks all of it.
+2. **I cannot perceive audio AT ALL.** Until 2026-08-20 the pipeline had no
+   audio input whatsoever — **A97 is entirely about audio silence, and every
+   claim in it rested on reading source code, never on hearing anything.**
+   Game-only audio is now captured (T102) so the answer outlives the run, but
+   **a waveform still cannot tell me whether something sounds WRONG** —
+   buzzing, wrong pitch, the wrong music. Ten seconds of you listening
+   outranks all of it.
 
 There is a third, quieter reason: the two of us can drift on what "the current
 state" is. A shared look resets that.
@@ -118,6 +121,7 @@ written down as its own entry.
 # AFTER THE RUN
 
 `scripts/observed_run.sh` appends a dated stanza to `docs/observed-runs.md` with
-the build hash and your answers. **A run with no recorded outcome did not
+the build hash and your answers, and saves a **game-only** audio capture beside
+the video. **A run with no recorded outcome did not
 happen** — same rule as the ledger: recorded either way, including "everything
 looked exactly as expected", which is itself evidence.

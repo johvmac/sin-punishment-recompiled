@@ -9,9 +9,10 @@
 #      the observation was right and the QUANTIFIER was wrong -- "at these two
 #      sampled instants" became "never". Sampling cannot support a claim about
 #      the moments it did not sample.
-#   2. I CANNOT PERCEIVE AUDIO AT ALL. The capture pipeline records video only;
-#      there is no audio input in it. A97 is entirely about audio silence and
-#      every claim in it comes from reading source, never from hearing.
+#   2. I CANNOT PERCEIVE AUDIO AT ALL. Until 2026-08-20 the pipeline had no
+#      audio input at all, so A97 -- entirely about audio silence -- rested
+#      wholly on reading source. Game-only capture now exists (T102), but a
+#      waveform still cannot tell me whether something sounds WRONG.
 #
 # WHY xephyr AND NOT real
 # -----------------------
@@ -25,12 +26,17 @@
 # Audio plays through the normal system output either way -- it is not tied to
 # the X display -- so xephyr costs nothing acoustically.
 #
-# WHAT IT DOES NOT DO
-# -------------------
-# It does NOT record audio. Capturing system audio would record whatever else
-# the machine is playing, which is the same class of problem as filming the
-# user's desktop (guarded since T83). Per-application capture would be the safe
-# form; it is not built, and until it is, YOUR EARS ARE THE ONLY INSTRUMENT.
+# AUDIO IS CAPTURED, AND ONLY THE GAME'S (T102)
+# --------------------------------------------
+# Delegated to scripts/audio_capture.sh, which routes ONLY the game's stream
+# into a dedicated sink and records that sink's monitor -- so the capture can
+# only contain what was moved into it. Recording the default sink would pick up
+# whatever else the machine is playing: the same class of problem as filming the
+# user's desktop (guarded since T83). That script asserts the isolation
+# BEHAVIOURALLY with a two-tone control, not by inspection.
+#
+# Your ears remain the primary instrument. The capture exists so the answer
+# outlives your memory of it, and so I can check it too.
 #
 # Usage:
 #   scripts/observed_run.sh [seconds]     # default 180 (past the ~158s crash)
@@ -98,6 +104,13 @@ if [[ "${1:-}" == "--self-check" ]]; then
     got=0; ! grep -qE "$needle" "$0" && got=1
     chk "does not default evidence to /tmp (T47)" "$got" "would write evidence to /tmp"
 
+    # 6. It must attach GAME-ONLY audio capture. Without this the run is silent
+    #    for the record and the user's memory is the only artefact -- which is
+    #    the state T101 found and this exists to end. The delegated script owns
+    #    the privacy property and asserts it behaviourally in its own controls.
+    got=0; grep -q 'audio_capture.sh" attach' "$0" && got=1
+    chk "attaches game-only audio capture (T102)" "$got" "run would be recorded silent"
+
     echo; echo "$((n-fails))/$n controls pass"
     [[ $fails -eq 0 ]] || exit 1
     exit 0
@@ -121,7 +134,9 @@ if [[ "$DRY" == "1" ]]; then
     echo "would print : $CHECKLIST"
     echo "would run   : SNP_ISO=xephyr scripts/run_game.sh $SECS $RUNLOG"
     echo "would append: $LOG   (build $HASH, $STAMP)"
-    echo "audio       : NOT recorded -- your ears are the only instrument"
+    echo "would cap   : GAME-ONLY audio -> $EVID/observed-<time>.wav (T102)"
+    echo "note        : your ears are still the primary instrument; the capture"
+    echo "              exists so the answer outlives your memory of it"
     exit 0
 fi
 
@@ -134,8 +149,35 @@ echo "==========================================================================
 read -r -p " Press Enter when you are ready to watch... " _
 
 mkdir -p "$EVID"
-SNP_ISO=xephyr "$ROOT/scripts/run_game.sh" "$SECS" "$RUNLOG"
-RC=$?
+AUDIO="$EVID/observed-$(date +%H%M%S).wav"
+
+# Launch in the background so the game's audio stream can be attached once it
+# exists -- the sink-input does not appear until the game opens audio, so the
+# capture cannot simply start with the run.
+SNP_ISO=xephyr "$ROOT/scripts/run_game.sh" "$SECS" "$RUNLOG" &
+RUN_PID=$!
+GPID=""
+for _ in $(seq 1 40); do
+    GPID=$(pgrep -n -f 'SinPunishmentRecompiled' 2>/dev/null || true)
+    [[ -n "$GPID" ]] && break
+    sleep 1
+done
+if [[ -n "$GPID" ]]; then
+    "$ROOT/scripts/audio_capture.sh" attach "$GPID" "$AUDIO" "$((SECS + 20))" 30 &
+    ACAP_PID=$!
+else
+    echo "[observed] WARNING: no game process found to attach audio to" >&2
+    ACAP_PID=""
+fi
+wait $RUN_PID; RC=$?
+[[ -n "$ACAP_PID" ]] && wait $ACAP_PID 2>/dev/null
+if [[ -s "$AUDIO" ]]; then
+    echo "[observed] game-only audio captured -> $(basename "$AUDIO")"
+else
+    echo "[observed] NO AUDIO CAPTURED — if the game never opened a stream that is"
+    echo "[observed] itself a finding for A97: nothing is being produced at all,"
+    echo "[observed] which is a different defect from wrong samples."
+fi
 
 echo
 echo "=== run finished (rc=$RC). Recording the outcome — a run with no recorded"

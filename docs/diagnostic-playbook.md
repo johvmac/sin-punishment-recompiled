@@ -2376,6 +2376,7 @@ below is installed and verified working.
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
 | `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
+| `scripts/audio_capture.sh` | repo | **game-ONLY audio capture.** Null sink + move the game's sink-input in + loopback so it stays audible + `parec` the monitor. **Isolation asserted behaviourally by a two-tone control**, not by inspection. `--self-check` (3), `--dry-run`, `--cleanup` |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
 | `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
@@ -2443,7 +2444,27 @@ A calendar nag on a day with no work is ceremony — T100 records that exact def
 in L2's trigger. It is worse here because **this one spends the USER's time**, and
 a policy that wastes it gets abandoned (T29).
 
-### Audio is NOT recorded, and that is a decision not an oversight
+### Audio IS recorded now, and only the game's (T102)
+
+Recording the default sink would pick up whatever else the machine is playing —
+the same class of problem as filming the user's desktop (T83). **A capture that
+can pick up the user's audio is not acceptable even once.**
+
+**Two designs were tried and MEASURED to fail before the third worked** — `pw-record --target` against the app's stream node, and against a null sink's
+monitor, both captured **silence (peak 0)**. The working shape: load a dedicated
+null sink, **move ONLY the game's sink-input into it**, loopback its monitor to
+the real output so the run stays audible, and `parec` that monitor. The move is
+what makes it private — **the monitor can only contain what was moved in.**
+
+**The control discriminates:** two tones, one moved in, one left out. Moved-in
+**1.000**, left-out **0.0000**; and routing the second app in as well takes the
+left-out reading to **0.9181** and fails the control. A capture that grabbed the
+whole machine would pass a naive "did we get audio" test and fail this one.
+
+**A waveform still cannot tell me whether something sounds WRONG.** The capture
+makes the answer outlive the run; it does not replace the user's ears.
+
+### The old note, kept because the reasoning still applies elsewhere
 
 Capturing system audio would record whatever else the machine is playing — the
 same class of problem as filming the user's desktop, guarded since T83.
@@ -2451,7 +2472,8 @@ Per-application capture is the safe form and is **not built**. Until it is, the
 user's ears are the only instrument, so the answer must be written down.
 
 ```bash
-scripts/observed_run.sh --self-check   # 5/5
+scripts/observed_run.sh --self-check   # 6/6
+scripts/audio_capture.sh --self-check  # 3/3 (the isolation control)
 scripts/observed_run.sh --checklist    # print the list, run nothing
 scripts/observed_run.sh 180            # the real thing
 ```
