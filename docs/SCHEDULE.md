@@ -72,6 +72,23 @@ each checkpoint. Tick the box when done.
       **Caution (T88 family):** this shows RT64's interpretation of the list,
       so it is authoritative for presence, identity and "is this geometry
       anywhere", and NOT for pixel-accuracy claims.
+
+      **TWO MORE, added by the A243 survey — 4 is the highest-value item here:**
+
+      4. **"View Draw Call" TRUNCATES, it does not highlight** — it renders
+         only the first N draw calls, so the frame builds up one draw at a
+         time. **Step it through a tutorial frame and watch when duplicate
+         overlay elements appear.** If each copy arrives at its own draw call
+         they are separately submitted; if a whole cluster arrives at ONE call
+         they are not. A235 measured the submitted list flat, which predicts
+         the second. **This settles A219's mechanism by eye in one paused
+         frame** — do this before anything else if time is short.
+      5. **"Start dumping textures"** (a button in the inspector) writes every
+         unique texture the game loads to a directory, keyed by hash. Start it
+         and let a run play through the tutorial — it gives you real assets to
+         look through with nothing built. **It is NOT A227**: it captures what
+         is USED, not what is PACKED, textures only, and only from the stretch
+         we can reach.
 *(Nothing else scheduled. The two remaining upstream slots were removed —
 see "Closed without doing" below.)*
 

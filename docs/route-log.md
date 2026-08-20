@@ -153,3 +153,4 @@ A gap in the numbering means a roll was skipped.
 - roll #134: **EXPLOIT** (drew 0.545 vs eps 0.3) -> `A225` [witness `716bd5`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #135: **EXPLOIT** (drew 0.452 vs eps 0.3) -> `A211` [witness `56343e`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #136: **EXPLORE** (drew 0.255 vs eps 0.3) -> `A97` [witness `ed3c15`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #137: **EXPLOIT** (drew 0.600 vs eps 0.3) -> `A241` [witness `51face`] — User-directed, opened at the user's request: 'are there any other aspects of RT64 we're not taki
