@@ -140,3 +140,4 @@ A gap in the numbering means a roll was skipped.
 - roll #121: **EXPLORE** (drew 0.052 vs eps 0.3) -> `A210` [witness `d677c2`] — Priced and opened by T122; the finding itself is A206. WHAT IS ESTABLISHED: corruption grows mon
 - roll #122: **EXPLOIT** (drew 0.482 vs eps 0.3) -> `A211` [witness `fbba2b`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #123: **EXPLORE** (drew 0.298 vs eps 0.3) -> `A97` [witness `7c9476`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #124: **EXPLOIT** (drew 0.560 vs eps 0.3) -> `A211` [witness `04030b`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
