@@ -2452,6 +2452,8 @@ below is installed and verified working.
 | `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
 | `scripts/gdb_trace.sh --watch` | repo | **the only instrument here that needs no LIST.** Anchors on a line to resolve `ctx`, then installs a location watchpoint — catches ANY writer without anyone enumerating them. **Arm LATE; it stops on every write.** 4 controls, verified to fail (T109) |
 | `scripts/ledger.py --chain` | repo | **the correction chain, chronological** — makes a circle visible while it is happening. Reports the correction rate lifetime AND over the last 15; warns at 1/3 recent. Skeleton only, never says what was established (T110) |
+| `scripts/regenerate.sh` | repo | **the ONLY correct way to regenerate.** Snapshot -> N64Recomp -> 3 repairs (one SILENT) -> build both -> SMOKE TEST on `gfx_tasks`. 'It links' was the check that passed on an inert binary (T116) |
+| `scripts/snapshot_build.sh` | repo | **build state that outlives the session.** The untracked generated tree + its inputs + both binaries + a MANIFEST. Reason mandatory; refuses without the archive (T115) |
 | **`docs/instrument-semantics.md`** | repo | **what a reading MEANS** — `ctx` is per-THREAD, breakpoints fire BEFORE their line, reach counts scale with the arm window, RDRAM snapshots are host-endian. **Read before designing any condition.** Every row names the incident that paid for it (T108) |
 | `scripts/audio_capture.sh` | repo | **game-ONLY audio capture, routed BEFORE launch** via `PULSE_SINK` so nothing is missed at startup (T104). One LOSSLESS FLAC pass, master removed. **Isolation asserted behaviourally by a two-tone control.** `prepare`/`finish`/`attach`, `--self-check` (4), `--dry-run`, `--cleanup` |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
@@ -2588,6 +2590,40 @@ would see "does not fire" and read it as a passing negative.
 
 Controls verified to fail in both directions: exemption widened to always-exempt →
 `fires=False`; plural exemption removed → fires on a legitimate 2-run entry.
+
+---
+
+## Regeneration: snapshot first, and never trust a successful link (added 2026-08-20, T115/T116)
+
+**Two failures in one afternoon, both now mechanised away.**
+
+`RecompiledFuncs/` is **untracked** — 137 generated files that are the product of
+a generator *plus* repair passes. Regenerating destroys the previous tree with no
+git baseline, and the binaries are overwritten in place. On 2026-08-20 that made
+"is A99 fixed or masked?" **unanswerable**: there was nothing to A/B against.
+`snapshot_build.sh` captures the tree, the inputs that produced it, both
+binaries and a MANIFEST — ~94 MB, and the tree compresses 9x.
+
+**Then: five repair passes exist and only two announce themselves.**
+`fix_zero_writes` and `fix_dangling_gotos` fail as compile errors. `patch_si_stubs`
+fails **silently** — without it the game never clears controller detection. The
+binary linked, ran a full 180 s, and rendered **nothing** (`gfx_tasks=1`).
+
+> **A pipeline where some steps fail loudly and others fail silently will always
+> be run partially.** So it is one script, and it ends in a smoke test —
+> because *"it links"* was exactly the check that passed on an inert binary.
+
+```bash
+scripts/regenerate.sh "why you are regenerating"   # snapshot -> regen -> repairs -> build -> smoke
+scripts/snapshot_build.sh "reason"                 # standalone, before anything risky
+scripts/snapshot_build.sh --list
+```
+
+**AND REGENERATION SHIFTS LINE NUMBERS.** After the 2026-08-20 regeneration,
+`funcs_4.c:661` pointed at a different statement; the traced expression had moved
+to `:659`. **A trace against a stale line number returns a meaningless zero that
+looks exactly like a fix** — and this was nearly used to declare A99 fixed. Verify
+every `file:line` by CONTENT and `info line` after any regeneration.
 
 ---
 
