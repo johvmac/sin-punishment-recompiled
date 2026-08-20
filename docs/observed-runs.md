@@ -23,3 +23,12 @@ correction.
 - **feel:** NA
 - **CONTRADICTS MY CLAIMS:** no
 
+## 2026-08-20T17:34:08+10:00 — build `72c889ac6ee12fff`, 240s requested, rc=0 (DEGRADED)
+- run log: `observed-173408.log`
+- **audio:** (no answer)
+- **last 10s / scene:** (no answer)
+- **title screen:** (no answer)
+- **how it died:** (no answer)
+- **feel:** (no answer)
+- **CONTRADICTS MY CLAIMS:** (no answer)
+

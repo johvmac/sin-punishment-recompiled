@@ -2,7 +2,12 @@
  "start": 1787210277.2558389,
  "deadline": 1787212077.2558389,
  "task": "",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "a user-observed run of the fixed binary",
+   "why": "the crash point moved, which is exactly the trigger for the user to watch and listen -- but I cannot clear that gate myself and other work can proceed meanwhile"
+  }
+ ],
  "blocks": [],
  "roll_at_start": 110,
  "entries_at_start": [
