@@ -197,3 +197,29 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A175: describes a probe with no control mentioned. A dead probe reads as a clean negative.
   - A169: created and withdrawn within one audit window. What made it look right?
 
+## Audit #10 — since 0d899ed0
+- ledger: 347 entries (+37 this window), 38 withdrawn
+- rolls: 20 this window; runs: 4 (0 exited early, 0 contaminated)
+- **8 thing(s) to look at:**
+  - A203: rests on ONE run (observed-173408.log). Repeat it or say why one is enough.
+  - A201: rests on ONE run (roll111-ucode-samerun-171906.log). Repeat it or say why one is enough.
+  - A194: rests on ONE run (a193-callee-155017.log). Repeat it or say why one is enough.
+  - A191: rests on ONE run (symfix-fault.log). Repeat it or say why one is enough.
+  - A216: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A199: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A196: created and withdrawn within one audit window. What made it look right?
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (2): A204 (single-run, superseded by A214); A200 (single-run, superseded by A202)
+
+## Audit #11 — since 0d899ed0
+- ledger: 347 entries (+37 this window), 38 withdrawn
+- rolls: 0 this window; runs: 0 (0 exited early, 0 contaminated)
+- **6 thing(s) to look at:**
+  - A203: rests on ONE run (observed-173408.log). Repeat it or say why one is enough.
+  - A201: rests on ONE run (roll111-ucode-samerun-171906.log). Repeat it or say why one is enough.
+  - A216: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A199: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A196: created and withdrawn within one audit window. What made it look right?
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (4): A204 (single-run, superseded by A214); A200 (single-run, superseded by A202); A194 (single-run, justified in the entry); A191 (single-run, justified in the entry)
+

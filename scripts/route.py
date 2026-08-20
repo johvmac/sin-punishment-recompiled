@@ -350,6 +350,26 @@ def main():
     frontier = items[0][0]
     explore = draw < EPS and len(items) > 1
 
+    # A DEGENERATE FRONTIER IS NOT A ROUTING RESULT, IT IS A MISSING LIST (T123).
+    #
+    # On 2026-08-20 six consecutive rolls "selected" the same target. The
+    # machinery was working perfectly; the frontier had ONE item on it, because
+    # two substantial problems had been written up as findings and never marked
+    # OPEN. The user noticed, not the tool -- and nothing here said anything,
+    # because picking the only candidate looks exactly like picking the best one.
+    #
+    # No threshold is needed for this. With one item exploration CANNOT fire at
+    # all (the `len(items) > 1` above), and a second draw over a single
+    # candidate reports p=1.00 -- a probability with one outcome. Both are
+    # arithmetic facts about the list, not judgements about the work.
+    if len(items) <= 1:
+        print("[route] >>> THE FRONTIER HAS %d ITEM. Exploration cannot fire, so"
+              % len(items), file=sys.stderr)
+        print("[route]     every roll from here is EXPLOIT on the same target and", file=sys.stderr)
+        print("[route]     the verdict carries no information. That is usually not", file=sys.stderr)
+        print("[route]     'one problem left' -- it is problems recorded as findings", file=sys.stderr)
+        print("[route]     and never priced as OPEN work. Check before rolling again.", file=sys.stderr)
+
     picks = []
     if explore:
         # Second RNG draw picks WHICH open item. Weighted by staleness: an item
@@ -370,6 +390,15 @@ def main():
                 break
         picks = [(e, w, w / total) for (e, _, _), w in zip(cands, weights)]
         verdict = "EXPLORE"
+        if len(cands) == 1:
+            # An exploration draw with one candidate. It prints p=1.00, which
+            # reads like a confident weighting and is in fact no choice at all.
+            print("[route] >>> THIS 'EXPLORE' HAD ONE CANDIDATE (p=1.00). Nothing was",
+                  file=sys.stderr)
+            print("[route]     explored -- the frontier is too small for the verdict",
+                  file=sys.stderr)
+            print("[route]     to mean anything. Price the open work you already know about.",
+                  file=sys.stderr)
         note = ("ONE bounded check, hard budget. Record the outcome either way — "
                 "'still expensive, because X' is itself a costing improvement.")
     else:

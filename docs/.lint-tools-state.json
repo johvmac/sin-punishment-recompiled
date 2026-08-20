@@ -57,11 +57,12 @@
   "test_guard.py",
   "test_lint_hooks.py",
   "test_route.py",
+  "test_supersede.py",
   "truncation_sweep.py",
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 6,
+ "runs": 8,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

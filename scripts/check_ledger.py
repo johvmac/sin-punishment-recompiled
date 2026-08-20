@@ -54,6 +54,40 @@ PLAIN_LANGUAGE_JARGON = [
 ]
 
 
+# WHAT COUNTS AS ONE ENTRY CORRECTING ANOTHER (T123).
+#
+# MODULE LEVEL AND SHARED, for the same reason `not_plain` is: audit.py needs
+# the identical vocabulary to decide whether a flagged entry has been
+# superseded, and two definitions of "corrected" would let an entry be live for
+# one checker and dead for the other.
+SUPERSEDES_RE = re.compile(
+    r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~"
+    r"|upgraded by|reframed by|split by|closed by|vindicat)", re.I)
+
+
+def superseded_by_later(eid, rows):
+    """Does a LATER entry name `eid` next to a correction word?
+
+    `rows` is check_ledger's {id: (tag, body, line)}. Order is by ID number
+    within a prefix -- the ledger is newest-first, so "later" means a HIGHER
+    number, which is how every other check here reads succession.
+    """
+    m = re.match(r"([A-Z]+)(\d+)", eid)
+    if not m:
+        return None
+    pre, num = m.group(1), int(m.group(2))
+    for other, val in rows.items():
+        om = re.match(r"([A-Z]+)(\d+)", other)
+        if not om or om.group(1) != pre or int(om.group(2)) <= num:
+            continue
+        blob = val[0] + " " + val[1]
+        for hit in re.finditer(re.escape(eid) + r"\b", blob):
+            lo = max(0, hit.start() - 220)
+            if SUPERSEDES_RE.search(blob[lo:hit.end() + 220]):
+                return other
+    return None
+
+
 def not_plain(sentence):
     """Return what makes `sentence` jargon, or None if it reads as plain language."""
     for pat, what in PLAIN_LANGUAGE_JARGON:

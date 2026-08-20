@@ -145,6 +145,23 @@ def main():
 
     added = {k: v for k, v in now.items() if k not in then}
     findings = []
+    suppressed = []
+
+    # Supersession is decided by check_ledger's vocabulary, adapted to this
+    # script's row shape. Falls back to "nothing is superseded" if the import
+    # fails, because an audit that silently suppresses everything is worse than
+    # one that is noisy.
+    try:
+        import importlib.util
+        _spec = importlib.util.spec_from_file_location(
+            "_cl", Path(__file__).resolve().parent / "check_ledger.py")
+        _cl = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_cl)
+        all_rows = {k: (v[0], v[1] + " " + v[2], 0) for k, v in now.items()}
+        _superseded = _cl.superseded_by_later
+    except Exception:
+        all_rows = {}
+        _superseded = lambda *_a: None
 
     # 1. MEASURED/INTERVENED claims whose evidence names exactly one log file.
     # One run is not a measurement of a build (T22).
@@ -153,6 +170,30 @@ def main():
             continue
         logs = re.findall(r"[\w.-]+\.log", ev + " " + body)
         if len(set(logs)) == 1 and not re.search(r"\b(\d+|two|three|both)\s+runs?\b", ev + " " + body, re.I):
+            # DOES ANYTHING STILL DEPEND ON IT? (T123)
+            #
+            # L1 #9 fired seven findings and SIX were noise -- three of them
+            # flagged entries the A99 fix had already superseded, so nothing
+            # rested on their single run and nobody could act on the flag. A
+            # 6-of-7 noise rate is how a ladder level stops being read (T29),
+            # and the check had no way to tell a live entry from a dead one.
+            #
+            # The supersession vocabulary is IMPORTED, not restated: two
+            # definitions of "corrected" would let an entry be live for one
+            # checker and dead for the other.
+            # HONOUR THE SAME WAIVER check_ledger ACCEPTS (T123). That checker
+            # asks at WRITE time and takes "ONE RUN IS ENOUGH: <reason>" as an
+            # answer; this one asked again at audit time and ignored the answer,
+            # so an entry that had already justified itself was flagged anyway.
+            # Two checkers, one rule, two verdicts -- the exact failure the
+            # single-run comment warns about three lines further up.
+            if re.search(r"ONE RUN[,:]?\s*(IS ENOUGH|and (the )?reason)", ev + " " + body, re.I):
+                suppressed.append(f"{eid} (single-run, justified in the entry)")
+                continue
+            killer = _superseded(eid, all_rows)
+            if killer:
+                suppressed.append(f"{eid} (single-run, superseded by {killer})")
+                continue
             findings.append(f"{eid}: rests on ONE run ({logs[0]}). Repeat it or say why one is enough.")
 
     # 2. entries that describe a probe THEY RAN but never mention a control.
@@ -248,6 +289,13 @@ def main():
     if findings:
         lines.append(f"- **{len(findings)} thing(s) to look at:**")
         lines += [f"  - {f}" for f in findings]
+    if suppressed:
+        # NAMED, NEVER SILENT. A suppression rule that hides its own work is
+        # indistinguishable from a broken check, and "the audit found nothing"
+        # would then be unfalsifiable. Same reason lint_tools.py prints its
+        # known debt every run.
+        lines.append(f"- suppressed as superseded ({len(suppressed)}): "
+                     + "; ".join(suppressed))
     else:
         lines.append("- nothing flagged "
                      f"(quiet streak {st.get('quiet_streak', 0) + 1}; at 3, halve the frequency)")
