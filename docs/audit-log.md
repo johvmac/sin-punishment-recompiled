@@ -185,3 +185,15 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
 - **1 thing(s) to look at:**
   - A163: rests on ONE run (roll88-dispatch-300-436.log). Repeat it or say why one is enough.
 
+## Audit #9 — since e1b2fa0b
+- ledger: 310 entries (+47 this window), 37 withdrawn
+- rolls: 15 this window; runs: 6 (2 exited early, 0 contaminated)
+- **7 thing(s) to look at:**
+  - A180: rests on ONE run (roll100-epilogue-restore.log). Repeat it or say why one is enough.
+  - A178: rests on ONE run (threadaware-228-661.log). Repeat it or say why one is enough.
+  - A176: rests on ONE run (roll97-object-pairing.log). Repeat it or say why one is enough.
+  - A170: rests on ONE run (observed-103900.log). Repeat it or say why one is enough.
+  - A182: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A175: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A169: created and withdrawn within one audit window. What made it look right?
+

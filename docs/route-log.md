@@ -121,3 +121,8 @@ A gap in the numbering means a roll was skipped.
 - roll #102: **EXPLORE** (drew 0.001 vs eps 0.3) -> `A97` [witness `42d9bc`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #103: **EXPLOIT** (drew 0.770 vs eps 0.3) -> `A99` [witness `7dca3e`] — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
 - roll #104: **EXPLOIT** (drew 0.353 vs eps 0.3) -> `A99` [witness `5aecfc`] — SIGSEGV in the scene walker on THREAD 3. THE SCENE IS NOT ESTABLISHED — it was long labelled "th
+- roll #105: **EXPLOIT** (drew 0.614 vs eps 0.3) -> `A188` [witness `7dce10`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
+- roll #106: **EXPLORE** (drew 0.166 vs eps 0.3) -> `A97` [witness `1e5ddd`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #107: **EXPLOIT** (drew 0.412 vs eps 0.3) -> `A188` [witness `beea07`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
+- roll #108: **EXPLOIT** (drew 0.866 vs eps 0.3) -> `A188` [witness `d495ee`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
+- roll #109: **EXPLOIT** (drew 0.547 vs eps 0.3) -> `A188` [witness `1f41b1`] — User-directed, no roll (the first substantive task of the session). READ (fault log + generated 
