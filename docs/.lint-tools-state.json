@@ -60,7 +60,7 @@
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 3,
+ "runs": 4,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
