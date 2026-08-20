@@ -52,6 +52,28 @@ CASES = [
     # ...but the exemption must stay inside its own statement (T40).
     (f"scripts/gdb_watch.sh 0x1 1 1 /tmp/w.log; ./{B}",
      2, "a sanctioned runner must NOT vouch for a launch beside it"),
+
+    # TRUNCATED STDERR (A198). The failure this was built from, verbatim:
+    ("scripts/rom_disasm.py 0x800F9424 0x800F9460 2>&1 | tail -25",
+     2, "the exact command that dropped A196's overlay warning"),
+    ("scripts/ledger.py --index 2>&1 | head -20",
+     2, "head truncates a merged stream just as silently as tail"),
+
+    # THE OVER-REFUSAL CONTROLS. Without these, the rule above passes on a guard
+    # that refuses everything -- which would be worse than no guard, because it
+    # gets switched off. Each names a reason the shape is NOT the hazard:
+    ("scripts/ledger.py --index | tail -20",
+     0, "no 2>&1 -- stderr still reaches the terminal, nothing is dropped"),
+    ("cat /tmp/some.log 2>&1 | tail -20",
+     0, "no project script -- not this guard's business"),
+    ("scripts/ledger.py --index 2>&1 | grep A99",
+     0, "grep drops by CONTENT, a choice you make -- documented scope limit"),
+    ('scripts/ledger.py --index >"$O" 2>"$E"; tail -20 "$O"; cat "$E"',
+     0, "THE PRESCRIBED IDIOM must not be refused by the rule prescribing it"),
+
+    # ...and the pipeline boundary must hold, the same way statements do (T40).
+    ("scripts/ledger.py --index >/tmp/o.txt 2>/tmp/e.txt; tail -3 /tmp/other.log",
+     0, "a `tail` in a LATER pipeline must not condemn an earlier one"),
 ]
 
 

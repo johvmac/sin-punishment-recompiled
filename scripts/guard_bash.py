@@ -81,6 +81,45 @@ SAFE = re.compile(r"\b(strings|ls|stat|cmp|md5sum|sha\d*sum|file|cp|nm|objdump|r
 SPLIT = re.compile(r"\|\||&&|\$\(|[;\n|&()`]")
 
 
+# PIPELINE-LEVEL RULE: merging stderr into a pipe and then TRUNCATING it (A198).
+#
+# WHY IT IS NOT IN `RULES`: the rules above are evaluated per STATEMENT, and
+# `SPLIT` breaks on `|`. So `scripts/foo.py 2>&1 | tail -25` arrives as two
+# separate segments and no per-statement pattern can see the shape at all. This
+# hazard IS the pipe, so it has to be matched across one.
+#
+# WHAT IT COST: on 2026-08-20 `rom_disasm.py` printed a warning naming 15
+# candidate overlays -- correct, complete, on stderr -- and `2>&1 | tail -25`
+# dropped it. 25 lines of confident, wrong disassembly were read as the answer
+# and written into the ledger as a finding about the wrong overlay (A196). The
+# lesson already existed as T76/T84 ("check what a pipe DROPS") and did not
+# prevent it, which is why this is a guard and not another note.
+#
+# SCOPE, stated inside the rule: `head`/`tail` only, and only when a project
+# script is in the pipeline. `grep` drops output too, and deliberately -- but it
+# drops by CONTENT, which is a choice you make, whereas head/tail drop by
+# POSITION, which is a choice you did not know you were making. Refusing every
+# `2>&1 | grep` would be constant friction for a smaller hazard. That is a
+# judgement, and it means THIS GUARD DOES NOT COVER `2>&1 | grep`.
+PIPE_SPLIT = re.compile(r"\|\||&&|\$\(|[;\n()`]")
+MERGES_STDERR = re.compile(r"2>&1")
+TRUNCATES = re.compile(r"\|\s*(head|tail)\b")
+PROJECT_SCRIPT = re.compile(r"scripts/[\w.-]+\.(py|sh)\b")
+
+
+def pipelines(cmd):
+    """Split into PIPELINES -- like statements(), but `|` is kept intact."""
+    return [s for s in PIPE_SPLIT.split(cmd) if s and s.strip()]
+
+
+def truncated_stderr(cmd):
+    """The first pipeline that merges stderr into a truncating pipe, or None."""
+    for p in pipelines(cmd):
+        if MERGES_STDERR.search(p) and TRUNCATES.search(p) and PROJECT_SCRIPT.search(p):
+            return p
+    return None
+
+
 def statements(cmd):
     """Split a shell command into rough simple-command segments.
 
@@ -104,6 +143,21 @@ def main():
     cmd = (payload.get("tool_input") or {}).get("command", "")
     if not cmd:
         return 0
+
+    bad_pipe = truncated_stderr(cmd)
+    if bad_pipe:
+        print("[guard] REFUSED: this merges a project script's stderr into a pipe and "
+              "then truncates by POSITION -- `head`/`tail` will silently drop whatever "
+              "the script warned about. That is exactly how A196 happened: a REFUSING/"
+              "NOTE line naming 15 candidate overlays was dropped, and the wrong "
+              "overlay's disassembly was read as the answer.", file=sys.stderr)
+        print(f"[guard] The pipeline: {bad_pipe.strip()}", file=sys.stderr)
+        print("[guard] Instead: capture the streams separately and read BOTH --\n"
+              "[guard]   scripts/foo.py ARGS >\"$O\" 2>\"$E\"; echo \"rc=$?\"; "
+              "tail -20 \"$O\"; echo '--- stderr ---'; cat \"$E\"\n"
+              "[guard] (stderr is usually short -- print it whole, and print it LAST.)",
+              file=sys.stderr)
+        return 2
 
     segments = statements(cmd)
     for pat, why, instead in RULES:
