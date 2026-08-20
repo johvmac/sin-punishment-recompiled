@@ -40,6 +40,46 @@ BIN="${3:-build-debug/SinPunishmentRecompiled}"
 
 case "${1:-}" in
     --help|-h) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --self-check)
+        # This script had NO controls at all until A191, despite producing
+        # A99's identification. These are static: they check that the
+        # A99-specific register LABELS cannot be printed on a fault the
+        # script's own control has just declared is not A99.
+        #
+        # GREP THE EXECUTABLE REGION ONLY -- everything after the `esac` that
+        # closes this case. Eight times in this codebase a control has matched
+        # its own text and passed on a broken script (T100/T112). Excluding
+        # the self-check block fixes every control in the file at once.
+        fails=0; n=0
+        chk() { n=$((n+1)); if [[ "$2" == "1" ]]; then echo "ok    $1"; else echo "FAIL  $1 -- $3"; fails=$((fails+1)); fi; }
+        BODY=$(awk 'f{print} /^esac$/{f=1}' "$0")
+
+        _lbl='the garbage pointer that was dereferenced'
+        _grd='if _is_a99:'
+        i_grd=$(printf '%s\n' "$BODY" | grep -nF "$_grd" | head -1 | cut -d: -f1)
+        i_lbl=$(printf '%s\n' "$BODY" | grep -nF "$_lbl" | head -1 | cut -d: -f1)
+        got=0; [[ -n "$i_grd" && -n "$i_lbl" && "$i_grd" -lt "$i_lbl" ]] && got=1
+        chk "A99's register labels are GUARDED, not unconditional" "$got" \
+            "guard@${i_grd:-none}, label@${i_lbl:-none} -- a non-A99 fault would be mislabelled"
+
+        # The unlabelled branch must actually say why, or a reader reads two
+        # bare numbers and supplies A99's meanings from memory.
+        got=0; printf '%s\n' "$BODY" | grep -qF 'UNLABELLED ON PURPOSE' && \
+               printf '%s\n' "$BODY" | grep -qF 'caller-saved' && got=1
+        chk "the unlabelled branch explains itself and names the \$v0 trap" "$got" \
+            "no explanation -- bare numbers invite A99's meanings"
+
+        # The in-run control that discriminates must still be there.
+        got=0; printf '%s\n' "$BODY" | grep -qF 'This is NOT A99' && got=1
+        chk "the fault-identity control is present" "$got" "no discrimination between faults"
+
+        # T85: it must default to the DEBUG build or ctx does not resolve.
+        got=0; printf '%s\n' "$BODY" | grep -q 'build-debug' && got=1
+        chk "defaults to build-debug (T85: no ctx, no registers)" "$got" "would report a fault with no registers"
+
+        echo; echo "$((n-fails))/$n controls pass"
+        [[ $fails -eq 0 ]] || exit 1
+        exit 0 ;;
 esac
 
 [ -x "$BIN" ] || { echo "no binary at $BIN" >&2; exit 1; }
@@ -97,6 +137,10 @@ end
 
 echo \n===== GAME REGISTER FILE AT THE FAULT =====\n
 # The recompiled functions carry a `ctx` (recomp_context*). $s0 is r16 and
+# $v0 is r2. THE REST OF THIS COMMENT DESCRIBES A99 AND ONLY A99 (A191) --
+# the register ROLES below are read off A99's faulting instruction, so they
+# are meaningless at any other site. The code prints them only when the
+# control confirms A99.
 # $v0 is r2 -- the load that faults is `lw $s3, 0x0($v0)` and $v0 came from
 # `lw $v0, 0x0($s0)`, so r16 is the ADDRESS we are after and r2 is the value.
 python
@@ -113,8 +157,29 @@ try:
     r16  = int(gdb.parse_and_eval("(unsigned long long)ctx->r16")) & 0xFFFFFFFF
     r2   = int(gdb.parse_and_eval("(unsigned long long)ctx->r2"))  & 0xFFFFFFFF
     print("\n  rdram base   = 0x%x" % base)
-    print("  $s0 (r16) vram = 0x%08X   <-- ADDRESS the faulting value was loaded FROM" % r16)
-    print("  $v0 (r2)  vram = 0x%08X   <-- the garbage pointer that was dereferenced" % r2)
+    # THE LABELS ARE A99-SPECIFIC AND MUST NOT BE PRINTED ON ANOTHER FAULT (A191).
+    # This block used to print them unconditionally, three lines below the
+    # control that says "This is NOT A99's crash". On the post-A99 fault that
+    # produced "$v0 (r2) = 0x8013CF7C  <-- the garbage pointer that was
+    # dereferenced" -- and it was neither. The dereferenced pointer was $s0=0,
+    # and $v0 is CALLER-SAVED, so after a jalr it holds the callee's RETURN
+    # VALUE. A reader taking the label at face value would chase a number with
+    # no established meaning.
+    try:
+        _is_a99 = (gdb.selected_frame().name() or "") == "boot_func_80033758"
+    except Exception:
+        _is_a99 = False
+    if _is_a99:
+        print("  $s0 (r16) vram = 0x%08X   <-- ADDRESS the faulting value was loaded FROM" % r16)
+        print("  $v0 (r2)  vram = 0x%08X   <-- the garbage pointer that was dereferenced" % r2)
+    else:
+        print("  $s0 (r16) vram = 0x%08X" % r16)
+        print("  $v0 (r2)  vram = 0x%08X" % r2)
+        print("  >>> UNLABELLED ON PURPOSE: the roles above are A99's, and the")
+        print("      control already reported this is not A99. Work out what each")
+        print("      register means AT THIS SITE before using either value.")
+        print("      In particular $v0 is caller-saved -- immediately after a")
+        print("      call it is a RETURN VALUE, not necessarily a pointer.")
     if 0x80000000 <= r16 < 0x80800000:
         host = base + (r16 - 0x80000000)
         print("  word currently at $s0 = 0x%08X" % int(gdb.parse_and_eval("*(unsigned int *)%d" % host)))
