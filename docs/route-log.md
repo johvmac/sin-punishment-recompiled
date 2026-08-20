@@ -142,3 +142,4 @@ A gap in the numbering means a roll was skipped.
 - roll #123: **EXPLORE** (drew 0.298 vs eps 0.3) -> `A97` [witness `7c9476`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #124: **EXPLOIT** (drew 0.560 vs eps 0.3) -> `A211` [witness `04030b`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #125: **EXPLOIT** (drew 0.737 vs eps 0.3) -> `A220` [witness `32ff77`] — Named as a defect in A203 and left unfiled; it has now mislabelled THREE runs including the one 
+- roll #126: **EXPLOIT** (drew 0.339 vs eps 0.3) -> `A211` [witness `61c430`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
