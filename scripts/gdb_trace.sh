@@ -371,6 +371,11 @@ fi
 
 # shellcheck source=scripts/display_isolate.sh
 . "$(dirname "$0")/display_isolate.sh"
+# T125: say so if this binary is older than the sources it was built from.
+# scripts/build.sh --no-recomp builds the RELEASE tree only, so the debug
+# binary these debuggers default to can silently be last week's code.
+. "$(dirname "$0")/build_staleness.sh"
+snp_warn_if_stale "$BIN"
 snp_isolate_display gdb_trace
 trap 'rm -f "$GDB_SCRIPT"; snp_display_cleanup' EXIT INT TERM
 

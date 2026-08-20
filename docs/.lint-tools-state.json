@@ -12,6 +12,7 @@
   "boot_screen_check.sh",
   "bootstrap.sh",
   "build.sh",
+  "build_staleness.sh",
   "check_ledger.py",
   "classify_recording.py",
   "crop_recording.py",
@@ -58,12 +59,13 @@
   "test_guard.py",
   "test_lint_hooks.py",
   "test_route.py",
+  "test_staleness.sh",
   "test_supersede.py",
   "truncation_sweep.py",
   "xclick.py",
   "xtest_key.py"
  ],
- "runs": 10,
+ "runs": 11,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
