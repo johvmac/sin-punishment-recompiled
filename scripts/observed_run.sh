@@ -123,12 +123,39 @@ if [[ "${1:-}" == "--self-check" ]]; then
     got=0; ! grep -qE "$needle" "$0" && got=1
     chk "does not default evidence to /tmp (T47)" "$got" "would write evidence to /tmp"
 
-    # 6. It must attach GAME-ONLY audio capture. Without this the run is silent
-    #    for the record and the user's memory is the only artefact -- which is
-    #    the state T101 found and this exists to end. The delegated script owns
-    #    the privacy property and asserts it behaviourally in its own controls.
-    got=0; grep -q 'audio_capture.sh" attach' "$0" && got=1
-    chk "attaches game-only audio capture (T102)" "$got" "run would be recorded silent"
+    # 6. It must capture GAME-ONLY audio, set up BEFORE launch (T104).
+    #
+    #    THIS CONTROL PRODUCED A FALSE PASS AND IS THE REASON THE RULE IS NOW
+    #    ABSOLUTE. Its first version grepped for the literal string `attach`,
+    #    which appeared nowhere in the script except INSIDE THIS CHECK -- so it
+    #    matched itself and reported ok while the audio wiring had been replaced
+    #    and was entirely unverified. The four earlier self-referential controls
+    #    today produced false FAILURES, which are merely noisy. **A false PASS
+    #    silently vouches for something that is not there**, which is strictly
+    #    worse and is exactly what a control exists to prevent.
+    #
+    #    So: needles assembled from parts, and the check requires BOTH ends of
+    #    the lifecycle -- a `prepare` with no `finish` leaks a null sink and
+    #    silently breaks the user's audio routing.
+    _pre="audio_capture.sh\" pre""pare"; _fin="audio_capture.sh\" fin""ish"
+    got=0; grep -q "$_pre" "$0" && grep -q "$_fin" "$0" && got=1
+    chk "captures game audio, set up BEFORE launch and torn down after (T104)" "$got" \
+        "run would be recorded silent, or leak a null sink"
+
+    # 7. The recorded outcome must come from run-log.tsv, NOT run_game.sh's exit
+    #    status. The first observed run wrote "rc=0" into docs/observed-runs.md
+    #    for a run that run-log.tsv recorded as "158 139 CRASHED": run_game.sh
+    #    exits 0 having successfully run a game that died. **A permanent record
+    #    that reads "exited cleanly" for a SIGSEGV is worse than no record.**
+    #    THE NEEDLE MUST BE A CODE CONSTRUCT, NOT A WORD. The first version
+    #    grepped for the filename -- which appears in the COMMENT above -- so it
+    #    passed with the code path deleted. Assembling from parts is not enough
+    #    on its own: prose that explains the check will also contain the words
+    #    the check looks for. Match the ASSIGNMENT, which only code can contain.
+    _rc="RCROW=\$(""tail"
+    got=0; grep -q "$_rc" "$0" && grep -q 'cut -f''4' "$0" && got=1
+    chk "records the outcome from the run log, not the runner's exit code" "$got" \
+        "would record rc=0 for a crashed run"
 
     echo; echo "$((n-fails))/$n controls pass"
     [[ $fails -eq 0 ]] || exit 1
@@ -170,37 +197,33 @@ read -r -p " Press Enter when you are ready to watch... " _
 mkdir -p "$EVID"
 AUDIO="$EVID/observed-$(date +%H%M%S).wav"
 
-# Launch in the background so the game's audio stream can be attached once it
-# exists -- the sink-input does not appear until the game opens audio, so the
-# capture cannot simply start with the run.
-SNP_ISO=xephyr "$ROOT/scripts/run_game.sh" "$SECS" "$RUNLOG" &
-RUN_PID=$!
-GPID=""
-for _ in $(seq 1 40); do
-    GPID=$(pgrep -n -f 'SinPunishmentRecompiled' 2>/dev/null || true)
-    [[ -n "$GPID" ]] && break
-    sleep 1
-done
-if [[ -n "$GPID" ]]; then
-    "$ROOT/scripts/audio_capture.sh" attach "$GPID" "$AUDIO" "$((SECS + 20))" 30 &
-    ACAP_PID=$!
+# PREPARE THE CAPTURE BEFORE LAUNCHING (T104). The first observed run recorded
+# 198 s of pure silence while the user HEARD a loud blip "as the program
+# opened" -- the capture attached 6 s in, because the old path had to POLL for a
+# sink-input that does not exist until the game opens audio. The one event worth
+# hearing fell inside that gap, and a capture that reliably misses the
+# interesting moment is worse than none: it yields a confident silent artefact.
+CAPSINK=$("$ROOT/scripts/audio_capture.sh" prepare "$AUDIO" 2>/dev/null || true)
+if [[ -n "$CAPSINK" ]]; then
+    echo "[observed] capturing game audio from its FIRST sample (sink $CAPSINK)"
+    PULSE_SINK="$CAPSINK" SNP_ISO=xephyr "$ROOT/scripts/run_game.sh" "$SECS" "$RUNLOG"
 else
-    echo "[observed] WARNING: no game process found to attach audio to" >&2
-    ACAP_PID=""
+    echo "[observed] WARNING: audio capture unavailable; run silent for the record" >&2
+    SNP_ISO=xephyr "$ROOT/scripts/run_game.sh" "$SECS" "$RUNLOG"
 fi
-wait $RUN_PID; RC=$?
-[[ -n "$ACAP_PID" ]] && wait $ACAP_PID 2>/dev/null
-if [[ -s "$AUDIO" ]]; then
-    echo "[observed] game-only audio captured -> $(basename "$AUDIO")"
-else
-    echo "[observed] NO AUDIO CAPTURED — if the game never opened a stream that is"
-    echo "[observed] itself a finding for A97: nothing is being produced at all,"
-    echo "[observed] which is a different defect from wrong samples."
-fi
+"$ROOT/scripts/audio_capture.sh" finish 2>/dev/null || true
 
-echo
-echo "=== run finished (rc=$RC). Recording the outcome — a run with no recorded"
-echo "=== outcome did not happen, including 'exactly as expected'."
+# THE OUTCOME COMES FROM run-log.tsv, NOT from run_game.sh's exit status.
+# The first observed run recorded "rc=0" in this file while run-log.tsv said
+# "158 139 CRASHED" -- run_game.sh exits 0 having successfully run a game that
+# died. A record reading "exited cleanly" for a SIGSEGV is worse than no record,
+# and this file is meant to be read months later.
+RCROW=$(tail -1 "$ROOT/docs/run-log.tsv" 2>/dev/null)
+RC=$(printf '%s' "$RCROW" | cut -f4); VERDICT=$(printf '%s' "$RCROW" | cut -f9)
+[[ -n "$RC" ]] || RC="unknown"
+
+echo "=== run finished — run log says rc=$RC ($VERDICT). Recording the outcome; a"
+echo "=== run with no recorded outcome did not happen, including 'as expected'."
 echo
 ans() { read -r -p "$1 " REPLY; printf '%s' "${REPLY:-(no answer)}"; }
 A_AUDIO=$(ans "1. AUDIO — any sound at all? describe:")

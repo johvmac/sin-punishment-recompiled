@@ -2376,7 +2376,7 @@ below is installed and verified working.
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
 | `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
-| `scripts/audio_capture.sh` | repo | **game-ONLY audio capture.** Null sink + move the game's sink-input in + loopback so it stays audible + `parec` the monitor. **Isolation asserted behaviourally by a two-tone control**, not by inspection. `--self-check` (3), `--dry-run`, `--cleanup` |
+| `scripts/audio_capture.sh` | repo | **game-ONLY audio capture, routed BEFORE launch** via `PULSE_SINK` so nothing is missed at startup (T104). One LOSSLESS FLAC pass, master removed. **Isolation asserted behaviourally by a two-tone control.** `prepare`/`finish`/`attach`, `--self-check` (4), `--dry-run`, `--cleanup` |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
 | `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
@@ -2472,8 +2472,8 @@ Per-application capture is the safe form and is **not built**. Until it is, the
 user's ears are the only instrument, so the answer must be written down.
 
 ```bash
-scripts/observed_run.sh --self-check   # 6/6
-scripts/audio_capture.sh --self-check  # 3/3 (the isolation control)
+scripts/observed_run.sh --self-check   # 7/7
+scripts/audio_capture.sh --self-check  # 4/4 (isolation + finalize)
 scripts/observed_run.sh --checklist    # print the list, run nothing
 scripts/observed_run.sh 180            # the real thing
 ```

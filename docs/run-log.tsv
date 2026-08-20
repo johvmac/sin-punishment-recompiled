@@ -90,3 +90,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	log	env
 2026-08-19T23:08:51+10:00	20	20	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	dur.log	none
 2026-08-20T10:26:50+10:00	45	45	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	audiotest.log	none
 2026-08-20T10:28:53+10:00	60	60	0	0	0	NA	NA	UNKNOWN(no SNP_HEARTBEAT)	audiotest2.log	none
+2026-08-20T10:41:48+10:00	180	158	139	0	0	NA	NA	CRASHED	observed-103900.log	none
