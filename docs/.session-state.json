@@ -1,15 +1,10 @@
 {
- "start": 1787210277.2558389,
- "deadline": 1787212077.2558389,
- "task": "",
- "shelf": [
-  {
-   "what": "a user-observed run of the fixed binary",
-   "why": "the crash point moved, which is exactly the trigger for the user to watch and listen -- but I cannot clear that gate myself and other work can proceed meanwhile"
-  }
- ],
+ "start": 1787212751.3480585,
+ "deadline": 1787214551.3480585,
+ "task": "record a run and snapshot the build, then document the tutorial's visual bugs with the user",
+ "shelf": [],
  "blocks": [],
- "roll_at_start": 110,
+ "roll_at_start": 115,
  "entries_at_start": [
   "A1",
   "A10",
@@ -121,6 +116,11 @@
   "A199",
   "A2",
   "A200",
+  "A201",
+  "A202",
+  "A203",
+  "A204",
+  "A205",
   "A22",
   "A25",
   "A27",
@@ -337,5 +337,5 @@
   "T98",
   "T99"
  ],
- "ended": true
+ "ended": false
 }

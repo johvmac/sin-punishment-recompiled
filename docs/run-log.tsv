@@ -97,3 +97,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-20T16:41:01+10:00	25	25	0	0	0	700	30	CLEAN	regen-smoke-164033.log	none
 2026-08-20T17:23:24+10:00	25	25	0	0	0	699	30	CLEAN	regen-smoke-172255.log	none
 2026-08-20T17:38:13+10:00	240	240	0	0	0	6169	0	DEGRADED	observed-173408.log	none
+2026-08-20T18:03:56+10:00	260	260	0	0	0	6169	0	DEGRADED	doc-tutorial-175932.log	none
