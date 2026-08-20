@@ -66,8 +66,12 @@ Before a new tool's output counts as evidence:
 
 ## User-observed runs (T101)
 
-**Daily on any day work happened, and IMMEDIATELY on anything observable
-changing** — a run past the crash point, a changed fault signature, a new scene,
+**THE FIRST TASK OF EACH DAY**, and immediately on anything observable
+changing. **`route.py` REFUSES TO ROLL until it is done or explicitly
+deferred** (`--defer '<reason>'`, reason mandatory); no roll is consumed by
+the refusal and all other work is unaffected. I cannot clear the gate myself,
+which is why a deferral clears it — **the rule is not "it happened", it is
+"it was not silently skipped"** — a run past the crash point, a changed fault signature, a new scene,
 audio appearing. Run `scripts/observed_run.sh`; it prints
 `docs/observation-checklist.md` first and records the outcome **either way**.
 

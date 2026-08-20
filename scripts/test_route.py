@@ -141,6 +141,33 @@ def main():
             fails.append("FAIL: the witness is not PRINTED with the roll — it can only be "
                          "quoted in the announcement if it appears there (cf. T56)")
 
+    # THE OBSERVED-RUN GATE (T103). Four directions, because each is a distinct
+    # way for the policy to be worthless: not gating at all, gating so hard that
+    # a deferral cannot clear it (I cannot clear it myself, so that would stall
+    # every session the user is away), accepting YESTERDAY's run, or accepting a
+    # deferral from a previous day.
+    ot = getattr(route, "observed_today", None)
+    if ot is None:
+        fails.append("FAIL: route.observed_today is gone — the daily gate is off")
+    else:
+        today, other = "2026-08-20", "2026-08-19"
+        cases = [
+            (f"## {today}T10:00:00+10:00 — build abc\n", today, True,  "a run TODAY clears it"),
+            (f"## DEFERRED {today} — user away\n",       today, True,  "a recorded DEFERRAL clears it"),
+            (f"## {other}T10:00:00+10:00 — build abc\n", today, False, "YESTERDAY's run must NOT clear it"),
+            (f"## DEFERRED {other} — user away\n",       today, False, "yesterday's deferral must NOT clear it"),
+            ("",                                          today, False, "an empty log must NOT clear it"),
+        ]
+        for text, day, want, why in cases:
+            if ot(text, day) != want:
+                fails.append(f"FAIL: observed-run gate — {why} (got {ot(text, day)}, want {want})")
+        # And it must actually be WIRED to the roll, not merely defined (T56).
+        if "observed_today(" not in src.split("def observed_today")[-1]:
+            fails.append("FAIL: observed_today is defined but never called — a gate "
+                         "nothing consults is not a gate")
+        if "REFUSING TO ROLL" not in src:
+            fails.append("FAIL: the gate does not refuse the roll")
+
     # A brand-new entry must read as staleness 0, not `roll`. It defaulted to 0
     # in `last_seen`, so B67 was born at roll #74 with staleness 74 and ~90% of
     # the next explore draw -- the exact inverse of what staleness is for.
@@ -179,7 +206,7 @@ def main():
     # staleness, tie-break, and the witness group (T98). A check that runs
     # but is not counted makes the summary understate the suite -- and the
     # summary is what anyone actually reads.
-    total = len(POSITIVE) + len(NEGATIVE) + 6
+    total = len(POSITIVE) + len(NEGATIVE) + 7
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -193,7 +220,7 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness)")
+          f"1 witness, 1 observed-run gate)")
     return 1 if fails else 0
 
 

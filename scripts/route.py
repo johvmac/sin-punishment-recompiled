@@ -132,6 +132,23 @@ OPENING_REQUIREMENT = (
 WITNESS_BITS = 24
 
 
+def observed_today(text, today):
+    """Has an observed run — or an explicit DEFERRAL — been recorded today?
+
+    Both count, and that is deliberate. **I cannot perform an observed run
+    myself**: it needs the user's eyes and ears. A gate I am unable to clear
+    alone would stall every checkpoint whenever they are away, and a rule that
+    blocks all work is one that gets deleted rather than followed (T29).
+
+    So a DEFERRAL clears it too. The discipline is not "the run happened", it is
+    **"the run was not silently skipped"** -- recorded either way, the same rule
+    the ledger uses. A deferral is a decision with a reason attached; a silent
+    skip is the thing this exists to prevent.
+    """
+    return bool(re.search(rf"^## {re.escape(today)}T", text, re.M) or
+                re.search(rf"^## DEFERRED {re.escape(today)}\b", text, re.M))
+
+
 def make_witness():
     """A witness for one roll. MUST NOT come from the seeded `random` stream.
 
@@ -299,6 +316,34 @@ def main():
             print(f"  [route] UNPRICED (sorted last, not ranked): {', '.join(unpriced(items))}")
             print("          add [cost=N] to those rows or the ordering is not a ranking")
         return 0
+
+    # THE OBSERVED RUN IS THE FIRST TASK OF THE DAY (T103, standing user policy).
+    #
+    # Gated HERE, on the roll, and deliberately not on all work. A roll is the
+    # unit of real work -- it consumes a routing decision and commits the
+    # project to a direction -- so blocking it is meaningful. Blocking
+    # everything would not be: I CANNOT CLEAR THIS GATE MYSELF, it needs the
+    # user's eyes and ears, so a total block stalls the whole session whenever
+    # they are away, and a rule that halts all work gets deleted (T29).
+    #
+    # A recorded DEFERRAL clears it. The discipline is not "the run happened",
+    # it is "the run was not SILENTLY SKIPPED" -- recorded either way, the same
+    # rule the ledger lives by.
+    _obs = LOG.parent / "observed-runs.md"
+    _today = __import__("datetime").date.today().isoformat()
+    _obs_text = _obs.read_text() if _obs.exists() else ""
+    if not observed_today(_obs_text, _today):
+        print("[route] REFUSING TO ROLL — no user-observed run recorded today.", file=sys.stderr)
+        print("        It is the FIRST task of the day (T103). I cannot do it myself:", file=sys.stderr)
+        print("        I cannot hear audio at all, and scene identity has been wrong", file=sys.stderr)
+        print("        twice from sampling (A93, A161).", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("          scripts/observed_run.sh              # do it", file=sys.stderr)
+        print("          scripts/observed_run.sh --defer '<reason>'   # or record why not",
+              file=sys.stderr)
+        print("", file=sys.stderr)
+        print("        NO ROLL WAS CONSUMED. Other work is unaffected.", file=sys.stderr)
+        return 3
 
     st["roll"] += 1
     draw = random.random()

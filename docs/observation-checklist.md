@@ -24,7 +24,8 @@ state" is. A shared look resets that.
 
 ## When this runs
 
-* **Daily**, on any day that work actually happened. A day with no work does not
+* **THE FIRST TASK OF EACH DAY (T103).** `route.py` refuses to roll until this
+  is done or deferred with a reason. No roll is consumed by the refusal. A day with no work does not
   need one — that is ceremony, and ceremony makes real checks easy to skip
   (T100 records the same mistake in the audit ladder's calendar trigger).
 * **Immediately whenever something observable changes**, in particular:

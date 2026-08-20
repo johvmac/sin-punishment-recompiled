@@ -55,6 +55,25 @@ usage() { sed -n '/^# Usage:/,/^set -/p' "$0" | sed 's/^# \{0,1\}//;$d'; }
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
     --checklist) cat "$CHECKLIST"; exit 0 ;;
+    --defer)
+        # The gate in route.py must be clearable, because I CANNOT CLEAR IT
+        # MYSELF -- an observed run needs the user. But it must be cleared by a
+        # DECISION WITH A REASON, never silently. A reason is mandatory for
+        # exactly that: "--defer" alone would become the default and the policy
+        # would quietly evaporate.
+        REASON="${2:-}"
+        if [[ -z "$REASON" ]]; then
+            echo "[observed] --defer needs a REASON: scripts/observed_run.sh --defer 'user away'" >&2
+            echo "[observed] REFUSING a bare deferral — a silent skip is the thing" >&2
+            echo "[observed] this policy exists to prevent." >&2
+            exit 2
+        fi
+        [[ -f "$LOG" ]] || printf '# User-observed runs\n\n' > "$LOG"
+        printf '## DEFERRED %s — %s\n- no observed run today; deferred deliberately, not skipped.\n\n' \
+               "$(date +%Y-%m-%d)" "$REASON" >> "$LOG"
+        echo "[observed] deferral recorded for $(date +%Y-%m-%d): $REASON"
+        echo "[observed] route.py will now roll. The debt is visible in docs/observed-runs.md."
+        exit 0 ;;
 esac
 
 # --self-check: controls that DISCRIMINATE. Each can fail (T65/T71).
