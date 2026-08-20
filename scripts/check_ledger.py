@@ -434,6 +434,51 @@ def main():
         except Exception:
             reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
 
+    # 4b2. USER-OBSERVED RUNS (T101). Two triggers, and the second is the point.
+    #
+    # I cannot perceive audio at all -- the capture pipeline records video only
+    # -- and A97 is entirely about audio silence, so every claim in it comes
+    # from reading source. Separately I have been wrong TWICE about what is on
+    # screen (A93, A161), both times with the observation right and the
+    # QUANTIFIER wrong. Neither gap closes without a human watching.
+    #
+    # TRIGGER 1, daily, but GATED ON WORK HAVING HAPPENED. A calendar nag on a
+    # day with no work is ceremony, and T100 records that exact mistake in L2's
+    # trigger -- worse here, because this one spends the USER'S time, and a
+    # policy that wastes it will be abandoned (T29).
+    #
+    # TRIGGER 2, PROGRESS, and it is deliberately MECHANICAL rather than my
+    # judgement: "seeming progress" assessed by the party whose claims are being
+    # checked is worth nothing. Computed from run-log.tsv -- a run that asked
+    # for more than the known crash time and did NOT come back rc=139 is either
+    # real progress or a broken run, and both are worth a human look.
+    try:
+        _obs = LEDGER.parent / "observed-runs.md"
+        _last_obs = ""
+        if _obs.exists():
+            _m = re.findall(r"^## (\d{4}-\d{2}-\d{2})T", _obs.read_text(), re.M)
+            _last_obs = _m[-1] if _m else ""
+        _today2 = __import__("datetime").date.today().isoformat()
+        if _last_obs != _today2 and rows:
+            reminders.append(
+                f"observed run: none today (last: {_last_obs or 'never'}) — "
+                f"run scripts/observed_run.sh. I cannot hear audio at all, and "
+                f"scene identity has been wrong twice from sampling (T101).")
+        _rl = (LEDGER.parent / "run-log.tsv")
+        if _rl.exists():
+            for _row in _rl.read_text().strip().split("\n")[-1:]:
+                _f = _row.split("\t")
+                if len(_f) >= 4 and _f[1].isdigit() and _f[2].isdigit():
+                    _req, _act, _rc = int(_f[1]), int(_f[2]), _f[3]
+                    if _req > 165 and _act > 165 and _rc != "139":
+                        reminders.append(
+                            f"observed run DUE ON PROGRESS: the last run asked {_req}s, "
+                            f"lasted {_act}s and did NOT return 139 — it may have survived "
+                            f"the known crash point. Confirm with a human before "
+                            f"believing it (T101).")
+    except Exception:
+        pass
+
     # 4c. SINGLE-RUN, ASKED AT WRITE TIME (T99).
     #
     # `single-run` is the one defect class that will not go away: 21 instances,

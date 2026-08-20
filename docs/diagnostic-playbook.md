@@ -2375,6 +2375,8 @@ below is installed and verified working.
 | `scripts/crop_recording.py` | repo | crop + compress a lossless run master in ONE pass. **REFUSES unless everything outside the crop is black** — `--check` to verify only, `--finalize` for the capture pipeline |
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
+| `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
+| `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
 | `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
 | **scene reference frames** | `<archive>/scene-refs/*.png` | labelled 640x480 frames from OUR build. **Never build these from the ares captures** — different renderer, ~240p + VI filtering (T88) |
@@ -2401,6 +2403,58 @@ by design. Anything meant to outlive the session goes somewhere durable.
 is 640x480, so halving discards upscaling, not detail (verified: fully legible at
 a quarter of the pixels). A `dark_fraction` number once said "not black" for a
 frame that was solid black.
+
+---
+
+## User-observed runs — the two things I cannot check myself (added 2026-08-20, T101)
+
+**Standing policy, user-set:** a run the user watches **daily on any day work happened**, and
+**immediately whenever anything observable changes.**
+
+### The two gaps, and they are different
+
+1. **I CANNOT PERCEIVE AUDIO AT ALL.** The capture pipeline's ffmpeg invocation has no
+   audio input — **every recording this project has ever made is silent by
+   construction.** A97's current state is *"audio silence only"*, and every claim
+   in it comes from reading source. Ten seconds of listening outranks all of it.
+2. **Scene identity has been wrong twice** (A93, A161), both times with the
+   observation right and the **quantifier** wrong — sampled instants silently
+   became "never". Sampling cannot support a claim about the moments it did not
+   sample; continuous watching can.
+
+### Why xephyr and not real
+
+`xephyr` shows a real window but keeps **input isolated**. `real` has no isolation,
+and on 2026-08-19 four debugger runs put a live game window on the user's desktop
+with the keyboard attached (T59). **An observed run must be SEEN, not unprotected.**
+A control asserts the default and fails if it is changed to `real`.
+
+### The progress trigger is MECHANICAL, deliberately
+
+"Seeming progress" judged by the party whose claims are being checked is worth
+nothing. It is computed from `run-log.tsv`: a run that asked for more than the
+known crash time and did **not** return 139 either survived the crash point or
+broke — **both need a human.** A normal crash and a short run stay quiet, and a
+control asserts all three directions.
+
+### The daily trigger is gated on work
+
+A calendar nag on a day with no work is ceremony — T100 records that exact defect
+in L2's trigger. It is worse here because **this one spends the USER's time**, and
+a policy that wastes it gets abandoned (T29).
+
+### Audio is NOT recorded, and that is a decision not an oversight
+
+Capturing system audio would record whatever else the machine is playing — the
+same class of problem as filming the user's desktop, guarded since T83.
+Per-application capture is the safe form and is **not built**. Until it is, the
+user's ears are the only instrument, so the answer must be written down.
+
+```bash
+scripts/observed_run.sh --self-check   # 5/5
+scripts/observed_run.sh --checklist    # print the list, run nothing
+scripts/observed_run.sh 180            # the real thing
+```
 
 ---
 

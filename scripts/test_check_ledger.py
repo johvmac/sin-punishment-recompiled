@@ -274,7 +274,34 @@ def main():
           f"plural={sr_plural}, justified={sr_justified}")
     bad += not sr_ok
 
-    total = len(CASES) + 7
+    # OBSERVED-RUN PROGRESS TRIGGER (T101). Two-sided, because a trigger that
+    # fires on every run is noise that costs the USER's time, and one that never
+    # fires is the policy silently not existing. The interesting negative is a
+    # NORMAL crash: long request, long duration, rc=139 -- that must stay quiet.
+    def progress_case(runrow):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            (root / "docs" / "findings-ledger.md").write_text(
+                "| # | status | finding |\n|---|---|---|\n| A1 | MEASURED (2 runs) | x |\n")
+            (root / "docs" / "run-log.tsv").write_text(
+                "ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\n" + runrow)
+            p = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
+                               capture_output=True, text=True)
+            return "DUE ON PROGRESS" in (p.stdout + p.stderr)
+
+    survived = progress_case("2026-08-20T10:00:00+10:00\t180\t180\t0\t0\t0\n")
+    normal   = progress_case("2026-08-20T10:00:00+10:00\t180\t158\t139\t0\t0\n")
+    shortrun = progress_case("2026-08-20T10:00:00+10:00\t30\t30\t0\t0\t0\n")
+    pr_ok = survived and not normal and not shortrun
+    print(f"{'ok  ' if pr_ok else 'FAIL'}  observed-run progress trigger: fires on survival, "
+          f"quiet on a normal crash and a short run  — survived={survived}, "
+          f"normal-crash={normal}, short={shortrun}")
+    bad += not pr_ok
+
+    total = len(CASES) + 8
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0
 

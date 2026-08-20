@@ -64,6 +64,19 @@ Before a new tool's output counts as evidence:
 3. **Written up in the playbook in the same checkpoint**, naming its purpose,
    its controls, and the incident that motivated it.
 
+## User-observed runs (T101)
+
+**Daily on any day work happened, and IMMEDIATELY on anything observable
+changing** — a run past the crash point, a changed fault signature, a new scene,
+audio appearing. Run `scripts/observed_run.sh`; it prints
+`docs/observation-checklist.md` first and records the outcome **either way**.
+
+Two things I cannot check: **I cannot hear audio at all** (the recorder captures
+video only, so A97 rests entirely on reading source), and **scene identity has
+been wrong twice from sampling** (A93, A161 — the observation right, the
+quantifier wrong). **A disagreement from the user becomes its own ledger entry,
+never a quiet correction.**
+
 ## Standing constraints
 
 * **Nothing goes upstream** — not code, not issues (T36/T38).
