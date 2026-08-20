@@ -2946,6 +2946,26 @@ failures, none of which need judgement:
    replacement are exempted by wording ("supersedes", "corrects", "retract");
 4. duplicate IDs (six appeared in one session of incremental edits).
 
+**5. A MISSING OR JARGON-LADEN `SO WHAT:` LINE (T120).** Every entry written
+after the 2026-08-20 mark must carry one plain sentence saying what the work
+achieved — the checkpoint-closing sentence, moved out of chat and into the
+record. **Why it moved: it was the only part of a checkpoint with no mechanical
+check, and it is the part that got skipped** — on the same checkpoint that
+drifted into unrolled work. `route.py` printed the requirement and
+`test_route.py` asserted it was printed; nothing ever asserted anyone met it.
+
+Two things are checked, and **the second is what makes it discriminate**:
+
+* the line is present;
+* the sentence is **plain** — an address, an entry ID, a filename or a register
+  fails it. Presence alone is satisfied by pasting the entry's own jargon after
+  the label, which is exactly the sentence the rule exists to prevent.
+
+Unlike the single-run high-water mark beside it, **this mark does not advance
+past an unfixed gap**: a missing sentence is reported every run until written,
+because a finding reported once and then forgotten is the failure this whole
+change is about. Its first run found 15 — every entry written that day.
+
 Findings are **warnings, not gates** — it directs attention, it does not judge.
 It cannot check the thing that actually goes wrong: a required field forces
 presence, never truth, and `falsifier: none obvious` passes any validator.
