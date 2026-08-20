@@ -115,8 +115,36 @@ def self_check():
     for a in sorted(theirs):
         flag = "ok  " if mine.get(a) == theirs[a] else "FAIL"
         print(f"{flag}  0x{a:08X}  objdump={mine.get(a, '--------')}  splat={theirs[a]}")
-    print(f"\n{len(theirs) - len(bad)}/{len(theirs)} words match splat's committed asm")
-    return 1 if bad else 0
+
+    # --section CONTROLS (A197). This flag's output is now load-bearing evidence,
+    # so it clears T71's gates rather than being trusted because it looks right.
+    #
+    # THE CONTROL THAT DISCRIMINATES is the first one: it asserts the flag
+    # actually CHANGES THE BYTES. A --section that parsed cleanly and then
+    # quietly disassembled the default overlay anyway would produce exactly the
+    # confident-wrong output this whole tool exists to prevent (T49), and a
+    # control that merely checked "it exits 0" would pass on it.
+    me = [sys.executable, __file__]
+    probe = "0x800F9424"
+    d_def = subprocess.run(me + [probe, "+0x20"], capture_output=True, text=True).stdout
+    d_o19 = subprocess.run(me + ["--section", "ovlfile19", probe, "+0x20"],
+                           capture_output=True, text=True).stdout
+    words = lambda s: [m.group(1) for m in re.finditer(r":\t([0-9a-f]{8}) ", s)]
+    differs = bool(words(d_def)) and bool(words(d_o19)) and words(d_def) != words(d_o19)
+    print(f"{'ok  ' if differs else 'FAIL'}  --section CHANGES the disassembled bytes "
+          f"(default={len(words(d_def))} words, ovlfile19={len(words(d_o19))} words)")
+
+    r = subprocess.run(me + ["--section", "nosuchoverlay", probe, "+0x20"],
+                       capture_output=True, text=True)
+    refuses = r.returncode == 2 and "REFUSING" in r.stderr
+    print(f"{'ok  ' if refuses else 'FAIL'}  --section REFUSES an unknown name "
+          f"(rc={r.returncode}, want 2)")
+
+    extra_bad = (not differs) + (not refuses)
+    total = len(theirs) + 2
+    print(f"\n{total - len(bad) - extra_bad}/{total} words match splat's committed asm "
+          f"(+ 2 --section controls)")
+    return 1 if (bad or extra_bad) else 0
 
 
 def main():
@@ -126,6 +154,25 @@ def main():
         return 0
     if "--self-check" in args:
         return self_check()
+
+    # --section <name>: PICK THE OVERLAY EXPLICITLY (A197).
+    #
+    # 15 sections contain an address like 0x800F9448 -- that is what an overlay
+    # IS. This tool already NAMES all of them on stderr and says it is showing
+    # the first, which is honest. But "showing the first" is a coin toss when
+    # you are asking about a specific overlay's code, and on 2026-08-20 the
+    # first was .ovlfile04 while the question was about ovlfile19. Without a
+    # way to say which, the only options were to trust the wrong bytes or to
+    # derive a delta by hand -- and deriving it by hand is T49.
+    want = None
+    if "--section" in args:
+        i = args.index("--section")
+        if i + 1 >= len(args):
+            print("REFUSING: --section needs a name, e.g. --section ovlfile19",
+                  file=sys.stderr)
+            return 2
+        want = args[i + 1].lstrip(".")
+        del args[i:i + 2]
 
     start = int(args[0], 16)
     if len(args) > 1:
@@ -139,11 +186,23 @@ def main():
               f"vram->ROM delta is unknown. Guessing one is exactly the T49 failure -- "
               f"a wrong delta produces plausible, confident nonsense.", file=sys.stderr)
         return 2
+    if want is not None:
+        picked = [h for h in hits if h[0].lstrip(".") == want]
+        if not picked:
+            print(f"REFUSING: no section named '{want}' contains 0x{start:08X}. "
+                  f"Sections that do: {', '.join(h[0] for h in hits)}", file=sys.stderr)
+            return 2
+        print(f"# section CHOSEN EXPLICITLY: {picked[0][0]} (--section {want})",
+              file=sys.stderr)
+        return disasm(start, end, picked[0])
+
     if len(hits) > 1:
         print(f"# NOTE: {len(hits)} sections contain this address (overlays share vram -- "
               f"A85/G3.1). Showing the first; the others are:", file=sys.stderr)
         for h in hits[1:]:
             print(f"#   {h[0]} rom=0x{h[1]:08X}", file=sys.stderr)
+        print(f"# >>> THE FIRST IS A COIN TOSS. If you are asking about a specific "
+              f"overlay, re-run with --section <name> (A196/A197).", file=sys.stderr)
     return disasm(start, end, hits[0])
 
 
