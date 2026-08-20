@@ -465,6 +465,20 @@ def main():
                 f"run scripts/observed_run.sh. I cannot hear audio at all, and "
                 f"scene identity has been wrong twice from sampling (T101).")
         _rl = (LEDGER.parent / "run-log.tsv")
+        # SHAPE GUARD (T105). The verdict column was added to the DATA and never
+        # to the HEADER, so for 88 rows the file had 10 names over 11 columns and
+        # anything reading it BY NAME silently misaligned -- `log` would have
+        # returned the verdict. Five older rows had no verdict at all, so the
+        # width was not even self-consistent. A tabular evidence file whose
+        # header lies is worse than one with no header, because the header
+        # invites exactly the parse that breaks.
+        if _rl.exists():
+            _rows = [r for r in _rl.read_text().split("\n") if r.strip()]
+            _w = {len(r.split("\t")) for r in _rows}
+            if len(_w) > 1:
+                reminders.append(
+                    f"run-log.tsv has RAGGED rows (widths {sorted(_w)}) — anything "
+                    f"parsing it positionally is misaligned for some rows (T105).")
         if _rl.exists():
             for _row in _rl.read_text().strip().split("\n")[-1:]:
                 _f = _row.split("\t")
