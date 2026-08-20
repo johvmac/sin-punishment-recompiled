@@ -38,6 +38,7 @@ Usage:
     scripts/ledger.py --wd                 # withdrawn entries (index form)
     scripts/ledger.py --cited-by A54       # what rests on A54
     scripts/ledger.py --chain A99          # the correction chain, chronological
+    scripts/ledger.py --sowhat 6           # closing sentences of the last 6 entries
     scripts/ledger.py --self-check         # ALWAYS, before trusting output
 """
 import re
@@ -528,6 +529,51 @@ def self_check():
     return 1 if bad else 0
 
 
+def cmd_sowhat(rows, n):
+    """Print the closing sentences of the last `n` entries, newest last.
+
+    WHY THIS EXISTS (T124)
+    ----------------------
+    T120 moved the checkpoint-closing sentence INTO the entry so something
+    could check it was written. It is checked, and it is written -- and on
+    2026-08-20 six consecutive entries were written with good ones and NONE of
+    them reached the user, because that stretch was user-directed work rather
+    than a rolled checkpoint and nothing prompted a summary.
+
+    The record was fine. The REPORTING was not, and no checker can see chat.
+    What can be mechanised is the RETRIEVAL: closing any chunk of work should
+    be one command, not an act of memory. Newest LAST so it reads in the order
+    the work happened, and so the final line is the one to close on.
+    """
+    # parse() returns a LIST of (id, status, body, evidence, raw), not a dict --
+    # checked rather than assumed, after assuming wrong once.
+    #
+    # ORDER IS FILE ORDER, NOT ID ORDER. Sorting by (prefix, number) groups all
+    # the A-entries then all the T-entries, so "the last 3" returned three
+    # T-entries regardless of what was actually written most recently. The
+    # ledger is newest-first on disk, which is the real chronology.
+    ids = [(0, 0, r) for r in rows if re.match(r"[A-Z]+\d+", r[0])]
+    tail = list(reversed(ids[:n]))
+    print(f"# closing sentences, last {len(tail)} entries, oldest first\n")
+    missing = []
+    for _pre, _num, r in tail:
+        eid = r[0]
+        blob = r[1] + " " + r[2]
+        got = None
+        for mm in re.finditer(r"SO WHAT:\s*(.+?)(?:\*\*|\||$)", blob, re.S):
+            t = mm.group(1).strip()
+            if t.startswith("<") or (mm.start() > 0 and blob[mm.start() - 1] == "`"):
+                continue
+            got = t
+        if got:
+            print(f"  {eid}: {got}\n")
+        else:
+            missing.append(eid)
+    if missing:
+        print(f"# NO closing sentence: {', '.join(missing)} -- check_ledger will ask.")
+    return 0
+
+
 def main():
     a = sys.argv[1:]
     if not a or a[0] in ("-h", "--help"):
@@ -548,6 +594,13 @@ def main():
     if cmd == "--grep":
         return cmd_grep(rows, a[1]) if len(a) > 1 else (
             print("[ledger] --grep needs a term", file=sys.stderr) or 2)
+    if cmd == "--sowhat":
+        try:
+            n = int(a[1]) if len(a) > 1 else 8
+        except ValueError:
+            print("[ledger] --sowhat takes a count", file=sys.stderr)
+            return 2
+        return cmd_sowhat(rows, n)
     if cmd == "--chain":
         return (cmd_chain(rows, a[1]) if len(a) > 1 else
                 (print("[ledger] --chain needs an ID", file=sys.stderr) or 2))

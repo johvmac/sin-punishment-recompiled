@@ -45,7 +45,9 @@ cannot be told apart from one rationalised after the fact, and that is the whole
 thing the roll exists to prevent.
 
 **Close every checkpoint with one plain-language sentence saying what it
-achieved** — no hex, no entry IDs, no tool names. If the honest answer is
+achieved — AT THE VERY END of the write-up, not the start (T124); it is a
+closing line. `scripts/ledger.py --sowhat` pulls up recent ones, and
+USER-DIRECTED work gets one too, even though no roll was consumed** — no hex, no entry IDs, no tool names. If the honest answer is
 "nothing moved forward, I fixed a measuring instrument", say that; exposing
 that distinction is the whole point of the sentence.
 
