@@ -183,3 +183,4 @@ A gap in the numbering means a roll was skipped.
 - roll #164: **EXPLOIT** (drew 0.623 vs eps 0.3) -> `A262` [witness `3d9009`] — Opened from A261 at the user's direction. Two structural rules for finding function extents both
 - roll #165: **EXPLOIT** (drew 0.600 vs eps 0.3) -> `A218` [witness `1486a1`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #166: **EXPLOIT** (drew 0.352 vs eps 0.3) -> `A211` [witness `cce3da`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #167: **EXPLORE** (drew 0.187 vs eps 0.3) -> `A97` [witness `5fedd7`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
