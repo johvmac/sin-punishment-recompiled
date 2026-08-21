@@ -179,6 +179,20 @@ NON_ENTRY_SECTIONS = ("## THE USER QUEUE",)
 def is_non_entry_section(heading):
     """True if this `## ` heading introduces rows that are not ledger entries."""
     return bool(heading) and heading.startswith(NON_ENTRY_SECTIONS)
+
+
+# T155, the user's rule 2026-08-22: "rolling is a way of making sure the NON
+# user-directed work is well distributed, but user directed work will always be
+# highly focused." So user-directed entries must not accumulate toward the
+# "you have not rolled" nag. They were never routed and were never going to be
+# -- the user picked the target -- so counting them implies a drift into
+# self-chosen work that did not happen.
+#
+# ONE DEFINITION, imported by route.py rather than copied (T131, and T149 is
+# what copying this kind of predicate costs).
+def is_user_directed(body):
+    """True if this entry records work the USER directed, not a roll."""
+    return "user-directed" in (body or "").lower()
 REQUIRED_LB = ("Claim", "Observed", "Falsifier", "Checked")
 
 
@@ -520,10 +534,25 @@ def main():
             f"it says nothing about how YOU read it.")
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
-        since = len(rows) - state.get("last_entry_count", 0)
+        # ROUTABLE entries only (T155). This counted EVERY new entry, so a day
+        # of user-directed work nagged that a routing decision was overdue --
+        # but a roll distributes work I choose, and user-directed work was
+        # chosen by the user. On 2026-08-22 it read "12 entries added since
+        # roll #179" when every one of the twelve was user-directed and not one
+        # routing decision had been skipped.
+        _routable_now = sum(1 for _t, _b, _l in rows.values()
+                            if not is_user_directed(_b))
+        _base = state.get("last_routable_count")
+        if _base is None:                      # pre-T155 state: fall back loudly
+            since = len(rows) - state.get("last_entry_count", 0)
+            _ud = ""
+        else:
+            since = _routable_now - _base
+            _ud = (f" ({len(rows) - state.get('last_entry_count', 0)} added in "
+                   f"total; the rest were user-directed and do not count)")
         if since >= 6:
-            reminders.append(f"routing: {since} entries added since roll "
-                             f"#{state.get('roll', 0)} — run scripts/route.py.")
+            reminders.append(f"routing: {since} ROUTABLE entries added since roll "
+                             f"#{state.get('roll', 0)}{_ud} — run scripts/route.py.")
     except Exception:
         reminders.append("routing: no roll recorded yet — run scripts/route.py.")
 

@@ -282,6 +282,23 @@ def entry_count():
     return len(ledger_rows())
 
 
+def routable_entry_count():
+    """Entries a ROLL could have chosen -- user-directed ones excluded (T155).
+
+    Fails OPEN, like ledger_rows(): if check_ledger cannot be imported every row
+    counts, which over-reports rather than silently under-reporting. An alarm
+    that fires too often is noise; one that never fires is broken.
+    """
+    try:
+        _sd = str(Path(__file__).resolve().parent)
+        if _sd not in sys.path:
+            sys.path.insert(0, _sd)
+        from check_ledger import is_user_directed      # T131: ONE definition
+    except Exception:
+        return len(ledger_rows())
+    return sum(1 for line in ledger_rows() if not is_user_directed(line))
+
+
 def load():
     if STATE.exists():
         return json.loads(STATE.read_text())
@@ -517,6 +534,12 @@ def main():
         st["last_seen"].setdefault(_e, st["roll"])
     st["last_seen"][target] = st["roll"]
     st["last_entry_count"] = entry_count()
+    # ROUTABLE baseline (T155). check_ledger's "you have not rolled" nag counts
+    # from THIS, not from the total, because user-directed entries were never
+    # routed and never would have been -- the user chose the target. Without it
+    # a day of user-directed work manufactures a routing alarm out of nothing.
+    # The predicate is IMPORTED, never restated (T131/T149).
+    st["last_routable_count"] = routable_entry_count()
     STATE.write_text(json.dumps(st, indent=1))
 
     witness = make_witness()

@@ -306,7 +306,51 @@ def main():
         fails.append(f"FAIL: could not compare the two entry counters ({e}) — "
                      f"this is the check that caught the 470-vs-462 split")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 12
+    # USER-DIRECTED ENTRIES MUST NOT ACCRUE TOWARD THE ROLL NAG (T155).
+    # The user's rule: a roll distributes work I choose; user-directed work was
+    # chosen by them and was never routed. Counting it manufactured a routing
+    # alarm from a day in which no routing decision was skipped.
+    #
+    # DISCRIMINATING, not a smoke test: the fixture holds BOTH kinds, so a
+    # routable_entry_count() that ignored the predicate would equal
+    # entry_count() and fail here. Asserted against check_ledger's imported
+    # predicate rather than a copied string.
+    FIX2 = "\n".join([
+        "# Fixture", "", "## FINDINGS", "",
+        "| A1 | OPEN [cost=2] | a rolled finding | 2026-08-22 (roll #1) |",
+        "| A2 | MEASURED | another rolled finding | 2026-08-22 |",
+        "| T1 | INTERVENED | user asked for this | 2026-08-22 (user-directed, no roll consumed) |",
+        "| T2 | INTERVENED | so did they | 2026-08-22 (USER-DIRECTED) |",
+        ""])
+    _f2 = Path(tempfile.mkdtemp()) / "findings-ledger.md"
+    _f2.write_text(FIX2)
+    _real2 = route.LEDGER
+    try:
+        route.LEDGER = _f2
+        _all, _routable = route.entry_count(), route.routable_entry_count()
+        if _all != 4:
+            fails.append(f"FAIL: entry_count()={_all} on the T155 fixture, expected 4")
+        elif _routable == _all:
+            fails.append("FAIL: routable_entry_count() ignores the user-directed "
+                         f"predicate — it equals entry_count() at {_all}")
+        elif _routable != 2:
+            fails.append(f"FAIL: routable_entry_count()={_routable}, expected 2 "
+                         f"(A1, A2 — T1/T2 are user-directed)")
+        # CASE-INSENSITIVE, because the marker is written both ways in the real
+        # ledger and a case-sensitive predicate would silently count half of them.
+        if _routable == 3:
+            fails.append("FAIL: the predicate is case-sensitive — 'USER-DIRECTED' "
+                         "was counted as routable")
+    finally:
+        route.LEDGER = _real2
+
+    # ...and the roll must actually STORE the baseline, or check_ledger reads a
+    # stale one forever. Definition plus a write is two occurrences (T147).
+    if _rsrc.count("routable_entry_count") < 2 or 'st["last_routable_count"]' not in _rsrc:
+        fails.append("FAIL: the roll does not record a routable baseline — "
+                     "check_ledger would compare against a stale number")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 14
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -320,7 +364,7 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness, 1 observed-run gate, 2 prior-work, 3 entry-count)")
+          f"1 witness, 1 observed-run gate, 2 prior-work, 3 entry-count, 2 routable)")
     return 1 if fails else 0
 
 
