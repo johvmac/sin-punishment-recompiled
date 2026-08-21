@@ -44,3 +44,12 @@ correction.
 ## DEFERRED 2026-08-21 — observed recently
 - no observed run today; deferred deliberately, not skipped.
 
+## 2026-08-21T13:37:20+10:00 — build `934f210442a4585d`, 180s requested, rc=0 (CLEAN)
+- run log: `observed-133720.log`
+- **audio:** no
+- **last 10s / scene:** tutorial
+- **title screen:** correct
+- **how it died:** black then vanish
+- **feel:** no
+- **CONTRADICTS MY CLAIMS:** no
+

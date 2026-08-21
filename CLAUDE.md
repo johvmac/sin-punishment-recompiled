@@ -85,10 +85,14 @@ which is why a deferral clears it — **the rule is not "it happened", it is
 audio appearing. Run `scripts/observed_run.sh`; it prints
 `docs/observation-checklist.md` first and records the outcome **either way**.
 
-Two things I cannot check: **I cannot hear audio at all** (the recorder captures
-video only, so A97 rests entirely on reading source), and **scene identity has
-been wrong twice from sampling** (A93, A161 — the observation right, the
-quantifier wrong). **A disagreement from the user becomes its own ledger entry,
+Two things I cannot check: **I cannot HEAR audio** — but it is CAPTURED on
+observed runs (T102) and **amplitude is measurable, which is not the same as
+hearing** (A265: another recompiled N64 game run headless on this machine reads
+−24 dB while ours reads a flat −91 dB, so the silence is the game, not the
+recorder and not headlessness). ~~the recorder captures video only, so A97 rests
+entirely on reading source~~ — that was true of `run_game.sh` only, and the
+conclusion never followed. And **scene identity has been wrong twice from
+sampling** (A93, A161 — the observation right, the quantifier wrong). **A disagreement from the user becomes its own ledger entry,
 never a quiet correction.**
 
 ## Standing constraints
