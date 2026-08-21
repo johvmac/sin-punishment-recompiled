@@ -1,10 +1,10 @@
 {
- "start": 1787293275.0270958,
- "deadline": 1787295075.0270958,
- "task": "",
+ "start": 1787295140.959957,
+ "deadline": 1787296940.959957,
+ "task": "continue roll #168 (A218 scissor/render-target operands), then checkpoints",
  "shelf": [],
  "blocks": [],
- "roll_at_start": 161,
+ "roll_at_start": 168,
  "entries_at_start": [
   "A1",
   "A10",
@@ -209,6 +209,12 @@
   "A287",
   "A288",
   "A289",
+  "A290",
+  "A291",
+  "A292",
+  "A293",
+  "A294",
+  "A295",
   "A30",
   "A36",
   "A38",
@@ -442,5 +448,5 @@
   "U6",
   "U7"
  ],
- "ended": true
+ "ended": false
 }
