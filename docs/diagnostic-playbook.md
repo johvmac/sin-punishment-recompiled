@@ -2486,8 +2486,9 @@ added, **5,374 of 5,374 tasks terminate cleanly.**
 
 ### The controls, and which of them can fail
 
-`SNP_DL_CENSUS=selftest` runs 8 controls at gfx-thread start over synthetic
-lists, needing no game state. Three discriminate:
+`SNP_DL_CENSUS=selftest` runs 13 controls at gfx-thread start over synthetic
+lists, needing no game state (8 originally; A297 added three — see below).
+Three of the original eight discriminate:
 
 * an **unterminated** list must be REJECTED;
 * an **F3D** list must be rejected by the F3DEX2 table and accepted by the F3D one;
@@ -2503,6 +2504,45 @@ segment base that collided with the test's own base address, and a
 hand-assembled `G_MOVEWORD` with the index byte one position out. Both would
 have been invisible in a probe that only printed. Build fixture constants from
 named parts, not hex literals.
+
+### OPERANDS: RECTANGLES, COLOURS, SCISSORS, AND WHERE THEY SIT IN THE STREAM
+
+Counts cannot tell a rectangle that PAINTS from one that WIPES (A256), so the
+walker records operands for the commands that decide it. Added in two passes:
+
+* **A257** — `G_FILLRECT` rectangles and `G_SETCIMG` target addresses.
+* **A297** — the **fill colour** in effect at each rect, `G_SETSCISSOR`
+  rectangles, and a **command sequence index** on every rect and scissor plus
+  the first/last triangle index. Three gaps named in three separate entries,
+  all closed by one edit sharing one rebuild and one run.
+
+**Controls now 13, and the three added by A297 were verified to fail** — each
+broken a *different* way in a single build, because four controls of the same
+shape are one control (A261). Forcing `rect_color_set` true, recording the rect
+INDEX instead of the command index, and decoding scissors with `G_FILLRECT`'s
+packing scored **10/13**: exactly those three, the other ten unaffected.
+
+**THE PACKING IS INVERTED BETWEEN THE TWO RECTANGLE COMMANDS, and getting it
+wrong produces a finding rather than an error.** `G_SETSCISSOR` puts upper-left
+in `w0` and lower-right in `w1`; `G_FILLRECT` is the other way round. Decode a
+scissor with the fillrect packing and you get a valid-looking INVERTED
+rectangle — which reads as "the scissor is clipping the scene away", a story
+that was already live and that the counts did not support. The control names
+the wrong answer as well as the right one so it cannot pass by coincidence.
+
+**Two traps this pass walked into and out of.** Fill colour is RUNNING STATE,
+not a per-rect operand — `G_FILLRECT` carries no colour, it uses whatever
+`G_SETFILLCOLOR` last set — so it is tracked and *sampled* at each rect, and a
+separate flag distinguishes "filled with black" from "no colour was ever set",
+which are opposite meanings behind the same zero. And rect order was recorded
+among RECTS only: "drawn, then overwritten by the large fill" and "filled
+first, geometry never arrived" are the same rect list in a different order, and
+only an index against the geometry separates them.
+
+**STILL MISSING, and it is one line:** `G_SETCIMG` has no sequence index, so
+which render target a given rect writes to cannot be read off the log. A297 is
+one operand short of deciding whether the frame's large fill clears colour or
+depth.
 
 ### A SATURATING COUNTER LOOKS EXACTLY LIKE THE ANSWER YOU ARE LOOKING FOR
 
@@ -2570,7 +2610,7 @@ below is installed and verified working.
 | **RT64 debugger inspector** | already in `lib/rt64`; `developer_mode: true` in `~/.config/sinpunishment/graphics.json`, then **F1** | **"View Draw Call" TRUNCATES rendering to the first N calls — the frame builds up one draw at a time (A243), not a highlight. Also a "Start dumping textures" button that writes every unique loaded texture to disk keyed by hash. Plus FREE CAMERA, depth-buffer view, per-frame triangle/draw-call counts.** Free camera separates *drawn off-screen* from *not drawn*; depth view separates *drawn black* from *not drawn*. **USER-DRIVEN — it is an ImGui panel and I cannot click it.** Needs `SNP_ISO=xephyr`. Shows RT64's *interpretation*: good for presence and identity, never for pixel claims (T88). **No wireframe mode exists.** Verified not to perturb the census over 400 tasks (A239) |
 | **`scripts/yay0_extract.py`** | repo | **decompress the ROM's 28 Yay0 archives and lay each out as a contact sheet** of 64x64 CI4 tiles in ROM order, for a HUMAN to recognise (A227's split: decoding is the machine's job, recognition is the person's). `--dry-run`, `--self-check` (3 controls, 2 discriminating: a corrupted archive must be REJECTED and an overrunning size must not report success). The format's declared length is the field control — 28/28 decode to it exactly. **Says nothing about whether an asset is ever LOADED; that is RT64's texture dump (A243), the complementary question** |
 | **`scripts/send_key.py`** | repo | **one XTEST keypress to an isolated display**, so an interactive instrument can be tested without the user retrying blind. `--display :7 --key F1`, `--dry-run`, `--self-check` (4 controls; 2 discriminating — a nonsense key must not resolve, a dead display must FAIL). **Any run using it is CONTAMINATED BY DESIGN** — tool verification only, never evidence (A244). Note `run_game.sh`'s `input_events` counts CONTROLLER events only, so a zero there does NOT mean nothing was typed |
-| **`SNP_DL_CENSUS`** | runtime probe, `ultramodern/src/events.cpp` | **how much is in the display list the renderer is handed, per frame.** Walks it at the submission point — not from a snapshot (T69). Detects the microcode table instead of assuming it, resolves segmented branches from `G_MOVEWORD`, and prints an opcode histogram every 300 tasks. `SNP_DL_CENSUS=selftest` runs 8 controls, **3 of them verified to fail** (A234) |
+| **`SNP_DL_CENSUS`** | runtime probe, `ultramodern/src/events.cpp` | **how much is in the display list the renderer is handed, per frame.** Walks it at the submission point — not from a snapshot (T69). Detects the microcode table instead of assuming it, resolves segmented branches from `G_MOVEWORD`, and prints an opcode histogram every 300 tasks. **Also records operands: fill rectangles + their colour, scissor rectangles, render targets, and a command sequence index against the geometry** (A257, A297). `SNP_DL_CENSUS=selftest` runs **13 controls, 6 of them verified to fail** (A234, A297) |
 
 **No MIPS toolchain is installed, and none is needed.** m2c parses assembly as
 text; splat has already produced it. Don't go looking for `mips-linux-gnu-*`.
