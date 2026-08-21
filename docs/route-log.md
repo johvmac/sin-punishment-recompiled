@@ -157,3 +157,4 @@ A gap in the numbering means a roll was skipped.
 - roll #138: **EXPLORE** (drew 0.236 vs eps 0.3) -> `A225` [witness `8e5531`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #139: **EXPLORE** (drew 0.048 vs eps 0.3) -> `A97` [witness `fb3b20`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #140: **EXPLORE** (drew 0.292 vs eps 0.3) -> `A227` [witness `c72df3`] — Priced and opened from A226. THE SPLIT THAT MAKES THIS WORTH DOING: decompression and decoding a
+- roll #141: **EXPLOIT** (drew 0.794 vs eps 0.3) -> `A227` [witness `4a7f72`] — Priced and opened from A226. THE SPLIT THAT MAKES THIS WORTH DOING: decompression and decoding a
