@@ -130,3 +130,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T09:42:16+10:00	900	453	137	0	0	6169	0	CRASHED	vanilla-inspect2.log	none
 2026-08-21T09:44:31+10:00	60	60	0	0	0	1744	30	CLEAN	dev-on.log	none
 2026-08-21T09:45:39+10:00	60	60	0	0	0	1745	30	CLEAN	dev-off.log	none
+2026-08-21T09:58:58+10:00	600	600	0	0	0	6169	0	DEGRADED	drawcall-timeline.log	none
