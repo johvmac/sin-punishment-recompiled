@@ -2,7 +2,12 @@
  "start": 1787286145.6276774,
  "deadline": 1787287945.6276774,
  "task": "confirm audio capture works end-to-end on a 180s run (T133's deferred verification)",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "RT64 inspector session on a paused tutorial frame (scheduled today)",
+   "why": "needs the user at a real display -- F1 does nothing under Xvfb or Xephyr (A245); it is queue items U1-U6 and the queue alarm already tracks it"
+  }
+ ],
  "blocks": [],
  "roll_at_start": 147,
  "entries_at_start": [
