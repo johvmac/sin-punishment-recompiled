@@ -34,6 +34,68 @@ decide to publish it deliberately.
 
 ---
 
+## WHAT IS INSTALLED ON THIS MACHINE — check here before asking or assuming
+
+**WHY THIS SECTION EXISTS (user-reported, 2026-08-22):** more than one session
+has burned time working out whether the reference recompilations were even
+present. Everything below WAS already mentioned somewhere in this file — the
+problem was that finding it required already knowing it existed. **This is the
+one place. All paths verified 2026-08-22.**
+
+### Reference recompilations — BOTH ARE CHECKED OUT LOCALLY
+
+| what | where | state |
+|---|---|---|
+| **Zelda64Recomp** (Majora's Mask) | `/home/joh/Documents/reference-recomps/Zelda64Recomp` | 1.9 GB, git `1a9c266` |
+| **BanjoRecomp** (Banjo-Kazooie) | `/home/joh/Documents/reference-recomps/BanjoRecomp` | 1.5 GB, git `ec85963`, includes `BanjoRecompSyms` and a decompressed ROM |
+
+These are **working recompilations of other N64 games built on the same stack**,
+so they answer "is this our bug or the framework's?" without any theorising —
+G5 is the gate for that. `Zelda64Recomp` also ships
+`config_example.cheats.json`, which is directly relevant to the memory-poke work
+(T145).
+
+**NOT checked out:** `trouble-makers-pc-recomp` (Mischief Makers). T143 surveyed
+it **through its README over the web**, not its source — every claim in T143
+about their implementation is theirs-as-described. Its ROM *is* on disk.
+
+### Emulator, and the trap
+
+**`ares` is a FLATPAK.** `command -v ares` returns NOTHING and the app is
+installed. Run it as `flatpak run dev.ares.ares`, which is what
+`scripts/ares_capture.sh` does. Do not conclude from a bare `command -v` that
+the reference emulator is missing.
+
+### Decompilation and analysis tooling — `/home/joh/Documents/sin_and_punishment/tools/`
+
+* **Ghidra 12.1.2** (`ghidra_12.1.2_PUBLIC`), with `ghidra-projects/` and
+  `ghidra-in/` alongside it.
+* **m2c** plus its virtualenv (`m2c`, `m2c-venv`) — the decompiler behind
+  `scripts/decomp.sh`, which is the free "read the real C" step in G2.
+
+### Sibling repositories
+
+* **`splat-project/`** — 228 MB, git `d6bcdde`. The splat configuration, the
+  base ROM, `symbol_addrs.txt` and the disassembly. **It is NOT in this repo**
+  (T19) and edits to the splat config belong there.
+
+### Command-line tools present
+
+`rclone` `ffmpeg` `ffprobe` `gdb` `rr` `ninja` `cmake` `nm` `objdump` `python3`
+
+**ABSENT:** `vulkaninfo` — so GPU identity comes from RT64's own startup lines
+in the run log, not from that tool (T144).
+
+### Other applications
+
+* **ELAN 7.1** — `/home/joh/opt/ELAN_7.1/bin/ELAN_7.1`. Annotate recordings with
+  time-aligned notes; needs VLC installed, which it is. This is how user
+  observations come back with exact start/end times.
+* **Google Drive backup** — `rclone` remote named **`google`** (NOT `gdrive`).
+  `scripts/backup_drive.sh` auto-detects a sole remote. Runs from cron at 18:45.
+
+---
+
 ## The map
 
 ```mermaid
@@ -937,7 +999,8 @@ too?" cleanly separates "our game's bug" from "how this runtime works."
 **Invalid for class C.** They tell you nothing about what Sin & Punishment's own
 code should do.
 
-**Locations:** `/home/joh/Documents/reference-recomps/{BanjoRecomp,Zelda64Recomp}`,
+**Locations:** `/home/joh/Documents/reference-recomps/BanjoRecomp` and
+`/home/joh/Documents/reference-recomps/Zelda64Recomp`,
 both built (`build-cmake/BanjoRecompiled`, `build-cmake/Zelda64Recompiled`).
 Setup details, ROM hashes, and decompression steps are in the
 `sin_punishment_recomp_status` memory.
@@ -2610,6 +2673,16 @@ below is installed and verified working.
 | **RT64 debugger inspector** | already in `lib/rt64`; `developer_mode: true` in `~/.config/sinpunishment/graphics.json`, then **F1** | **"View Draw Call" TRUNCATES rendering to the first N calls — the frame builds up one draw at a time (A243), not a highlight. Also a "Start dumping textures" button that writes every unique loaded texture to disk keyed by hash. Plus FREE CAMERA, depth-buffer view, per-frame triangle/draw-call counts.** Free camera separates *drawn off-screen* from *not drawn*; depth view separates *drawn black* from *not drawn*. **USER-DRIVEN — it is an ImGui panel and I cannot click it.** Needs `SNP_ISO=xephyr`. Shows RT64's *interpretation*: good for presence and identity, never for pixel claims (T88). **No wireframe mode exists.** Verified not to perturb the census over 400 tasks (A239) |
 | **`scripts/yay0_extract.py`** | repo | **decompress the ROM's 28 Yay0 archives and lay each out as a contact sheet** of 64x64 CI4 tiles in ROM order, for a HUMAN to recognise (A227's split: decoding is the machine's job, recognition is the person's). `--dry-run`, `--self-check` (3 controls, 2 discriminating: a corrupted archive must be REJECTED and an overrunning size must not report success). The format's declared length is the field control — 28/28 decode to it exactly. **Says nothing about whether an asset is ever LOADED; that is RT64's texture dump (A243), the complementary question** |
 | **`scripts/send_key.py`** | repo | **one XTEST keypress to an isolated display**, so an interactive instrument can be tested without the user retrying blind. `--display :7 --key F1`, `--dry-run`, `--self-check` (4 controls; 2 discriminating — a nonsense key must not resolve, a dead display must FAIL). **Any run using it is CONTAMINATED BY DESIGN** — tool verification only, never evidence (A244). Note `run_game.sh`'s `input_events` counts CONTROLLER events only, so a zero there does NOT mean nothing was typed |
+| **`scripts/guard_bash.py`** | PreToolUse hook, always on | **refuses shell commands that bypass a mechanised discipline** — launching the binary directly instead of via `run_game.sh`, and merging a project script's stderr into a pipe that truncates by position (A196). It fires often and it is not advisory; rephrase rather than retry. `test_guard.py` 30/30 |
+| **`scripts/lint_hooks.py`** | pre-flight lint | scratch debug hooks left in `sinpunishment.toml`. Part of the session-start block; `daily_push.sh` refuses to push while any remain. `test_lint_hooks.py` 10/10 |
+| **`scripts/resolve_bt.sh`** | post-processor | turns the raw addresses in `[taskbt]` lines into game function names via `nm`. `SNP_TASK_BT` prints addresses only, because the binary is linked without `-rdynamic` |
+| **`scripts/symbol_gaps.py`** | static | classifies the unclaimed gaps between consecutive function symbols. **The named first step of the T11 triage** (see `SCHEDULE.md`) |
+| **`scripts/truncation_sweep.py`** | static | sweeps every generated function for A85's truncation signature (class BC-2) — the defect behind A96 |
+| **`scripts/overlay_map.py`** | static, ROM only | computes where every compressed code overlay unpacks to, from the ROM alone |
+| **`scripts/probe_stubs.py`** | codegen | injects a first-call probe into every silently-stubbed recompiled function, so a stub that is actually reached announces itself |
+| **`scripts/inject_flag_trace.py`** | codegen | injects `SNP` flag-protocol tracing into the generated pump/dispatcher code |
+| **`scripts/bootstrap.sh`** | setup | bootstraps the toolchain (macOS/Linux). Already run on this machine |
+| **`scripts/snp-shader-tool.sh`** | wrapper | `dxc`/`spirv-cross` shader wrapper **for macOS arm64** — not used on this Linux machine |
 | **`scripts/backup_drive.sh`** | shell, needs `rclone` + a `gdrive` remote | **backs up what git cannot or must not hold.** `daily_push.sh` covers the repo; this covers the gap — `probe-patches/` (**ungittable by T36/T38**), gitignored handoffs, `ares-refs/`, and the ROMs + `.eeprom` save. **DRY RUN IS THE DEFAULT**; `--go` transfers, `--all` adds 755 MB of largely re-creatable logs and video. **Excludes `rom/*.log` — 1.24 GB of 2026-08-13 ares instruction traces that are not ROM data and predate T47.** `--self-check` runs **6 controls, verified to fail**; the exclusion and the refusal are both BEHAVIOURAL, not source-greps (T146) |
 | **`SNP_DL_CENSUS`** | runtime probe, `ultramodern/src/events.cpp` | **how much is in the display list the renderer is handed, per frame.** Walks it at the submission point — not from a snapshot (T69). Detects the microcode table instead of assuming it, resolves segmented branches from `G_MOVEWORD`, and prints an opcode histogram every 300 tasks. **Also records operands: fill rectangles + their colour, scissor rectangles, render targets (and the target IN FORCE at each rect), a command sequence index against the geometry, the VIEWPORT — followed through its segmented pointer, with an unresolvable one COUNTED rather than invented — the CYCLE TYPE in force at each rect, because `G_FILLRECT` only clears in FILL mode, and `G_MTX` PARAMETER BYTES raw** (A257, A297, A300, A302, A304, A307). **Operand fields store raw bytes wherever a packing is involved — three hand-derived packings went wrong in one day, and a raw histogram lets the decode be disputed separately from the counts.** `SNP_DL_CENSUS=selftest` runs **13 controls, 6 of them verified to fail** (A234, A297) |
 

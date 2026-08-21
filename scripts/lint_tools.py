@@ -215,6 +215,36 @@ def self_check():
                        not nu_doc and not bk_doc,
                        f"new={nu_doc}, backlog={bk_doc}"))
 
+    # 4a2. THE INSTALLED-TOOLING INVENTORY MUST NOT ROT (user-reported,
+    #      2026-08-22: sessions kept re-deriving whether the reference recomps
+    #      were even present). A documentation section decays silently — a path
+    #      that moves leaves prose that reads exactly as authoritative as
+    #      before. So every ABSOLUTE PATH the playbook states in backticks must
+    #      exist on disk. Discovered, not declared: adding a path to that
+    #      section automatically puts it under this check.
+    #
+    #      Scoped to /home/joh paths so it tests OUR claims about this machine,
+    #      not every incidental path in 2,700 lines of prose.
+    #
+    #      COVERAGE, STATED SO IT IS NOT MISTAKEN FOR TOTAL: it matches
+    #      BACKTICKED paths with no spaces, which is 4 of the 6 absolute paths
+    #      in the file. The two it skips are a glob (`.../asm/*.s`, which has no
+    #      literal existence) and one written outside backticks. Both were
+    #      checked by hand on 2026-08-22 and are present. **Backtick a path to
+    #      put it under this check** — that is the rule, and it is why the
+    #      inventory section above uses them throughout.
+    #
+    #      It FIRED ON ITS FIRST RUN (T100 says a checker that does not should
+    #      be suspected): the playbook stated
+    #      `reference-recomps/{BanjoRecomp,Zelda64Recomp}`, a shell brace
+    #      expansion that is not a path. Split into two real ones.
+    pb_text = PLAYBOOK.read_text() if PLAYBOOK.exists() else ""
+    claimed = sorted(set(re.findall(r"`(/home/joh/[^`\s]+)`", pb_text)))
+    gone = [p for p in claimed if not Path(p).exists()]
+    checks.append(("every absolute path the playbook claims still exists",
+                   not gone,
+                   f"{len(claimed)} claimed; MISSING: {' '.join(gone) if gone else 'none'}"))
+
     # 4b. T47 DISCRIMINATION, on a synthetic tree with one of each shape. This
     #     is the control that matters: a regex tuned to today's nine offenders
     #     would pass a "does it find them" test while being useless. Each
