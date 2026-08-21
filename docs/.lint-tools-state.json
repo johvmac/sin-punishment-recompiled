@@ -47,6 +47,7 @@
   "route.py",
   "rr_record.sh",
   "run_game.sh",
+  "send_key.py",
   "session.py",
   "shrink_shot.py",
   "snapshot_build.sh",
@@ -63,9 +64,10 @@
   "test_supersede.py",
   "truncation_sweep.py",
   "xclick.py",
-  "xtest_key.py"
+  "xtest_key.py",
+  "yay0_extract.py"
  ],
- "runs": 11,
+ "runs": 14,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

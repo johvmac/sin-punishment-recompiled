@@ -41,3 +41,6 @@ correction.
 - **feel:** NA
 - **CONTRADICTS MY CLAIMS:** NA
 
+## DEFERRED 2026-08-21 — observed recently
+- no observed run today; deferred deliberately, not skipped.
+
