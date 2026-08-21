@@ -104,6 +104,21 @@ conclusion never followed. And **scene identity has been wrong twice from
 sampling** (A93, A161 — the observation right, the quantifier wrong). **A disagreement from the user becomes its own ledger entry,
 never a quiet correction.**
 
+## When I need the user, I STOP (T154)
+
+**Their instruction, 2026-08-22.** The moment the work needs their hands, eyes
+or ears: **stop, say so at the TOP of the message, and do nothing else until
+they answer.** Not at the end of a write-up, not after finishing the other
+things I could have done meanwhile.
+
+**This deliberately OVERRIDES "do everything that does not depend on the answer
+first."** That habit is what buried the ask last time — a run was launched into
+the background and I carried on writing entries while they were at the keyboard.
+Work done while they wait is work done with their attention already spent.
+
+Say **what** is needed, **how long** it takes, and **what is blocked** on it. One
+ask at a time. Never start a background task that will need them mid-flight.
+
 ## Standing constraints
 
 * **Nothing goes upstream** — not code, not issues (T36/T38).
