@@ -85,6 +85,15 @@ which is why a deferral clears it — **the rule is not "it happened", it is
 audio appearing. Run `scripts/observed_run.sh`; it prints
 `docs/observation-checklist.md` first and records the outcome **either way**.
 
+**IT NEVER ACCUMULATES, AND NOTHING RECURRING ON THIS PROJECT MAY (T151, the
+user's rule).** A day with no work on the project owes nothing. The gate asks
+"is there one for TODAY", never "how many were missed", and it only fires when a
+roll is attempted — so idle days create no debt. **Miss three days and the next
+working day still owes ONE run, never two.** These checks spend the USER'S time;
+one that bills them for days they were not here is one they will abandon, and
+then the safeguard is gone. **Any new recurring check is activity-gated, not
+calendar-gated** — and check the code before claiming an existing one already is.
+
 Two things I cannot check: **I cannot HEAR audio** — but it is CAPTURED on
 observed runs (T102) and **amplitude is measurable, which is not the same as
 hearing** (A265: another recompiled N64 game run headless on this machine reads

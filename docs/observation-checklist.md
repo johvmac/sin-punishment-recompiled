@@ -28,6 +28,12 @@ state" is. A shared look resets that.
   is done or deferred with a reason. No roll is consumed by the refusal. A day with no work does not
   need one — that is ceremony, and ceremony makes real checks easy to skip
   (T100 records the same mistake in the audit ladder's calendar trigger).
+* **IT NEVER PILES UP (T151, the user's rule, 2026-08-22).** The gate asks "is
+  there one for TODAY", never "how many were missed". **Miss a day — or a week —
+  and the next working day still owes exactly ONE run, never two.** Nothing is
+  owed for days you did not work on the project, and nothing needs catching up.
+  This is a promise about *your* time: a check that bills you for days you were
+  away is one you will stop doing, and then it protects nothing.
 * **Immediately whenever something observable changes**, in particular:
   * a run survives past the known crash point without dying,
   * the crash signature changes (different function, line, or registers),
