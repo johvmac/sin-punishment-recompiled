@@ -137,3 +137,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T11:27:34+10:00	20	20	0	0	0	545	30	CLEAN	geo-selftest.log	SNP_DL_CENSUS=selftest
 2026-08-21T11:31:00+10:00	175	175	0	0	0	5225	30	CLEAN	geo-tut.log	SNP_DL_CENSUS=1
 2026-08-21T13:40:28+10:00	180	180	0	0	0	5374	30	CLEAN	observed-133720.log	none
+2026-08-21T14:00:51+10:00	180	180	0	0	0	5371	30	CLEAN	audio-wired.log	none

@@ -171,6 +171,53 @@ def main():
         not unwired,
         f"{len(launchers)} launcher(s); unwired: {' '.join(unwired) if unwired else 'none'}")
 
+    # --- audio capture, wired in for A265 -----------------------------------
+    iso = (SCRIPTS / "display_isolate.sh").read_text()
+    rg = (SCRIPTS / "run_game.sh").read_text()
+
+    add("audio capture lives in the ONE isolation copy, not a fourth copy",
+        "snp_start_audio()" in iso,
+        "defined in display_isolate.sh" if "snp_start_audio()" in iso else "not defined there")
+
+    # DISCOVERED, not declared -- the same shape as the staleness check's caller
+    # list. A hook wired into "the launcher I was thinking of" is how T128
+    # happened, twice in one script.
+    add("run_game.sh actually CALLS it (discovered, not assumed)",
+        "snp_start_audio " in rg,
+        "called after the PID exists" if "snp_start_audio " in rg else "NOT called")
+
+    # ORDERING IS THE BUG THE FIRST WIRING HAD, INVERTED. The game must inherit
+    # PULSE_SINK, so the capture must be prepared BEFORE the launch. Calling it
+    # after meant chasing a sink-input that did not exist yet -- "Failure: No
+    # such entity", an empty file, and a result indistinguishable from a silent
+    # game. That is precisely the failure mode this whole wiring exists to
+    # detect, so it must not be re-introducible without a control failing.
+    add("audio is prepared BEFORE the launch (the game inherits PULSE_SINK)",
+        "snp_start_audio" in rg and rg.find("snp_start_audio") < rg.find("PID=$!"),
+        "ordering is prepare -> launch")
+    add("it uses prepare/finish, NOT attach (no sink-input race)",
+        '"$cap" prepare' in iso and '"$cap" finish' in iso and '"$cap" attach' not in iso,
+        "attach hunts a live stream and gives up; prepare cannot race")
+
+    add("SNP_AUDIO=0 opts out", 'SNP_AUDIO:-1' in iso and '= "0" ]' in iso,
+        "default on, explicit opt-out")
+
+    # THE DISCRIMINATING ONE. --cleanup is force-remove. Running it against a
+    # capture observed_run.sh owns would destroy a run the user is sitting
+    # through, so teardown must be gated on having started it ourselves.
+    owned_gate = 'SNP_AUDIO_OWNED:-' in iso and iso.index("snp_display_cleanup()") < iso.index('SNP_AUDIO_OWNED:-}')
+    add("cleanup tears down ONLY a capture we started (never the user's run)",
+        owned_gate, "guarded on SNP_AUDIO_OWNED" if owned_gate else "UNGUARDED --cleanup would kill an observed run")
+
+    add("it refuses to start a SECOND capture over an active one",
+        "not starting a second" in iso,
+        "two null sinks on one stream would give both a partial recording")
+
+    # An artifact nobody measured is indistinguishable from one nobody looked at.
+    add("the amplitude is REPORTED, not just the filename",
+        "volumedetect" in iso and "ABOVE THE NOISE FLOOR" in iso,
+        "a change in A97 has to be noticeable without anyone listening")
+
     bad = 0
     for name, ok, detail in checks:
         bad += not ok

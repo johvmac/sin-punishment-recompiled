@@ -126,6 +126,16 @@ trap snp_display_cleanup EXIT INT TERM
 # nobody passed it** -- a wasted verdict on a run already paid for in
 # wall-clock. It is opt-OUT, not opt-in: an explicit SNP_HEARTBEAT in "$@"
 # still wins, because `env` takes the LAST assignment of a name.
+# AUDIO (A265) -- BEFORE the launch, because the game must inherit PULSE_SINK
+# and open ON the capture sink rather than be chased afterwards. The first
+# wiring used `attach`, which hunts for a live sink-input and gave up after 20s
+# ("Failure: No such entity", empty file) because our game had not opened one
+# by then. Headless runs were discarding their sound on ~20 runs a day, and a
+# per-run amplitude reading is a standing regression test on A97: another
+# recompiled N64 game run headless on this machine measures -24 dB while ours
+# measures a flat -91 dB. Opt out with SNP_AUDIO=0. Never fatal.
+snp_start_audio run_game
+
 env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" "$BIN" > "$OUT" 2>&1 &
 PID=$!
 

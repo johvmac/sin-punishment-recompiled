@@ -120,7 +120,105 @@ snp_start_recording() {
     return 0
 }
 
+# Capture the GAME'S AUDIO for the run (A265). Needs the game's PID, so it is
+# called from the launcher AFTER the process exists -- unlike video, which grabs
+# a display that exists before launch.
+#
+# WHY IT IS HERE AND NOT A FOURTH COPY: this file is the single source of
+# per-run capture (T59). Video and audio share a lifetime and a teardown, and
+# two owners of one run's artifacts is how the isolation copies drifted apart.
+#
+# WHY NO `real`-MODE GATE, WHICH LOOKS INCONSISTENT WITH VIDEO ABOVE AND IS NOT:
+# the video rule exists because `real` is the USER'S DESKTOP and grabbing it
+# captures whatever else is on screen. Audio has the opposite property by
+# construction -- audio_capture.sh moves ONLY the game's own sink-input into a
+# private sink, so it CANNOT contain anything else, and that isolation is
+# asserted behaviourally by its two-tone control (the stream left out records at
+# relative energy 0.0000), not by inspection. That is also why the user-observed
+# path has been capturing audio all along (T102).
+#
+# DEFAULT ON, `SNP_AUDIO=0` to opt out. A265 is the reason it is on: ~20 headless
+# runs a day were discarding their audio, and a per-run amplitude reading is a
+# standing regression test on A97 -- it catches the day audio starts working
+# with nobody listening.
+SNP_AUDIO_PID=""
+SNP_AUDIO_FILE=""
+SNP_AUDIO_OWNED=""
+
+# USES `prepare`, NOT `attach`, AND THE FIRST WIRING GOT THIS WRONG. `attach`
+# hunts for a live sink-input belonging to a PID and gives up after a wait
+# window; our game did not have one open within 20 s, so the first real run
+# produced `Failure: No such entity` and an empty file. `prepare` makes the game
+# open ON the capture sink itself via PULSE_SINK, so there is no race and
+# nothing to chase -- which is what audio_capture.sh's own comment says, and
+# what the user-observed path has always used (T102).
+snp_start_audio() {
+    local label="${1:-run}"
+    [ "${SNP_AUDIO:-1}" = "0" ] && return 0
+    local cap; cap="$(dirname "${BASH_SOURCE[0]}")/audio_capture.sh"
+    [ -x "$cap" ] || { echo "[$label] WARNING: audio_capture.sh missing -- no audio" >&2; return 0; }
+    command -v pactl >/dev/null 2>&1 || { echo "[$label] WARNING: pactl absent -- no audio" >&2; return 0; }
+    # NEVER START A SECOND CAPTURE. observed_run.sh owns one via prepare/finish
+    # for the whole run; two null sinks contending for one sink-input would give
+    # both a partial recording, and the failure would look like a quiet game.
+    if pactl list short modules 2>/dev/null | grep -q "snp_capture"; then
+        echo "[$label] audio: a capture is already active (observed run) -- not starting a second" >&2
+        return 0
+    fi
+    local dir="${SNP_REC_DIR:-/media/joh/extra/sin-punishment-archive/evidence/$(date +%Y-%m-%d)}"
+    mkdir -p "$dir" 2>/dev/null || { echo "[$label] WARNING: cannot write $dir -- no audio (T47)" >&2; return 0; }
+    SNP_AUDIO_FILE="$dir/${label}-$(date +%H%M%S)-audio.wav"
+    local sink
+    sink="$("$cap" prepare "$SNP_AUDIO_FILE" 2>/tmp/snp_audio.log | tail -1)"
+    if [ -z "$sink" ]; then
+        echo "[$label] WARNING: audio prepare failed -- no audio; see /tmp/snp_audio.log" >&2
+        SNP_AUDIO_FILE=""
+        return 0
+    fi
+    SNP_AUDIO_OWNED=1
+    # The GAME must inherit this, which is why this runs BEFORE the launch.
+    export PULSE_SINK="$sink"
+    echo "[$label] audio -> $SNP_AUDIO_FILE (sink $sink)" >&2
+    return 0
+}
+
 snp_display_cleanup() {
+    # Audio first: it owns a PulseAudio module, and a leaked null sink would
+    # silently swallow the NEXT run's sound. Only ever tear down what WE started
+    # -- `--cleanup` is force-remove, and running it against a capture that
+    # observed_run.sh owns would destroy a run the user is sitting through.
+    if [ -n "${SNP_AUDIO_OWNED:-}" ]; then
+        local cap; cap="$(dirname "${BASH_SOURCE[0]}")/audio_capture.sh"
+        # `finish` stops the recorder, unloads OUR modules and compresses to
+        # FLAC. It is the matching half of `prepare`; --cleanup is the
+        # force-remove for a crashed run, not the normal exit.
+        [ -x "$cap" ] && "$cap" finish >/dev/null 2>&1
+        unset PULSE_SINK
+        SNP_AUDIO_OWNED=""
+        # prepare/finish yields a .flac; the .wav is the master it removes.
+        [ -n "${SNP_AUDIO_FILE:-}" ] && [ ! -s "$SNP_AUDIO_FILE" ] \
+            && [ -s "${SNP_AUDIO_FILE%.wav}.flac" ] && SNP_AUDIO_FILE="${SNP_AUDIO_FILE%.wav}.flac"
+        if [ -n "${SNP_AUDIO_FILE:-}" ] && [ -s "$SNP_AUDIO_FILE" ]; then
+            # REPORT THE AMPLITUDE, not just the filename. An artifact nobody
+            # measured is indistinguishable from one nobody looked at, and the
+            # whole point of capturing every run is to notice a CHANGE.
+            if command -v ffmpeg >/dev/null 2>&1; then
+                local vol
+                vol=$(ffmpeg -hide_banner -nostdin -i "$SNP_AUDIO_FILE" -af volumedetect \
+                      -f null - 2>&1 | grep -oE 'max_volume: [-0-9.]+ dB' | head -1)
+                echo "[audio] $SNP_AUDIO_FILE ${vol:-(unmeasured)}" >&2
+                case "$vol" in
+                    *"-91.0 dB"|*"-inf"*) echo "[audio] flat at the noise floor -- consistent with A97" >&2 ;;
+                    "") : ;;
+                    *) echo "[audio] *** ABOVE THE NOISE FLOOR -- A97 may have changed, check this ***" >&2 ;;
+                esac
+            else
+                echo "[audio] $SNP_AUDIO_FILE (ffmpeg absent, unmeasured)" >&2
+            fi
+        elif [ -n "${SNP_AUDIO_FILE:-}" ]; then
+            echo "[audio] WARNING: $SNP_AUDIO_FILE is empty or absent" >&2
+        fi
+    fi
     # STOP THE RECORDER FIRST, and with SIGINT not SIGKILL: ffmpeg needs to
     # write the moov atom or the file is unplayable. Killing the X server out
     # from under a live grab produces a truncated file that looks like evidence
