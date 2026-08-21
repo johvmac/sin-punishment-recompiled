@@ -122,6 +122,9 @@ def is_open(tag):
         globals()["is_open"] = lambda t: bool(re.match(r"\s*\**OPEN\b", t, re.I))
     return globals()["is_open"](tag)
 
+_WD_MATCH = None
+
+
 def is_withdrawn(tag):
     """Is this status cell TAGGED withdrawn, as opposed to mentioning "WD"?
 
@@ -129,15 +132,23 @@ def is_withdrawn(tag):
     discuss withdrawal -- "withdraws A138's claim", "A138 is the WD entry" --
     without itself being withdrawn.
     """
-    try:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "_route_wd", Path(__file__).resolve().parent / "route.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return bool(mod.WD_RE.match(tag))
-    except Exception:
-        return bool(re.match(r"\s*\**WD\b", tag, re.I))
+    # RESOLVED ONCE, like its sibling `is_open` above. This re-executed route.py
+    # from disk on EVERY call -- 1,764 times per run over a 441-entry ledger --
+    # while `is_open` rebinds itself in globals() after the first. The asymmetry
+    # was invisible because both return the right answer; only the profile shows
+    # it. Same fallback, same semantics, one load.
+    global _WD_MATCH
+    if _WD_MATCH is None:
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "_route_wd", Path(__file__).resolve().parent / "route.py")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _WD_MATCH = mod.WD_RE.match
+        except Exception:
+            _WD_MATCH = re.compile(r"\s*\**WD\b", re.I).match
+    return bool(_WD_MATCH(tag))
 
 
 # A claim asserting an absence. These are the phrasings that actually burned us.

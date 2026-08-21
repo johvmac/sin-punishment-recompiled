@@ -41,6 +41,7 @@ Usage:
     scripts/ledger.py --sowhat 6           # closing sentences of the last 6 entries
     scripts/ledger.py --self-check         # ALWAYS, before trusting output
 """
+import functools
 import re
 import sys
 from pathlib import Path
@@ -112,9 +113,29 @@ def parse():
     return rows
 
 
+# Compiled once. `_plain` runs ~20,000 times per check_ledger invocation, three
+# `re.sub` calls each, and it was the single hottest line in the profile at ~20%
+# of a 1.27 s run that fires as a hook on EVERY ledger edit. The rest of this
+# module already compiles its patterns at module level; this was the outlier.
+_MARKUP = re.compile(r"[*`~]")
+_WS = re.compile(r"\s+")
+_SPACE_PUNCT = re.compile(r"\s+([;,.])")
+
+
+# MEMOISED, and the honest numbers rather than the flattering ones: MEASURED at
+# 4,820 hits against 15,500 misses -- a 24% hit rate worth about 0.03 s of a
+# 1.0 s run. Kept because it is free and pure (str in, str out, so caching
+# cannot change an answer), NOT because it was the win. The win in this file was
+# compiling the three patterns above; the win in check_ledger.py was `is_open`'s
+# missing twin. **Most of the 20,320 calls are on DISTINCT strings** -- the
+# callers are not re-stripping the same cells nearly as often as the call count
+# suggests, which is the thing I assumed and then checked.
+# Unbounded is safe here: the key set is the ledger's own cells, already in
+# memory, and the process is short-lived.
+@functools.lru_cache(maxsize=None)
 def _plain(s):
-    s = re.sub(r"\s+", " ", re.sub(r"[*`~]", "", s)).strip()
-    return re.sub(r"\s+([;,.])", r"\1", s)  # markup removal leaves " ;" behind
+    s = _WS.sub(" ", _MARKUP.sub("", s)).strip()
+    return _SPACE_PUNCT.sub(r"\1", s)  # markup removal leaves " ;" behind
 
 
 STATUS_WORD = re.compile(r"\b(WD|OPEN|MERGED|DEAD|OUT|EST|MEASURED|INTERVENED|READ|INFERRED|NEGATIVE|RETRACTED)\b", re.I)
