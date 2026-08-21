@@ -264,6 +264,21 @@ def main():
         not late,
         f"late: {' '.join(late) if late else 'none'}")
 
+    # --- the renderer identity must SURVIVE the run (2026-08-21) ------------
+    # RT64 prints "Device Name"/"Device Vendor"/"Driver Version" to STDOUT at
+    # startup. run_game.sh merged both streams all along, but stdout to a FILE
+    # is block-buffered and every run ends in `kill -9`, so the partial buffer
+    # was discarded: the GPU identity appeared in 2 of 34 logs. It was being
+    # written and thrown away, which reads exactly like never being written.
+    add("run_game.sh line-buffers stdout so the GPU identity survives kill -9",
+        "stdbuf -oL" in rg,
+        "block-buffered stdout is discarded by SIGKILL; the device lines vanish")
+    # DISCRIMINATING: it must wrap the BINARY, not sit somewhere harmless. A
+    # `stdbuf` anywhere in the file would satisfy a bare substring test.
+    add("stdbuf wraps the game binary on the launch line",
+        re.search(r'stdbuf -oL "\$BIN"', rg) is not None,
+        "stdbuf must be on the process whose stdout we are keeping")
+
     # An artifact nobody measured is indistinguishable from one nobody looked at.
     add("the amplitude is REPORTED, not just the filename",
         "volumedetect" in iso and "ABOVE THE NOISE FLOOR" in iso,

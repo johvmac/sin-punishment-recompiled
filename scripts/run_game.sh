@@ -136,7 +136,26 @@ trap snp_display_cleanup EXIT INT TERM
 # measures a flat -91 dB. Opt out with SNP_AUDIO=0. Never fatal.
 snp_start_audio run_game
 
-env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" "$BIN" > "$OUT" 2>&1 &
+# `stdbuf -oL`: LINE-BUFFER STDOUT SO IT SURVIVES THE KILL (2026-08-21).
+#
+# Both streams have always been merged into $OUT, so RT64's startup lines --
+# "Device Name", "Device Vendor", "Driver Version", printed to STDOUT in
+# rt64_application.cpp -- should have been in every log. They were in **2 of
+# 34**. stderr is unbuffered; stdout redirected to a FILE is block-buffered, and
+# this script ends every run with `kill -9`, which discards a partial buffer. So
+# the GPU identity was being written and then thrown away.
+#
+# WHY IT MATTERS RATHER THAN BEING TIDINESS: the user reports geometry warping
+# on the real display that does NOT appear in our recordings (A287, unresolved).
+# If any visual fault is driver- or shader-path dependent, the renderer identity
+# is the axis that separates two runs -- and we were not recording it. Also the
+# reason `MM_RT64_UBERSHADERS_ONLY` exists in another project is NVIDIA-specific
+# rendering issues, and this machine is an RTX 3080 (T143).
+#
+# Line buffering, not full flushing: the game writes little to stdout after
+# startup, so the cost is a flush per line on a cold path. The probes all use
+# stderr and are unaffected.
+env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" stdbuf -oL "$BIN" > "$OUT" 2>&1 &
 PID=$!
 
 # --- Detached hard-deadline watchdog ---------------------------------------

@@ -157,3 +157,7 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T17:13:56+10:00	14	14	0	0	0	367	30	CLEAN	selftest-172.log	SNP_DL_CENSUS=selftest
 2026-08-21T17:14:50+10:00	12	12	0	0	0	307	30	CLEAN	selftest-172-broken.log	SNP_DL_CENSUS=selftest
 2026-08-21T17:15:34+10:00	25	25	0	0	0	696	30	CLEAN	cimg-seq.log	SNP_DL_CENSUS=60
+2026-08-21T18:51:19+10:00	12	12	0	0	0	306	30	CLEAN	gpulog-before.log	none
+2026-08-21T18:52:08+10:00	12	12	0	0	0	307	30	CLEAN	gpulog-after.log	none
+2026-08-21T18:59:01+10:00	215	215	0	0	0	6169	0	STALLED	telemetry.log	none
+2026-08-21T19:00:01+10:00	14	14	0	0	0	366	30	CLEAN	selftest-t144.log	SNP_DL_CENSUS=selftest
