@@ -160,3 +160,4 @@ A gap in the numbering means a roll was skipped.
 - roll #141: **EXPLOIT** (drew 0.794 vs eps 0.3) -> `A227` [witness `4a7f72`] — Priced and opened from A226. THE SPLIT THAT MAKES THIS WORTH DOING: decompression and decoding a
 - roll #142: **EXPLOIT** (drew 0.365 vs eps 0.3) -> `A227` [witness `22dff3`] — Priced and opened from A226. THE SPLIT THAT MAKES THIS WORTH DOING: decompression and decoding a
 - roll #143: **EXPLORE** (drew 0.092 vs eps 0.3) -> `A97` [witness `a3845b`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #144: **EXPLOIT** (drew 0.931 vs eps 0.3) -> `A218` [witness `19dc44`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
