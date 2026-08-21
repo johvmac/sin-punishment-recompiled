@@ -206,7 +206,28 @@ def main():
     # staleness, tie-break, and the witness group (T98). A check that runs
     # but is not counted makes the summary understate the suite -- and the
     # summary is what anyone actually reads.
-    total = len(POSITIVE) + len(NEGATIVE) + 7
+    # PRIOR WORK MUST BE ON THE ROLL SCREEN (T147). T129 added a cited-by
+    # footer to `ledger.py --show` and it works. T135 recorded me reading that
+    # footer and expanding nothing; A305 is the same failure again, the same
+    # day, on an item whose footer I had read twice. A reading rule that fails
+    # twice in a day needs MOVING, not repeating: the duplication is decided
+    # when the target is chosen, so the list belongs on the roll screen.
+    _rsrc = (Path(__file__).resolve().parent / "route.py").read_text()
+    # COUNTED, NOT MERELY PRESENT. The first version grepped for the function
+    # NAME, which still matches when only the DEFINITION survives -- deleting
+    # the CALL left the suite at 19/19 on code that no longer listed anything.
+    # Definition plus at least one call site means two occurrences.
+    if (_rsrc.count("_print_recent_work_on") < 2
+            or "EXPAND BEFORE PLANNING" not in _rsrc):
+        fails.append("FAIL: the roll does not list prior work on its target — "
+                     "the cited-by footer alone is read too late (T135, A305)")
+    # ...and its failure path must REPORT. A silent `except` would let the list
+    # vanish unnoticed and the duplication return with no sign anything changed.
+    if "could not list prior work on" not in _rsrc:
+        fails.append("FAIL: the prior-work listing fails silently — a bare "
+                     "except hides its own absence")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 9
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -220,7 +241,7 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness, 1 observed-run gate)")
+          f"1 witness, 1 observed-run gate, 2 prior-work)")
     return 1 if fails else 0
 
 

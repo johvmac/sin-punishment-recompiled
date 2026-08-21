@@ -239,6 +239,60 @@ def load():
     return {"roll": 0, "last_entry_count": 0, "last_seen": {}}
 
 
+def _print_recent_work_on(target, n=4):
+    """The last few entries that CITE the target, printed AT ROLL TIME.
+
+    WHY THIS IS NOT A NAG (T135, A305). `ledger.py --show` has printed a
+    cited-by footer since T129, and it works -- it names exactly the entries
+    that would stop a duplicated measurement. It has now failed TWICE IN ONE
+    DAY for the same reason: I read the footer and did not open anything.
+    T135's remedy was a READING RULE and A305 is that rule breaking again.
+
+    A rule that fails twice in a day is not a rule that needs repeating, it
+    needs moving. The duplication is decided HERE -- at the moment the target
+    is chosen and before any work is planned -- not later when the write-up is
+    being assembled. So the most recent work on this item goes on the same
+    screen as the roll.
+
+    It is DERIVED, never declared: it re-uses ledger.py's own citation match,
+    so a third definition of 'cites' cannot drift from the other two (T121).
+    Silent when nothing cites the target, and never fatal -- route.py must roll
+    even if the ledger cannot be parsed.
+    """
+    try:
+        import importlib.util
+        # ledger.py imports check_ledger for the ONE definition of "plain"
+        # (T121), so the scripts dir must be importable before it is loaded.
+        _sd = str(Path(__file__).resolve().parent)
+        if _sd not in sys.path:
+            sys.path.insert(0, _sd)
+        spec = importlib.util.spec_from_file_location(
+            "_led", Path(__file__).resolve().parent / "ledger.py")
+        led = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(led)
+        rows = led.parse()
+        t = target.upper()
+        pat = re.compile(rf"\b{re.escape(t)}\b")
+        hits = [(eid, tag, claim)
+                for (eid, tag, claim), r in zip(led.index_lines(rows), rows)
+                if eid.upper() != t and pat.search(r[4].upper())]
+        if not hits:
+            return
+        print(f"        THE LAST {min(n, len(hits))} ENTRIES THAT CITE {t} "
+              f"({len(hits)} total) — EXPAND BEFORE PLANNING, NOT AFTER:")
+        for eid, tag, claim in hits[:n]:
+            print(f"          {eid:6} {tag[:20]:20} {claim[:88]}")
+        print(f"          scripts/ledger.py --show {' '.join(e for e,_,_ in hits[:n])}")
+    except Exception as e:
+        # NOT `pass`. A silent failure here means the citation list quietly
+        # stops appearing and the duplication it prevents comes back with no
+        # sign that anything changed -- the same signal-with-no-reader shape
+        # this whole feature exists to fix. It must still never be fatal:
+        # route.py has to roll even if the ledger cannot be parsed.
+        print(f"        [route] could not list prior work on {target}: "
+              f"{type(e).__name__}: {e}", file=sys.stderr)
+
+
 def schedule():
     """Anything due or overdue in docs/SCHEDULE.md.
 
@@ -442,6 +496,7 @@ def main():
     print(f"                 cannot be written before this line existed.")
     print(f"        target: {target} — {body}")
     print(f"        {note}")
+    _print_recent_work_on(target)
     if explore:
         print(f"        chosen by a second draw over the frontier {frontier}:")
         for e, w, p in picks:
