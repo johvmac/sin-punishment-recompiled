@@ -88,10 +88,16 @@ def find_archives(src):
     return [i for i in range(0, len(src) - 4, 4) if src[i:i + 4] == b"Yay0"]
 
 
-def sheet(payload, path):
-    """One contact sheet: the payload as 64x64 CI4 tiles in ROM order."""
+def sheet(payload, path, rom_off):
+    """One contact sheet: the payload as 64x64 CI4 tiles in ROM order.
+
+    EVERY TILE IS NUMBERED, and a companion .txt maps each number back to its
+    byte offset. Without that the sheet is unusable for its actual purpose: the
+    user says "that one is a building" and there is no way to say WHICH one, or
+    where it lives. A227's deliverable is a categorised list, not a picture.
+    """
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageDraw
     n = len(payload) // TILE_BYTES
     if n == 0:
         return 0
@@ -105,7 +111,24 @@ def sheet(payload, path):
         tile = (px.reshape(TILE, TILE) * 17).astype(np.uint8)
         r, c = divmod(t, COLS)
         canvas[r * TILE:(r + 1) * TILE, c * TILE:(c + 1) * TILE] = tile
-    Image.fromarray(canvas, "L").save(path)
+    img = Image.fromarray(canvas, "L").convert("RGB")
+    d = ImageDraw.Draw(img)
+    for t in range(n):
+        r, c = divmod(t, COLS)
+        x, y = c * TILE, r * TILE
+        d.rectangle([x, y, x + TILE - 1, y + TILE - 1], outline=(0, 90, 160))
+        # drawn twice, dark then light, so the number is legible on any tile
+        d.text((x + 3, y + 2), str(t), fill=(0, 0, 0))
+        d.text((x + 2, y + 1), str(t), fill=(255, 210, 0))
+    img.save(path)
+    idx = path.with_suffix(".txt")
+    with idx.open("w") as f:
+        f.write(f"# contact sheet {path.name}\n")
+        f.write(f"# archive at ROM 0x{rom_off:08X}, {len(payload)} bytes decompressed\n")
+        f.write(f"# {n} tiles, {COLS} per row, {TILE}x{TILE} read as 4-bit indexed\n")
+        f.write("# tile  offset-in-archive   note (fill this in)\n")
+        for t in range(n):
+            f.write(f"{t:>5}  0x{t*TILE_BYTES:08X}\n")
     return n
 
 
@@ -197,7 +220,7 @@ def main():
             continue
         ok += 1
         p = a.out / f"arc{k:02d}_{o:08X}.png"
-        n = sheet(payload, p)
+        n = sheet(payload, p, o)
         print(f"[yay0] arc{k:02d} 0x{o:08X}  {declared:>9,} bytes  {n:>4} tiles  -> {p.name}")
     print(f"[yay0] {ok}/{len(offs)} archives decompressed with the declared size")
     return 0 if ok == len(offs) else 1
