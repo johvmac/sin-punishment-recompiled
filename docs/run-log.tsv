@@ -154,3 +154,6 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T17:00:42+10:00	15	15	0	0	0	397	30	CLEAN	selftest-169.log	SNP_DL_CENSUS=selftest
 2026-08-21T17:01:54+10:00	12	12	0	0	0	307	30	CLEAN	selftest-169-broken.log	SNP_DL_CENSUS=selftest
 2026-08-21T17:05:39+10:00	200	200	0	0	0	5974	30	CLEAN	fill-tut.log	SNP_DL_CENSUS=300
+2026-08-21T17:13:56+10:00	14	14	0	0	0	367	30	CLEAN	selftest-172.log	SNP_DL_CENSUS=selftest
+2026-08-21T17:14:50+10:00	12	12	0	0	0	307	30	CLEAN	selftest-172-broken.log	SNP_DL_CENSUS=selftest
+2026-08-21T17:15:34+10:00	25	25	0	0	0	696	30	CLEAN	cimg-seq.log	SNP_DL_CENSUS=60

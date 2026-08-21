@@ -2,7 +2,12 @@
  "start": 1787295140.959957,
  "deadline": 1787296940.959957,
  "task": "continue roll #168 (A218 scissor/render-target operands), then checkpoints",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "200 s census run with the target-in-force field, to see whether the TUTORIAL frame also issues both large fills",
+   "why": "A300 answered it for the attract in 25 s; the tutorial needs a 200 s run and the session deadline arrived first"
+  }
+ ],
  "blocks": [],
  "roll_at_start": 168,
  "entries_at_start": [
