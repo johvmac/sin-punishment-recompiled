@@ -165,3 +165,4 @@ A gap in the numbering means a roll was skipped.
 - roll #146: **EXPLOIT** (drew 0.632 vs eps 0.3) -> `A219` [witness `fc1190`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #147: **EXPLORE** (drew 0.042 vs eps 0.3) -> `A218` [witness `9ef35b`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #148: **EXPLORE** (drew 0.174 vs eps 0.3) -> `A211` [witness `e79a97`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #149: **EXPLOIT** (drew 0.324 vs eps 0.3) -> `A264` [witness `289aaa`] — User-directed, no roll — the user supplied the URL: github.com/ThiagoLira/trouble-makers-pc-reco
