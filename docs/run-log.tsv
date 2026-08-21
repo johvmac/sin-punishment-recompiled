@@ -175,3 +175,5 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-22T07:50:59+10:00	14	14	0	0	0	364	30	CLEAN	census-selftest.log	SNP_DL_CENSUS=selftest
 2026-08-22T08:12:55+10:00	180	180	0	0	0	5376	30	CLEAN	observed-080949.log	none
 2026-08-22T08:29:06+10:00	240	166	139	0	0	4860	30	CRASHED	inspector-depth.log	SNP_VISIBLE=1
+2026-08-22T08:54:00+10:00	240	1	1	0	0	NA	NA	CRASHED	run_game.sh	240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/warp-xephyr.log SNP_ISO=xephyr SNP_VISIBLE=1
+2026-08-22T08:58:49+10:00	5	5	0	0	0	98	30	CLEAN	iso-check.log	SNP_ISO=xephyr

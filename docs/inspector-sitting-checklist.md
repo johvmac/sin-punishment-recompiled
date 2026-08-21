@@ -24,6 +24,12 @@ two iterations rather than one.** The depth buffer is not reachable this way.
 
 # RUN 1 — Xephyr, no panel, ~4 min. **The control arm.**
 
+**CLEAR THE PROMPT LINE FIRST — press Ctrl-U, or Enter on an empty line.** On
+2026-08-22 the previous command was still sitting unexecuted on the line and the
+next one pasted onto its end, fusing two tokens into a nonsense path and sending
+the run to the real display (A312). `run_game.sh` now refuses the result, but
+the cheap habit is to start from an empty line.
+
 ```bash
 scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/warp-xephyr.log SNP_ISO=xephyr
 ```

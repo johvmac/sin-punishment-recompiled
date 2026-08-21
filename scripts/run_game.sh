@@ -41,6 +41,38 @@ shift 2 2>/dev/null || true
 cd "$(dirname "$0")/.." || exit 1
 BIN=./build/SinPunishmentRecompiled
 
+# --- The output path must be plausible (A312) ------------------------------
+# On 2026-08-22 this script was invoked with TWO EXTRA LEADING TOKENS ahead of
+# the intended command. Nothing noticed: SECS took the first, and **$2 -- the
+# run log -- silently became a path ending in `run_game.sh`.** The launch
+# redirect is `> "$OUT"`, so a shifted argument list points the game's entire
+# stdout at whatever happens to land in $2. Here the redirect merely failed
+# (rc=1, one second, no log), but the same slip with a WRITABLE path would have
+# TRUNCATED THE FILE IT NAMED -- and the file it named was a script in this
+# repo.
+#
+# Two cheap refusals, and both must fail LOUDLY rather than default:
+#   * the parent directory must already exist -- a typo'd or shifted path
+#     otherwise dies deep inside the launch with a bare rc=1;
+#   * the log must not be an existing SCRIPT. A run log is never a .sh or .py,
+#     so this cannot refuse a legitimate call, and it is the exact shape of the
+#     accident that happened.
+OUTDIR="$(dirname "$OUT")"
+if [[ ! -d "$OUTDIR" ]]; then
+    echo "[run_game] REFUSING: the log's directory does not exist: $OUTDIR" >&2
+    echo "[run_game]   log path was: $OUT" >&2
+    echo "[run_game]   Check the argument order: <seconds> <logfile> [ENV=v...]" >&2
+    exit 2
+fi
+case "$OUT" in
+    *.sh|*.py)
+        echo "[run_game] REFUSING: the log path looks like a SCRIPT, not a log: $OUT" >&2
+        echo "[run_game]   The launch redirects the game's stdout over this path" >&2
+        echo "[run_game]   and would truncate it. This is what a shifted argument" >&2
+        echo "[run_game]   list looks like (A312). Check: <seconds> <logfile> [ENV=v...]" >&2
+        exit 2 ;;
+esac
+
 # --- Source/binary drift ---------------------------------------------------
 # Twice now a source change has been made and the binary left stale, so the run
 # measured the OLD code: I10 (a toml stripped after the build) and 2026-08-19 (a
@@ -106,6 +138,19 @@ WANT_VISIBLE="${SNP_VISIBLE:-}"
 for a in "$@"; do
     case "$a" in SNP_VISIBLE=*) WANT_VISIBLE="${a#SNP_VISIBLE=}" ;; esac
 done
+# SNP_ISO GETS THE SAME TREATMENT, 2026-08-22 (A312) -- and it did not have it.
+# This script scanned the argument list for SNP_VISIBLE and NOT for SNP_ISO, so
+# `run_game.sh N log SNP_ISO=xephyr` forwarded the assignment to the GAME's
+# environment via `env` and left display_isolate.sh -- which runs in THIS
+# shell -- reading an unset SNP_ISO. The run silently chose a different display
+# mode from the one written on the command line. That is the SAME failure the
+# comment above describes for SNP_VISIBLE, on the neighbouring variable, and it
+# put a documented command in the run sheet that could not do what it said.
+WANT_ISO="${SNP_ISO:-}"
+for a in "$@"; do
+    case "$a" in SNP_ISO=*) WANT_ISO="${a#SNP_ISO=}" ;; esac
+done
+[[ -n "$WANT_ISO" ]] && export SNP_ISO="$WANT_ISO"
 # SNP_VISIBLE arrives as an ARGUMENT (an env assignment forwarded to `env`),
 # not in this script's own environment, so it is re-exported here before the
 # shared helper reads it.

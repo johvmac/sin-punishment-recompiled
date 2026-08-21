@@ -279,6 +279,41 @@ def main():
         re.search(r'stdbuf -oL "\$BIN"', rg) is not None,
         "stdbuf must be on the process whose stdout we are keeping")
 
+    # SNP_ISO MUST BE ACCEPTED AS AN ARGUMENT, LIKE SNP_VISIBLE (A312).
+    # run_game.sh scanned argv for SNP_VISIBLE and not for SNP_ISO, so
+    # `run_game.sh N log SNP_ISO=xephyr` forwarded the assignment to the GAME's
+    # env and left display_isolate.sh -- which runs in run_game.sh's own shell --
+    # reading an unset SNP_ISO. A documented command silently chose a different
+    # display mode from the one written on it.
+    add("run_game.sh scans argv for SNP_ISO, not only SNP_VISIBLE",
+        re.search(r'case "\$a" in SNP_ISO=\*\)', rg) is not None
+        and re.search(r'export SNP_ISO="\$WANT_ISO"', rg) is not None,
+        "a trailing SNP_ISO=... would reach the game but not the isolation code")
+
+    # THE OUTPUT PATH REFUSALS (A312) -- BEHAVIOURAL, not a grep. Both fire
+    # before the launch, so invoking for real costs nothing and no game runs.
+    # The needle is the ACCIDENT THAT HAPPENED: a stale prompt line fused
+    # `...inspector-depth.log` and `scripts/run_game.sh` into one token, which
+    # became $2. The launch redirects the game's stdout over $2.
+    _tmp = Path(tempfile.mkdtemp())
+    _r1 = subprocess.run([str(SCRIPTS / "run_game.sh"), "5", "scripts/run_game.sh"],
+                         capture_output=True, text=True, timeout=60)
+    _r2 = subprocess.run([str(SCRIPTS / "run_game.sh"), "5", str(_tmp / "no" / "such" / "x.log")],
+                         capture_output=True, text=True, timeout=60)
+    _r3 = subprocess.run([str(SCRIPTS / "run_game.sh"), "--help"],
+                         capture_output=True, text=True, timeout=60)
+    add("a log path that is a SCRIPT is refused before any launch",
+        _r1.returncode == 2 and "REFUSING" in _r1.stderr,
+        f"rc={_r1.returncode}; the redirect would truncate the file it names")
+    add("a log path in a NONEXISTENT directory is refused, not failed deep inside",
+        _r2.returncode == 2 and "REFUSING" in _r2.stderr,
+        f"rc={_r2.returncode}; otherwise it dies at the launch with a bare rc=1")
+    # AND THE REFUSALS MUST NOT EAT LEGITIMATE CALLS -- a control that refuses
+    # everything is not a control. --help must still work.
+    add("the refusals do not swallow a legitimate invocation (--help still works)",
+        _r3.returncode == 0 and "Usage" in _r3.stdout,
+        f"rc={_r3.returncode}; a guard that refuses everything discriminates nothing")
+
     # THE RUN LOG MUST RECORD THE MODE USED, NOT THE ARGV IT WAS HANDED (A310).
     # SNP_VISIBLE is accepted two ways -- as an argument AND from the
     # environment -- but the env column logged only `"${*:-none}"`, so the
