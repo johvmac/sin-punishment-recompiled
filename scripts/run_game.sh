@@ -299,8 +299,25 @@ RUNLOG="$(dirname "$0")/../docs/run-log.tsv"
 if [[ ! -f "$RUNLOG" ]]; then
     printf 'ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\tgfx_total\tgfx_rate\tverdict\tlog\tenv\n' > "$RUNLOG"
 fi
+# RECORD THE MODE ACTUALLY USED, NOT MERELY THE ARGUMENTS (2026-08-22, A310).
+# This column was `"${*:-none}"` -- the extra env assignments passed as ARGS.
+# But SNP_VISIBLE is accepted TWO ways (see the block near line 105): as an
+# argument, and from this script's own environment. A caller using the shell
+# prefix form -- `SNP_VISIBLE=1 scripts/run_game.sh ...`, which is exactly what
+# docs/inspector-sitting-checklist.md said -- ran REAL and logged `none`.
+#
+# That is not a cosmetic gap. check_ledger.py's changed-signature trigger reads
+# this column to tell a headless crash (a regression worth waking someone for)
+# from a visible one (a user at the keyboard). The 2026-08-22 08:29 row logged
+# `none` for a real-display run the USER crashed on purpose, and the alarm duly
+# reported "a HEADLESS SIGSEGV ... a regression". A row that misstates the mode
+# is worse than a missing row, because everything downstream believes it.
+ENVCOL="${*:-}"
+if [[ "${SNP_VISIBLE:-0}" == "1" && "$ENVCOL" != *SNP_VISIBLE=* ]]; then
+    ENVCOL="${ENVCOL:+$ENVCOL }SNP_VISIBLE=1"
+fi
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$(date -Iseconds)" "$SECS" "${EARLY:-$SECS}" "${RC:-0}" "$INPUT" "$LEFT" \
-    "${GFX_TOTAL:-NA}" "${GFX_RATE:-NA}" "$VERDICT" "$(basename "$OUT")" "${*:-none}" >> "$RUNLOG"
+    "${GFX_TOTAL:-NA}" "${GFX_RATE:-NA}" "$VERDICT" "$(basename "$OUT")" "${ENVCOL:-none}" >> "$RUNLOG"
 
 exit 0

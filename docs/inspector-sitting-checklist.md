@@ -11,10 +11,17 @@ Queue items this clears: **U9, U2, U3, U6.** Do them in that order.
 ## The one command
 
 ```bash
-SNP_VISIBLE=1 scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/inspector-depth.log
+scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/inspector-depth.log SNP_VISIBLE=1
 ```
 
-**`SNP_VISIBLE=1`, never `xephyr`.** F1 does nothing under Xvfb or Xephyr
+**`SNP_VISIBLE=1` GOES AT THE END, AS AN ARGUMENT — not as a shell prefix.**
+Version 1 of this sheet used the prefix form. It works, but the run log records
+its env column from the ARGUMENTS, so the run was written down as headless and
+the changed-signature alarm called a user-triggered crash "a HEADLESS SIGSEGV
+... a regression" (A310). `run_game.sh` now records the resolved mode either
+way, and the argument form is still the one to use.
+
+**Real display, never `xephyr`.** F1 does nothing under Xvfb or Xephyr
 (A245) — this is the one task that must run on the real display.
 
 **Nothing is recorded in real mode, by design (T59). Your description is the
@@ -41,9 +48,10 @@ only evidence that will exist.** Have somewhere to write.
 2. **DO NOT PAUSE. DO NOT CLICK RESUME.** Resume has killed three runs
    (A245 twice, A289 once). Every step below works on a running game.
 3. **DRAG SLIDERS. NEVER TYPE.** Ctrl+Click opens a text box that commits on
-   ENTER, and **ENTER is bound to the N64 START button** — it skipped the
-   attract and SIGSEGVed two runs (T134). If you must enter an exact value:
-   Ctrl+Click, type, then **click elsewhere** to commit on focus loss.
+   ENTER. **START HAS BEEN MOVED OFF ENTER ONTO INSERT (T152)** so this is no
+   longer the hazard it was — but typing in the panel is still worth avoiding,
+   and **the remap is not yet confirmed by a run.** If you must enter an exact
+   value: Ctrl+Click, type, then **click elsewhere** to commit on focus loss.
 4. **ARROW KEYS DO NOT WORK, AND THAT IS NOT YOUR FAULT.** `NavEnableKeyboard`
    is never set in RT64, so ImGui keyboard navigation is off entirely. Do not
    retry it.
@@ -70,7 +78,25 @@ own falsifier.
 
 ---
 
-## STEP 1 — U9, the depth buffer. **Highest value. Do it first.**
+## STEP 0 — one keypress, confirms the START remap (T152)
+
+Any time after the window appears: **press ENTER once.** Nothing should happen.
+Then **press INSERT once** — that is now START, so it will skip the attract, so
+**only do the INSERT half if you are willing to lose the attract for this run.**
+Skipping ENTER-does-nothing is fine; skipping it means the remap stays unverified.
+
+---
+
+## STEP 1 — U9, the depth buffer. **REMOVED — IT CRASHES THE GAME**
+
+**DO NOT DO THIS.** Attempted 2026-08-22: setting `View Framebuffer` to 0 in
+the tutorial killed the run instantly (`rc=139` at 166 s). The slider value
+sizes an unclamped loop over the frame's framebuffer pairs, and 0 forces one
+iteration unconditionally — index 1 is not known to be safer, it forces two.
+**The depth buffer is not currently reachable this way. Skip to STEP 2.**
+The old instructions are struck out below for the record only.
+
+<details><summary>the instruction that crashed it — do not follow</summary>
 
 **It is TWO controls and the order matters** (A309). The checkbox is inside a
 disabled block and its enabling control defaults to the disabling value, so
@@ -89,11 +115,11 @@ clicking the box first does nothing and looks broken.
 
 Then **drag `View Framebuffer` to 1** and say whether the two look different.
 
-**What each answer means** (so you know why it matters, not so you decide it):
-a silhouette means the geometry *is* being rasterised and is lost in colour — a
-combiner, texture or lighting fault. Flat depth means nothing was ever drawn at
-those pixels. Both currently write zero colour and are indistinguishable in a
-frame grab (A274); depth does not care what colour something wrote.
+**What it would have meant:** a silhouette means the geometry *is* being
+rasterised and lost in colour; flat depth means nothing was ever drawn there.
+Both write zero colour and are indistinguishable in a frame grab (A274).
+
+</details>
 
 ---
 
@@ -165,7 +191,7 @@ triggers and only three data points.
 ## What to tell me afterwards
 
 1. Attract warping — present or not, which models, roughly when.
-2. **Depth view: silhouette or flat?** And did framebuffer 0 and 1 differ?
+2. Did ENTER do nothing, and did INSERT start the game? (STEP 0)
 3. The two slider labels and their ranges.
 4. Draw call 0–5: duplicates per index, or clean?
 5. Anything from the sweep, if you got there.

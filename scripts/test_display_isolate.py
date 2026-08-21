@@ -279,6 +279,28 @@ def main():
         re.search(r'stdbuf -oL "\$BIN"', rg) is not None,
         "stdbuf must be on the process whose stdout we are keeping")
 
+    # THE RUN LOG MUST RECORD THE MODE USED, NOT THE ARGV IT WAS HANDED (A310).
+    # SNP_VISIBLE is accepted two ways -- as an argument AND from the
+    # environment -- but the env column logged only `"${*:-none}"`, so the
+    # prescribed shell-prefix form produced a REAL-display row indistinguishable
+    # from a headless one. check_ledger.py's changed-signature trigger reads
+    # that column to decide whether a SIGSEGV is a regression or a user at the
+    # keyboard, and it duly called a deliberate user-triggered crash "a HEADLESS
+    # SIGSEGV".
+    #
+    # BEHAVIOUR-SHAPED, NOT A BARE GREP FOR THE NAME: the fix is only real if
+    # the RESOLVED value reaches the printf. So require the guard to test
+    # SNP_VISIBLE, and require the printf's last field to be the derived
+    # variable rather than "$*" -- the second half is what a re-broken version
+    # would fail. Matching only the first half would pass on code that computes
+    # ENVCOL and then logs "$*" anyway.
+    _guard = re.search(r'SNP_VISIBLE:-0.*==\s*"1"', rg) is not None
+    _used = re.search(r'"\$\{ENVCOL:-none\}"\s*>>\s*"\$RUNLOG"', rg) is not None
+    _stale = re.search(r'"\$\{\*:-none\}"\s*>>\s*"\$RUNLOG"', rg) is not None
+    add("the run log records the display mode ACTUALLY USED, not just argv",
+        _guard and _used and not _stale,
+        f"guard={_guard} derived-value-logged={_used} old-argv-form-still-there={_stale}")
+
     # An artifact nobody measured is indistinguishable from one nobody looked at.
     add("the amplitude is REPORTED, not just the filename",
         "volumedetect" in iso and "ABOVE THE NOISE FLOOR" in iso,
