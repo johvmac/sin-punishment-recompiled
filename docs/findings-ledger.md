@@ -163,6 +163,39 @@ The panel cannot leave the game window and the window is not resizable
 |---|---|---|---|---|
 | U7 | LIVE 2026-08-20 | **Flip through the 28 contact sheets on the archive drive and name tiles by number — "sheet 3 tile 12 is a font", "sheet 0 tiles 40-52 look like buildings". Partial is fine; the numbering exists so a partial answer is still usable** | **The machine half is DONE (A250/A251/A252) and the rest is recognition, which is the user's by A227's own split.** Named tiles re-open A227 immediately. **The window-grid tiles on sheet 0 may be the tutorial's missing buildings — flagged for confirm-or-reject, and no entry in this ledger currently rests on that guess** | A227, A218 |
 
+### Queue: account access — needs the user's credentials, not their eyes
+
+**THIS GROUP EXISTS TO MAKE THE QUEUE'S REAL SCOPE VISIBLE (user's suggestion,
+2026-08-21).** The queue was already "work only the user can do" (T131) and is
+grouped by WHAT ACCESS IS NEEDED, not by topic — but every item in it was
+inspector work, so it read as an F1 list. It is not. Anything I cannot do
+without the user belongs here, including things needing no display at all.
+
+| id | status | do this | what each outcome means | serves |
+|---|---|---|---|---|
+| U8 | LIVE 2026-08-21 | **Reconnect the Google Drive connector with file-creation permission.** It is linked but read-limited — `list_recent_files` returns *"This connector requires additional permissions. The user needs to reconnect it with the appropriate access."* **Nothing else about this task needs you; this one grant unblocks the whole of Tier 1 below.** | **IF THE GRANT WORKS: I upload Tier 1 unattended — 184 KB, all text, and it is the only genuinely irreplaceable material we hold.** `probe-patches/` (112 KB, ~2,100 lines of runtime probes that **cannot go to GitHub** — T36/T38, and the `N64ModernRuntime` tree must never be committed from) and `HANDOFF-*.md` (72 KB, gitignored). **These exist in exactly two places today: one working tree and one external drive.** **IF IT CANNOT BE GRANTED:** Tier 1 still needs somewhere off this machine, and the fallback is `rclone` or the Drive desktop client — an install, therefore **sudo, therefore also yours** (CLAUDE.md). Say which and I will script it. | T47, T140 |
+
+**THE TIERS, measured 2026-08-21 — "everything worth backing up" is a decision,
+so here is what the words cost:**
+
+* **TIER 1 — 184 KB. Irreplaceable AND unbackupable by git.** The probe patches
+  and the handoffs. **This is the actual gap and it is trivially small.**
+* **TIER 2 — 74 MB. Irreplaceable, binary.** `ares-refs/` (73 MB),
+  `reference-captures/`, `scene-refs/`. **T140 is why this is listed second and
+  not last: three of these files were one command from deletion today, and two
+  held ~870 s of reference footage no other copy has.** Too big for the
+  connector's base64 upload; needs a real sync tool.
+* **TIER 3 — 36 MB of run logs**, cited by entries. Compresses hard. Worth it
+  after Tiers 1-2, not before.
+* **TIER 4 — 719 MB of recordings.** Mostly re-creatable by re-running.
+  **Lowest value per byte and it is 79% of the archive.**
+* **NOT LISTED, DELIBERATELY: the ROMs.** They are commercial game data, the
+  project rule keeps them out of git, and putting them in cloud storage is a
+  call I should not make on your behalf. **Say if you want them included.**
+* **ALREADY SAFE: the git repo** — `daily_push.sh` pushes to the `fork` remote
+  at 18:30, so `docs/`, `scripts/`, `patches/` and `symbols/` are covered. **The
+  backup gap is only what git cannot or must not hold.**
+
 ### The alarm
 
 **`user_queue.py` reports three counts, and NONE of them needs a judgement:**
