@@ -167,3 +167,4 @@ A gap in the numbering means a roll was skipped.
 - roll #148: **EXPLORE** (drew 0.174 vs eps 0.3) -> `A211` [witness `e79a97`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #149: **EXPLOIT** (drew 0.324 vs eps 0.3) -> `A264` [witness `289aaa`] — User-directed, no roll — the user supplied the URL: github.com/ThiagoLira/trouble-makers-pc-reco
 - roll #150: **EXPLORE** (drew 0.250 vs eps 0.3) -> `A225` [witness `091b19`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #151: **EXPLORE** (drew 0.160 vs eps 0.3) -> `A97` [witness `c2e81f`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
