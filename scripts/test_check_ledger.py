@@ -387,6 +387,18 @@ def main():
     # fires on every run is noise that costs the USER's time, and one that never
     # fires is the policy silently not existing. The interesting negative is a
     # NORMAL crash: long request, long duration, rc=139 -- that must stay quiet.
+    #
+    # REKEYED 2026-08-21 TO THE CURRENT SIGNATURE. This used to assert that a
+    # long run NOT returning 139 fires, and that rc=139 stays quiet -- correct
+    # for the era when long runs SIGSEGV'd at ~158 s. That era ended on
+    # 2026-08-20: every long headless run since returns 0 at 6,169 tasks, so
+    # the old condition became true of every run and the note fired forever, on
+    # healthy runs, while gating the USER's time. The semantics are now
+    # inverted, and this control is inverted with them rather than deleted --
+    # a stale control that still passes is worse than none.
+    HDR = ("ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\tgfx_total\t"
+           "gfx_rate\tverdict\tlog\tenv\n")
+
     def progress_case(runrow):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "r"
@@ -395,19 +407,34 @@ def main():
             shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
             (root / "docs" / "findings-ledger.md").write_text(
                 "| # | status | finding |\n|---|---|---|\n| A1 | MEASURED (2 runs) | x |\n")
-            (root / "docs" / "run-log.tsv").write_text(
-                "ts\tsecs_req\tsecs_actual\trc\tinput\tleftover\n" + runrow)
+            (root / "docs" / "run-log.tsv").write_text(HDR + runrow)
             p = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
                                capture_output=True, text=True)
-            return "DUE ON PROGRESS" in (p.stdout + p.stderr)
+            out = p.stdout + p.stderr
+            return ("DUE ON PROGRESS" in out, "CHANGED SIGNATURE" in out)
 
-    survived = progress_case("2026-08-20T10:00:00+10:00\t180\t180\t0\t0\t0\n")
-    normal   = progress_case("2026-08-20T10:00:00+10:00\t180\t158\t139\t0\t0\n")
-    shortrun = progress_case("2026-08-20T10:00:00+10:00\t30\t30\t0\t0\t0\n")
-    pr_ok = survived and not normal and not shortrun
-    print(f"{'ok  ' if pr_ok else 'FAIL'}  observed-run progress trigger: fires on survival, "
-          f"quiet on a normal crash and a short run  — survived={survived}, "
-          f"normal-crash={normal}, short={shortrun}")
+    def row(req, act, rc, gfx, verdict, env="none"):
+        return (f"2026-08-21T10:00:00+10:00\t{req}\t{act}\t{rc}\t0\t0\t{gfx}\t"
+                f"0\t{verdict}\tx.log\t{env}\n")
+
+    # PROGRESS is the ceiling breaking -- A299's own falsifier.
+    broke, _ = progress_case(row(215, 215, 0, 6200, "STALLED"))
+    # THE INTERESTING NEGATIVE: the normal stall. 13 runs sit exactly here and
+    # it is the single most common long-run outcome, so a trigger that fires on
+    # it fires on almost everything.
+    stall, _ = progress_case(row(215, 215, 0, 6169, "STALLED"))
+    # Ran out of clock 195 tasks short -- survived nothing, reached nothing.
+    short, _ = progress_case(row(200, 200, 0, 5974, "CLEAN"))
+    # REGRESSION: the retired ~158 s SIGSEGV returning on a HEADLESS run.
+    _, regress = progress_case(row(180, 158, 139, 4659, "CRASHED"))
+    # ...but the inspector crashes on the REAL display constantly (A288/T134)
+    # and that is a known, different fault. It must not read as a regression.
+    _, vis = progress_case(row(600, 190, 139, 5613, "CRASHED", "SNP_VISIBLE=1"))
+
+    pr_ok = broke and not stall and not short and regress and not vis
+    print(f"{'ok  ' if pr_ok else 'FAIL'}  observed-run trigger is keyed to the CURRENT "
+          f"signature  — ceiling-broken={broke}, normal-stall={stall}, "
+          f"short={short}, headless-139={regress}, visible-139={vis}")
     extra += 1; bad += not pr_ok
 
     # THE COMPOSING-STEP CHECK (T112). Three directions, because the failure

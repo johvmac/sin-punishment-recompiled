@@ -633,14 +633,62 @@ def main():
         if _rl.exists():
             for _row in _rl.read_text().strip().split("\n")[-1:]:
                 _f = _row.split("\t")
+                # KEYED ON THE CURRENT FAULT SIGNATURE, NOT THE RETIRED ONE
+                # (2026-08-21). This asked "did the run last >165 s WITHOUT
+                # returning 139?" -- true of the 158 s SIGSEGV era, when a long
+                # run that did not segfault was real news.
+                #
+                # THAT ERA ENDED ON 2026-08-20. Measured from run-log.tsv: every
+                # long headless run up to 14:45 that day returned 139 at ~158 s
+                # with ~4,659 tasks; every one since has returned 0 at 6,169.
+                # So the condition became true of EVERY long run and the note
+                # fired permanently -- on runs that stalled exactly as expected,
+                # and on runs too short to reach the stall at all. An alarm that
+                # always sounds is one you learn to skip (T29), and this one
+                # gates the user's own time via T101.
+                #
+                # A299 measured 6,169 as a CEILING, not merely a stall point:
+                # 13 runs sit exactly there and no run in 156 has ever exceeded
+                # it, across three verdicts and five probe environments. So the
+                # two things that would be genuine news are:
+                #   * gfx_total > 6,169  -- the ceiling broke. This is A299's
+                #     own falsifier, and it is what progress looks like.
+                #   * a long HEADLESS run returning 139 again -- the retired
+                #     crash is back.
+                # The normal stall is neither, and neither is a run that simply
+                # ran out of clock before reaching the wall.
+                #
+                # 6169 IS A LITERAL ON PURPOSE. Deriving it from the log's own
+                # maximum would move the needle with the thing being measured --
+                # the exact way a control stops discriminating (T100, T136), and
+                # it would silently accept a new ceiling as the expected one.
+                CEILING = 6169          # A299, 2026-08-21
                 if len(_f) >= 4 and _f[1].isdigit() and _f[2].isdigit():
                     _req, _act, _rc = int(_f[1]), int(_f[2]), _f[3]
-                    if _req > 165 and _act > 165 and _rc != "139":
+                    _gfx = _f[6] if len(_f) > 6 else ""
+                    _env = _f[10] if len(_f) > 10 else ""
+                    _n = int(_gfx) if _gfx.isdigit() else None
+                    if _n is not None and _n > CEILING:
                         reminders.append(
-                            f"observed run DUE ON PROGRESS: the last run asked {_req}s, "
-                            f"lasted {_act}s and did NOT return 139 — it may have survived "
-                            f"the known crash point. Confirm with a human before "
+                            f"observed run DUE ON PROGRESS: the last run reached "
+                            f"{_n} graphics tasks — PAST the {CEILING} ceiling that "
+                            f"13 runs have never exceeded (A299). This is that "
+                            f"entry's own falsifier. Confirm with a human before "
                             f"believing it (T101).")
+                    # NOTE THERE IS NO `_act > 165` HERE, and the first version
+                    # had one inherited from the old condition. A CRASHING RUN
+                    # DIES EARLY -- the retired signature is req=180, act=158 --
+                    # so requiring a long DURATION excluded exactly the case
+                    # this branch exists to catch. Caught by the control, which
+                    # is the whole reason it feeds a real fixture rather than
+                    # asserting on the source text.
+                    elif _req > 165 and _rc == "139" and "VISIBLE" not in _env:
+                        reminders.append(
+                            f"observed run DUE ON A CHANGED SIGNATURE: the last run "
+                            f"asked {_req}s, died at {_act}s and returned 139 — a "
+                            f"HEADLESS SIGSEGV. Headless runs have stalled at "
+                            f"{CEILING} and exited 0 since 2026-08-20; a crash is a "
+                            f"regression, not the stall. Confirm with a human (T101).")
     except Exception:
         pass
 
