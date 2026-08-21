@@ -158,9 +158,24 @@ command -v rclone >/dev/null 2>&1 || \
              rclone config          # new remote named '$REMOTE', type 'drive'
          Nothing has been sent."
 
-if ! rclone listremotes 2>/dev/null | grep -q "^${REMOTE}:"; then
+# AUTO-DETECT A SOLE REMOTE rather than insisting on a hardcoded name. The
+# default was `gdrive`; the user's is `google`, and a tool that refuses over a
+# name it invented is a tool that gets run with the wrong flag. Explicit
+# SNP_RCLONE_REMOTE always wins; auto-detection only fires when exactly ONE
+# remote exists, because guessing between several is how a backup lands in
+# somebody else's cloud.
+_remotes="$(rclone listremotes 2>/dev/null)"
+_n_remotes="$(printf '%s\n' "$_remotes" | grep -c ':')"
+if [ -z "${SNP_RCLONE_REMOTE:-}" ] && ! printf '%s\n' "$_remotes" | grep -q "^${REMOTE}:"; then
+    if [ "$_n_remotes" = "1" ]; then
+        REMOTE="$(printf '%s\n' "$_remotes" | tr -d ': \n')"
+        say "no '${SNP_RCLONE_REMOTE:-gdrive}' remote; using the only one configured: '$REMOTE'"
+    fi
+fi
+if ! printf '%s\n' "$_remotes" | grep -q "^${REMOTE}:"; then
     die "no rclone remote called '$REMOTE'. Run \`rclone config\` and make one
-         (type: drive). Existing remotes: $(rclone listremotes 2>/dev/null | tr '\n' ' ' || echo none)"
+         (type: drive), or set SNP_RCLONE_REMOTE=<name>.
+         Existing remotes: $(printf '%s' "$_remotes" | tr '\n' ' ' || echo none)"
 fi
 
 # --- the plan --------------------------------------------------------------
@@ -178,6 +193,7 @@ if [ "$ALL" = "1" ]; then
     PLAN+=("tier4-recordings|$ARCHIVE/evidence|--include *.mp4 --include *.flac --include *.wav")
 fi
 
+errf="$(mktemp)"; trap 'rm -f "$errf"' EXIT
 say "remote: $REMOTE:$DEST"
 [ "$GO" = "1" ] || say "DRY RUN -- nothing will be sent. Add --go to transfer."
 say "rom/*.log EXCLUDED: 1.24 GB of 2026-08-13 ares instruction traces, which"
@@ -185,6 +201,14 @@ say "  are not ROM data and predate T47's evidence window."
 [ "$ALL" = "1" ] || say "tiers 3-4 (755 MB, largely re-creatable) NOT included; add --all for them."
 echo
 
+# NOGLOB FOR THE LOOP. `$flags` must be word-split (rclone needs `--include`
+# and its pattern as separate argv entries) but must NOT be glob-expanded --
+# and unquoted expansion does both. `--include HANDOFF-*.md` was expanded by
+# the SHELL against the repo root into five filenames before rclone saw it,
+# which broke the argument list. It showed up as a `?` in the dry run for
+# tier1-handoffs; on a real `--go` it would have failed to copy **half of the
+# only irreplaceable tier**. Word splitting is wanted, globbing is not.
+set -f
 rc=0
 for row in "${PLAN[@]}"; do
     label="${row%%|*}"; rest="${row#*|}"
@@ -198,10 +222,27 @@ for row in "${PLAN[@]}"; do
         say "sending $label"
         rclone copy $flags "$src" "$REMOTE:$DEST/$label" --progress --transfers 4 || rc=1
     else
+        # A FAILED SIZE MUST SHOUT, NOT PRINT `?`. The first version swallowed
+        # rclone's stderr and printed a bare question mark, which is how the
+        # glob bug above nearly went unnoticed -- an unreadable size and a
+        # broken argument list look identical when the error is discarded.
         # shellcheck disable=SC2086
-        printf '[backup] %-26s %s\n' "$label" "$(rclone size $flags "$src" 2>/dev/null | tr '\n' ' ' || echo '?')"
+        sz="$(rclone size $flags "$src" 2>"$errf")"
+        # CLASSIFY stderr, do not just test whether it is non-empty. Swallowing
+        # it entirely hid the glob bug above; treating every line as fatal cries
+        # wolf on rclone's benign NOTICEs (a skipped symlink, for instance) and
+        # a check that fires on everything stops being read (T29). So: no size
+        # or a real ERROR is a failure; anything else is shown and moved past.
+        if [ -z "$sz" ] || grep -qE 'ERROR|Failed to' "$errf"; then
+            printf '[backup] %-26s <<< SIZE FAILED: %s\n' "$label" "$(head -1 "$errf")"
+            rc=1
+        else
+            printf '[backup] %-26s %s\n' "$label" "$(printf '%s' "$sz" | tr '\n' ' ')"
+            [ -s "$errf" ] && printf '[backup] %-26s   note: %s\n' "" "$(head -1 "$errf" | sed 's/^<[0-9]*>//')"
+        fi
     fi
 done
+set +f
 
 if [ "$GO" = "1" ]; then
     [ "$rc" = "0" ] && say "done -- verify with: rclone ls $REMOTE:$DEST | head" \
