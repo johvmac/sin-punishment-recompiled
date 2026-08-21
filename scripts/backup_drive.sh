@@ -54,7 +54,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARCHIVE="/media/joh/extra/sin-punishment-archive"
+ARCHIVE="${SNP_ARCHIVE:-/media/joh/extra/sin-punishment-archive}"
 REMOTE="${SNP_RCLONE_REMOTE:-gdrive}"
 DEST="${SNP_RCLONE_PATH:-sin-punishment-backup}"
 
@@ -135,6 +135,36 @@ if [ "${1:-}" = "--self-check" ]; then
     case "$o" in *"Nothing has been sent"*) sent=1 ;; *) sent=0 ;; esac
     chk "it says plainly that nothing was sent" "$sent" "no such assurance in the refusal"
 
+    # THE GUARANTEE SCHEDULING RESTS ON. Once this runs on a timer nobody reads
+    # the output, so the refuse-on-partial-patch path must be real. A patch that
+    # will not reverse-apply is not the full delta; uploading it preserves a
+    # partial copy of the ONE thing git cannot hold, and does it with a green
+    # log. Asserted on BEHAVIOUR: feed a deliberately broken patch through the
+    # same check the script uses and require a non-zero verdict.
+    mkdir -p "$tmp/repo" && git -C "$tmp/repo" init -q 2>/dev/null
+    printf 'one\n' > "$tmp/repo/f.txt"
+    git -C "$tmp/repo" add f.txt >/dev/null 2>&1
+    git -C "$tmp/repo" -c user.email=t@t -c user.name=t commit -qm init >/dev/null 2>&1
+    printf 'two\n' > "$tmp/repo/f.txt"
+    git -C "$tmp/repo" diff > "$tmp/good.patch"
+    if git -C "$tmp/repo" apply --reverse --check "$tmp/good.patch" 2>/dev/null; then gp=1; else gp=0; fi
+    chk "the DISCRIMINATOR works: a true delta reverse-applies" "$gp" "good patch rejected"
+    sed 's/^+two$/+CORRUPTED/' "$tmp/good.patch" > "$tmp/bad.patch"
+    if git -C "$tmp/repo" apply --reverse --check "$tmp/bad.patch" 2>/dev/null; then bp=0; else bp=1; fi
+    chk "the DISCRIMINATOR works: a corrupted patch is rejected" "$bp" \
+        "reverse-apply cannot tell a full delta from a partial one"
+
+    # THE WIRING, tested BEHAVIOURALLY -- the two above only prove git's check
+    # discriminates, not that this script acts on it. So: point the archive at
+    # an unwritable path, which makes the refresh fail, and require the script
+    # to DIE saying nothing was sent. Without the `|| die` this returns 0 and
+    # uploads whatever stale patches happen to be on disk.
+    w="$(SNP_ARCHIVE=/proc/definitely-not-writable /bin/bash "$0" 2>&1)"; wrc=$?
+    case "$w" in *"NOTHING SENT"*) wsaid=1 ;; *) wsaid=0 ;; esac
+    chk "a FAILED patch refresh aborts the whole run (nothing sent)" \
+        "$([ "$wrc" -ne 0 ] && [ "$wsaid" = 1 ] && echo 1 || echo 0)" \
+        "rc=$wrc -- a scheduled run would have uploaded stale patches silently"
+
     echo
     echo "$((n-bad))/$n controls pass"
     [ "$bad" -eq 0 ] || exit 1
@@ -194,6 +224,54 @@ if [ "$ALL" = "1" ]; then
 fi
 
 errf="$(mktemp)"; trap 'rm -f "$errf"' EXIT
+
+# --- refresh the probe patches BEFORE uploading them ------------------------
+#
+# THE TRAP THIS CLOSES, and it is the one that makes scheduling safe: the probe
+# patches in the archive are a HAND-MADE SNAPSHOT of three dirty working trees.
+# On 2026-08-21 they were found SEVEN HOURS STALE -- captured at 12:57, while
+# that evening's census and telemetry edits sat only in the tree. A backup that
+# runs on a timer against a stale snapshot reliably preserves the WRONG BYTES,
+# and does it with the confidence of a green log. **Worse than no backup.**
+#
+# So the patches are regenerated from the live trees on every run, and each one
+# must REVERSE-APPLY before it is allowed to be uploaded. A patch that does not
+# reverse-apply is not the full delta -- which is the whole property being
+# backed up. Refuse rather than upload a partial.
+refresh_patches() {
+    local pdir="$ARCHIVE/probe-patches/$(date +%Y-%m-%d)" sh
+    sh="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+    mkdir -p "$pdir" || { say "WARNING: cannot write $pdir -- patches NOT refreshed"; return 1; }
+    local bad=0
+    for pair in "lib/N64ModernRuntime|N64ModernRuntime" \
+                "external/N64Recomp|N64Recomp" \
+                "lib/RecompFrontend|RecompFrontend"; do
+        local sub="${pair%%|*}" name="${pair##*|}" base
+        [ -d "$ROOT/$sub" ] || continue
+        base="$(git -C "$ROOT/$sub" rev-parse HEAD 2>/dev/null || echo unknown)"
+        {   printf '# probe patch: %s\n# base commit: %s\n' "$sub" "$base"
+            printf '# captured %s by backup_drive.sh, superproject HEAD %s\n' "$(date -Iseconds)" "$sh"
+            printf '# LOCAL ONLY -- T36/T38: nothing goes upstream. Reapply with:\n'
+            printf '#   git -C %s apply <this file>\n#\n' "$sub"
+            git -C "$ROOT/$sub" diff
+        } > "$pdir/$name.patch"
+        if git -C "$ROOT/$sub" apply --reverse --check "$pdir/$name.patch" 2>/dev/null; then
+            say "  $name.patch refreshed and reverse-applies ($(wc -l < "$pdir/$name.patch") lines)"
+        else
+            say "  $name.patch DOES NOT REVERSE-APPLY -- not the full delta"
+            bad=1
+        fi
+    done
+    return "$bad"
+}
+
+if [ "${SNP_BACKUP_REFRESH:-1}" = "1" ]; then
+    say "refreshing probe patches from the live working trees"
+    refresh_patches || die "a probe patch failed its reverse-apply check. NOTHING SENT.
+         A patch that will not reverse-apply is not the full delta, and uploading
+         it would preserve a partial copy of the one thing git cannot hold."
+fi
+
 say "remote: $REMOTE:$DEST"
 [ "$GO" = "1" ] || say "DRY RUN -- nothing will be sent. Add --go to transfer."
 say "rom/*.log EXCLUDED: 1.24 GB of 2026-08-13 ares instruction traces, which"
