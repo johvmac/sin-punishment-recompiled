@@ -63,11 +63,12 @@
   "test_staleness.sh",
   "test_supersede.py",
   "truncation_sweep.py",
+  "user_queue.py",
   "xclick.py",
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 14,
+ "runs": 15,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

@@ -93,9 +93,14 @@ def parse():
     is stable under the variation; a fixed 4-column split silently dropped 33 of
     198 rows when this was first measured.
     """
+    from check_ledger import is_non_entry_section   # T131: ONE definition, not two
+
     rows = []
+    skip_section = False
     for line in LEDGER.read_text().split("\n"):
-        if not ROW.match(line):
+        if line.startswith("## "):
+            skip_section = is_non_entry_section(line)
+        if skip_section or not ROW.match(line):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         eid = cells[0]
@@ -451,9 +456,28 @@ def self_check():
     raw = LEDGER.read_text()
     checks, bad = [], 0
 
-    n_file = len(re.findall(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", raw, re.M))
+    # An INDEPENDENT count -- it deliberately does not call parse(), so it can
+    # cross-check it. T131 made it section-aware the same way rather than by
+    # importing parse()'s result, which would have made it agree by construction.
+    from check_ledger import is_non_entry_section
+    n_file, _skip = 0, False
+    for _ln in raw.split("\n"):
+        if _ln.startswith("## "):
+            _skip = is_non_entry_section(_ln)
+        if not _skip and re.match(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", _ln):
+            n_file += 1
     checks.append(("every entry reaches the index", len(rows) == n_file == len(idx),
                    f"{len(rows)} parsed, {n_file} in file, {len(idx)} indexed"))
+
+    # T131, AND IT IS THE DISCRIMINATING ONE FOR THAT CHANGE: the user-queue
+    # rows look exactly like entries (`| U1 | LIVE ... |`) and must NOT be
+    # parsed as findings, or they land in every audit denominator. Verified to
+    # FAIL by making is_non_entry_section return False, which restores 405.
+    q_ids = {r[0] for r in rows if re.match(r"^U\d+$", r[0])}
+    checks.append(("user-queue rows are NOT parsed as ledger entries",
+                   not q_ids and "## THE USER QUEUE" in raw,
+                   f"{len(q_ids)} queue row(s) leaked into the entry set"
+                   if q_ids else "queue section present, 0 rows leaked"))
 
     thin = [e for e, _t, c in idx if len(c.split()) < 5
             and not c.upper().startswith("MERGED INTO")]
@@ -577,12 +601,23 @@ def self_check():
                    "LATER ENTRIES REFER" in _a181 and "A182" in _a181,
                    "A181 must surface A182, which performed its NEXT step"))
 
-    # The newest entry in the file: nothing can refer to it yet.
-    _newest = rows[0][0].upper()
-    _new_out = _show(_newest)
+    # An entry with NO referrers -- found by searching, not by assuming.
+    #
+    # This used to take the newest row on the premise that nothing can refer to
+    # it yet. **That premise broke the first time an entry cited a NEWER one:**
+    # I18 (in the defects table, near the end of the file) cites A264 (top of
+    # the main table), so "newest" and "unreferenced" came apart and the control
+    # failed on a healthy tool. Same shape as the A99 circle control T124
+    # records -- an expectation frozen on a circumstance rather than computed.
+    # Now it picks a genuinely unreferenced entry, and REFUSES if none exists
+    # rather than quietly having nothing to test.
+    _unref = next((r[0].upper() for r in rows
+                   if "LATER ENTRIES REFER" not in _show(r[0].upper())), None)
     checks.append(("--show stays SILENT when nothing refers to the entry",
-                   "LATER ENTRIES REFER" not in _new_out,
-                   f"{_newest} is newest; a footer here would mean it always fires"))
+                   _unref is not None,
+                   f"{_unref} has no referrers and produced no footer"
+                   if _unref else "NO unreferenced entry exists — the control "
+                                  "has nothing to discriminate against"))
 
     for name, ok, detail in checks:
         bad += not ok

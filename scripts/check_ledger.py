@@ -32,6 +32,7 @@ Usage:
                                             # was the ledger. Exits 2 with the
                                             # report on stderr so it is surfaced.
 """
+import datetime as _dt
 import json
 import re
 import sys
@@ -152,6 +153,21 @@ SCOPE = re.compile(
 
 TAG_RE = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]+?)\s*\|(.*)$")
 LB_RE = re.compile(r"^### (L\d+)\s+—\s+(.*)$")
+
+# T131: the user queue lives in the ledger file, but its rows are WORK ITEMS,
+# not findings. Parsing them as entries puts phantom findings into every audit
+# denominator -- caught on the very edit that added them, 398 -> 405.
+#
+# ONE DEFINITION, imported by ledger.py and user_queue.py rather than copied,
+# because two definitions would let a row be an entry for one tool and not for
+# another and nobody could say which was authoritative (T121, and the same
+# reason audit.py imports SUPERSEDES_RE from here rather than restating it).
+NON_ENTRY_SECTIONS = ("## THE USER QUEUE",)
+
+
+def is_non_entry_section(heading):
+    """True if this `## ` heading introduces rows that are not ledger entries."""
+    return bool(heading) and heading.startswith(NON_ENTRY_SECTIONS)
 REQUIRED_LB = ("Claim", "Observed", "Falsifier", "Checked")
 
 
@@ -160,7 +176,10 @@ def parse(text):
     rows, lb = {}, {}
     dupes = []
     cur_lb = None
+    skip_section = False          # T131: inside a non-entry section
     for n, line in enumerate(text.split("\n"), 1):
+        if line.startswith("## "):
+            skip_section = is_non_entry_section(line)
         m = LB_RE.match(line)
         if m:
             cur_lb = m.group(1)
@@ -174,7 +193,7 @@ def parse(text):
             continue
         if line.startswith("###") or line.startswith("## "):
             cur_lb = None
-        m = TAG_RE.match(line)
+        m = None if skip_section else TAG_RE.match(line)
         if m:
             eid, tag, body = m.group(1), m.group(2), m.group(3)
             if eid in rows:
@@ -805,6 +824,28 @@ def main():
                     f"was not transcribed from the tool (T91/T98).")
     except FileNotFoundError:
         pass
+
+    # 4e. THE USER QUEUE (T131). Items only the user can do, batched so one
+    # sitting clears several. Surfaced HERE because this is the nag everything
+    # already reads -- a reminder in a file nobody opens is T56's shape again.
+    #
+    # DELIBERATELY NOT ADDED TO `overdue`: nothing here escalates the hook. I
+    # cannot clear a single item myself, so a hard block would halt all work
+    # while the user is away, and T127 is the entry where I reported a reminder
+    # as a gate and sent them to watch a run nothing required.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import user_queue
+        _fired, _probs = user_queue.report(text, _dt.date.today(), quiet=True)
+        if _fired:
+            reminders.append(
+                "USER QUEUE worth a sitting — " + "; ".join(_fired)
+                + ". Run scripts/user_queue.py for the items. REMINDER, not a gate.")
+        for _p in _probs:
+            reminders.append(f"USER QUEUE cross-ref broken — {_p}")
+    except Exception as _e:
+        reminders.append(f"USER QUEUE could not be read ({_e}) — the nag is BLIND, "
+                         f"which is worse than an empty queue. Fix before trusting it.")
 
     # 5. duplicate ids
     for eid, n, first in dupes:
