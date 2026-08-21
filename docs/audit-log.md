@@ -244,3 +244,15 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   A233/A232/A228 single-run, and A228's probe with no control mentioned. Each
   needs a repeat run, a second log, or an explicit `ONE RUN IS ENOUGH` — they
   predate the write-time check that would have asked at the time.
+## Audit #13 — since ff138db8
+- ledger: 408 entries (+38 this window), 38 withdrawn
+- rolls: 13 this window; runs: 21 (4 exited early, 1 contaminated)
+- **6 thing(s) to look at:**
+  - A257: rests on ONE run (rect-tut.log). Repeat it or say why one is enough.
+  - A243: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A241: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - I18: no evidence recorded. Say what was observed and when.
+  - runs: 1/21 had controller input -- not comparable to clean runs (T23).
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (4): A263 (single-run, justified in the entry); A256 (single-run, justified in the entry); A254 (single-run, justified in the entry); A240 (single-run, justified in the entry)
+

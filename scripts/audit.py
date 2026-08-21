@@ -220,7 +220,32 @@ def main():
     CONTROL = re.compile(
         r"control|ARM |heartbeat|positive|independent(?:ly)? (?:confirm|verif|source)|"
         r"cross-check|OBSERVED, not assumed|exact match|two independent", re.I)
+    # AN ENTRY THAT RAN NOTHING DEPLOYED NOTHING (audit #13, 2026-08-21).
+    # `\bSNP_[A-Z]` fires on a probe's NAME, so a source survey saying "the
+    # probe ACCEPTS a queue address" was read as a probe that had been run.
+    # A241 and A243 -- both zero-run RT64 source reads -- were flagged for
+    # lacking a control over output they never produced.
+    #
+    # The exemption is a FACT, not a judgement: no runs, no probe output, so
+    # there is nothing for a control to discriminate. That is what keeps it
+    # from becoming the kind of blanket suppression that stops a rule working.
+    # An entry re-analysing an EARLIER run's logs is still exempt here, and
+    # correctly -- the control question belongs to the entry that ran it.
+    # The run count is declared in the STATUS cell by convention -- "MEASURED
+    # (2 x 240 s runs...)", "READ (RT64 source survey, zero runs)" -- so the
+    # status must be searched too. Checking body+ev alone missed A243, which
+    # says "zero runs" in exactly that place.
+    ZERO_RUNS = re.compile(r"zero (?:new )?runs|no new runs", re.I)
+    # A POINTER entry defers its substance to another entry: "ANSWERED by A243",
+    # "CLOSED by A85/A90", "MERGED into <ID>". Its evidence and controls live in
+    # the entry it names, so asking the signpost for a control is asking the
+    # wrong entry -- which is why A241 was flagged. **`CORRECTS` is NOT here on
+    # purpose**: A244 corrects A239 and carries its own 5 runs, an A/B pair and
+    # a contamination control. A correction is a claim; a pointer is not.
+    POINTER = re.compile(r"^\**(?:ANSWERED by|CLOSED by|MERGED into)\b", re.I)
     for eid, (status, body, ev) in added.items():
+        if ZERO_RUNS.search(status + body + ev) or POINTER.match(status.strip()):
+            continue
         if DEPLOYED.search(body) and not CONTROL.search(body + ev):
             findings.append(f"{eid}: describes a probe with no control mentioned. A dead probe reads as a clean negative.")
 
