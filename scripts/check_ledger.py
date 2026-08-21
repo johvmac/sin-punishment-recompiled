@@ -498,16 +498,26 @@ def main():
     # +5,588 words net, archiving +367, merging by class -210. The lever is
     # spent, so this nag now points at the ONE thing still worth doing (write
     # short, per the LENGTH check above) and otherwise gets out of the way.
+    #
+    # The last clause used to read "if you are seeing this note you are reading
+    # the raw file; that is the thing the index exists to avoid". It was FALSE
+    # of almost every appearance. This checker reads the ledger itself, on every
+    # ledger edit (as a hook), at every checkpoint, and inside daily_push.sh --
+    # so the note accused its reader of the read that THIS SCRIPT had just done.
+    # An inference a tool cannot actually make about its caller is not a warning,
+    # it is noise that trains the reader to skim a standing reminder. Say what is
+    # true (the size, the prescription) and drop what cannot be known from here.
     words = len(text.split())
     if words >= 40000:
         reminders.append(
-            f"SIZE: {words:,} words. Housekeeping is spent (T54) — do NOT start "
-            f"another archive or merge pass expecting a saving. If the read cost "
-            f"is actually hurting, the remaining answer is the two-tier index in "
-            f"T52 — which was BUILT as T68: read `scripts/ledger.py --index` "
-            f"(~8.5k tokens) instead of this file, and `--show <ID>` to expand. "
-            f"If you are seeing this note you are reading the raw file; that is "
-            f"the thing the index exists to avoid.")
+            f"SIZE: {words:,} words in docs/findings-ledger.md. Housekeeping is "
+            f"spent (T54) — do NOT start another archive or merge pass expecting "
+            f"a saving. If the read cost is actually hurting, the remaining answer "
+            f"is the two-tier index in T52 — which was BUILT as T68: read "
+            f"`scripts/ledger.py --index` (~8.5k tokens, ~12% of the file) and "
+            f"`--show <ID>` to expand, rather than the ledger end to end. This "
+            f"note is emitted by check_ledger.py, which reads the file by design; "
+            f"it says nothing about how YOU read it.")
     try:
         state = json.loads((LEDGER.parent / ".route-state.json").read_text())
         since = len(rows) - state.get("last_entry_count", 0)

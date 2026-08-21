@@ -16,6 +16,7 @@ NEGATIVES are asserted separately and the runner says so.
 """
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -227,7 +228,85 @@ def main():
         fails.append("FAIL: the prior-work listing fails silently — a bare "
                      "except hides its own absence")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 9
+    # ------------------------------------------------------------------
+    # THE COUNT IS SHARED ARITHMETIC, NOT A DISPLAY (T131 again, third tool).
+    #
+    # route.py kept a private row regex after T131 moved the user queue out of
+    # the entry count everywhere else, so it counted 470 where check_ledger.py
+    # counted 462. check_ledger.py subtracts OUR number from ITS number to
+    # decide whether to nag about unrolled entries, so the 8-row offset raised
+    # that trigger from 6 to 14 and had been silently suppressing it.
+    #
+    # These are BEHAVIOUR checks against a synthetic ledger, not greps of
+    # route.py -- a source grep matches a definition that is no longer wired to
+    # anything (T141/T146/T147), and this bug WAS a wiring bug.
+    FIXTURE = "\n".join([
+        "# Fixture ledger",
+        "",
+        "## FINDINGS",
+        "",
+        "| A1 | OPEN [cost=2] | a real open finding | 2026-08-22 |",
+        "| T2 | MEASURED — settled | a real closed finding | 2026-08-22 |",
+        "",
+        "## THE USER QUEUE",
+        "",
+        "| U1 | LIVE 2026-08-21 | an ordinary queue item | — |",
+        "| U2 | OPEN [cost=1] | a queue row wearing an OPEN status | — |",
+        "",
+        "## MORE FINDINGS",
+        "",
+        "| A3 | OPEN [cost=3] | a real open finding after the queue | 2026-08-22 |",
+        ""])
+    _fix = Path(tempfile.mkdtemp()) / "findings-ledger.md"
+    _fix.write_text(FIXTURE)
+    _real_ledger = route.LEDGER
+    try:
+        route.LEDGER = _fix
+        # Vacuity guard FIRST. If the old regex and the new counter agree on
+        # this fixture then the fixture cannot tell them apart and the two
+        # controls below prove nothing -- which is how a control quietly stops
+        # discriminating (T65/T100).
+        naive = len(re.findall(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", FIXTURE, re.M))
+        got = route.entry_count()
+        if naive != 5:
+            fails.append(f"FAIL: the fixture is not exercising the bug — the old "
+                         f"regex counts {naive} rows in it, expected 5")
+        elif got == naive:
+            fails.append("FAIL: entry_count() still counts queue rows — it agrees "
+                         f"with the pre-fix regex at {got}")
+        elif got != 3:
+            fails.append(f"FAIL: entry_count() = {got} on the fixture, expected 3 "
+                         f"(A1, T2, A3 — never U1/U2)")
+
+        # The latent half: a queue row is not a routable frontier item. Today
+        # every queue row reads LIVE or SWEPT so nothing leaks, which is a fact
+        # about the queue's wording and not about this parser.
+        ids = [e for e, _b, _c in route.open_items()]
+        if "U2" in ids:
+            fails.append(f"FAIL: a queue row reached the frontier — open_items() "
+                         f"returned {ids}; a roll could select U2")
+        elif ids != ["A3", "A1"] and sorted(ids) != ["A1", "A3"]:
+            fails.append(f"FAIL: open_items() returned {ids} on the fixture, "
+                         f"expected A1 and A3")
+    finally:
+        route.LEDGER = _real_ledger
+
+    # ...and the one that actually broke: the two counters must AGREE on the
+    # REAL ledger, because one is subtracted from the other. Asserted against
+    # check_ledger's parse(), not against a number written down here, so it
+    # cannot drift into a copied constant.
+    try:
+        import check_ledger as _cl
+        _cl_rows, _, _ = _cl.parse(route.LEDGER.read_text())
+        if len(_cl_rows) != route.entry_count():
+            fails.append(f"FAIL: route.py counts {route.entry_count()} entries, "
+                         f"check_ledger.py counts {len(_cl_rows)} — check_ledger "
+                         f"subtracts one from the other to decide when to nag")
+    except Exception as e:
+        fails.append(f"FAIL: could not compare the two entry counters ({e}) — "
+                     f"this is the check that caught the 470-vs-462 split")
+
+    total = len(POSITIVE) + len(NEGATIVE) + 12
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -241,7 +320,7 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness, 1 observed-run gate, 2 prior-work)")
+          f"1 witness, 1 observed-run gate, 2 prior-work, 3 entry-count)")
     return 1 if fails else 0
 
 

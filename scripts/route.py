@@ -57,6 +57,10 @@ EPS = float(os.environ.get("SNP_ROUTE_EPS", "0.30"))
 
 COST_RE = re.compile(r"\[cost=(\d+)\]")
 
+# The same row shape ledger.py's ROW matches. Kept here only as the SHAPE of a
+# table row; what makes a row an ENTRY is is_non_entry_section(), imported.
+ROW_RE = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|")
+
 # The status cell must OPEN with the tag, not merely contain the word.
 #
 # This used to be `"OPEN" in status.upper()`, and on 2026-08-19 that put **A124**
@@ -180,7 +184,12 @@ def open_items():
     without one sort last and are reported as unpriced.
     """
     items = []
-    for line in LEDGER.read_text().split("\n"):
+    # Queue rows are excluded here too. Today they are all LIVE/SWEPT so none
+    # of them matches OPEN_RE and nothing leaks -- but that is a property of
+    # the current queue's wording, not of this parser, and a queue item written
+    # as `| U9 | OPEN [cost=2] |` would become a routable frontier item. The
+    # roll is not the place to discover that.
+    for line in ledger_rows():
         m = re.match(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|", line)
         if m and OPEN_RE.match(m.group(2)):
             raw = m.group(3)
@@ -229,8 +238,48 @@ def unpriced(items):
     return [e for e, _, c in items if c is None]
 
 
+def ledger_rows():
+    """Every line that is a LEDGER ENTRY row -- queue rows excluded.
+
+    T131 removed the user queue from the entry count in check_ledger.py and
+    ledger.py and said, in as many words, that the rule must be IMPORTED and
+    not copied "because two definitions would let a row be an entry for one
+    tool and not for another and nobody could say which was authoritative".
+    This file then kept a third, private regex, and that is exactly what
+    happened: route.py counted 470 while check_ledger.py counted 462.
+
+    It was not cosmetic. check_ledger.py computes `since = len(rows) -
+    state["last_entry_count"]` -- ITS count minus OUR stored count -- and nags
+    at `since >= 6`. With an 8-row offset baked in, `since` started at -8, so
+    the "you have written N entries without rolling" reminder needed 14 new
+    entries to fire instead of 6, and had been silent since the queue was
+    added. A disagreement between two counters is not a display bug when one
+    of them is subtracted from the other.
+
+    Fails OPEN: if check_ledger cannot be imported we count every row rather
+    than crash, because route.py must be able to roll even when the ledger
+    tooling is broken. That is the same bias as cited_by() above.
+    """
+    text = LEDGER.read_text()
+    try:
+        _sd = str(Path(__file__).resolve().parent)
+        if _sd not in sys.path:
+            sys.path.insert(0, _sd)
+        from check_ledger import is_non_entry_section   # T131: ONE definition
+    except Exception:
+        is_non_entry_section = lambda _h: False
+
+    rows, skip = [], False
+    for line in text.split("\n"):
+        if line.startswith("## "):
+            skip = is_non_entry_section(line)
+        if not skip and ROW_RE.match(line):
+            rows.append(line)
+    return rows
+
+
 def entry_count():
-    return len(re.findall(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", LEDGER.read_text(), re.M))
+    return len(ledger_rows())
 
 
 def load():
