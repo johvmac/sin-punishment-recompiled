@@ -53,3 +53,12 @@ correction.
 - **feel:** no
 - **CONTRADICTS MY CLAIMS:** no
 
+## 2026-08-22T08:09:49+10:00 — build `c14b30b52f18949e`, 180s requested, rc=0 (CLEAN)
+- run log: `observed-080949.log`
+- **audio:** none
+- **last 10s / scene:** tutorial - died earlier than usual though, before N64 controller part of tutorial - not 100% certain on this
+- **title screen:** correct
+- **how it died:** (no answer)
+- **feel:** NA
+- **CONTRADICTS MY CLAIMS:** NA
+
