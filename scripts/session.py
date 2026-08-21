@@ -56,6 +56,12 @@ LOG = ROOT / "docs" / "session-log.md"
 LEDGER = ROOT / "docs" / "findings-ledger.md"
 ROUTELOG = ROOT / "docs" / "route-log.md"
 
+# The user's standing decision, 2026-08-21: running ~5 minutes over any time
+# budget is fine. A checkpoint truncated to land on the minute -- no entry, no
+# SO WHAT line, no commit -- costs the NEXT session more than the overrun saves.
+# ONE definition, shared by `status` and `end`, so the two cannot drift.
+GRACE = 5 * 60
+
 sys.path.insert(0, str(ROOT / "scripts"))
 try:
     from check_ledger import not_plain          # ONE definition of "plain" (T121)
@@ -169,8 +175,21 @@ def cmd_status(now=None):
         return 1
     t = now if now is not None else time.time()
     left = d["deadline"] - t
-    print(f"[session] elapsed {hms(t - d['start'])}, remaining {hms(left)}"
-          + ("   <<< OVER TIME — close it" if left <= 0 else ""))
+    # The user's standing decision (2026-08-21): ~5 minutes over any budget is
+    # fine, because a truncated checkpoint costs the next session more than the
+    # overrun saves. So the deadline is a boundary for STARTING work, and only
+    # past the grace does this shout. Kept identical to the skill's wording --
+    # a tool and its doc disagreeing about the rule is how the rule gets
+    # argued with rather than followed (T121).
+    over = -left
+    if left > 0:
+        note = ""
+    elif over <= GRACE:
+        note = (f"   <<< past the deadline by {hms(over)} — inside the {hms(GRACE)} "
+                "grace. FINISH what is in flight; do not START anything new.")
+    else:
+        note = f"   <<< OVER by {hms(over)}, BEYOND the {hms(GRACE)} grace — close it"
+    print(f"[session] elapsed {hms(t - d['start'])}, remaining {hms(left)}" + note)
     if d.get("task"):
         print(f"[session] opening task: {d['task']}")
     print(f"[session] rolls consumed so far: {last_roll() - d['roll_at_start']}"
@@ -228,8 +247,11 @@ def cmd_end(args, now=None):
     unaccounted = [e for e in added
                    if not re.search(r"Roll #\d+|user-directed|no roll", rows.get(e, ""), re.I)]
 
+    _over = t - d["deadline"]
     print(f"[session] ran {hms(t - d['start'])} (planned {hms(d['deadline'] - d['start'])})"
-          + ("  — OVER" if t > d["deadline"] else ""))
+          + ("" if _over <= 0
+             else f"  — over by {hms(_over)}, within the {hms(GRACE)} grace" if _over <= GRACE
+             else f"  — OVER by {hms(_over)}, BEYOND the {hms(GRACE)} grace"))
     print(f"[session] {rolls} roll(s) consumed, {len(added)} entr(y/ies) added")
     if unaccounted:
         print(f"[session] DRIFT (T119): {len(unaccounted)} entr(y/ies) cite neither a roll nor "
@@ -311,6 +333,40 @@ def self_check():
         p(["block", "a decision", "nothing else can move until the user chooses"])
         st = p(["status"])
         chk("a hard block makes status say STOP", "STOP" in st.stdout, "block not escalated")
+
+        # THE GRACE MUST BE BOUNDED, AND THE TWO SIDES OF IT MUST DIFFER.
+        # A grace that never ends is not a grace, it is a removed deadline --
+        # and the user asked for ~5 minutes, not for the clock to stop
+        # mattering. So this asserts BOTH directions: inside the window status
+        # says finish-what-is-in-flight, and past it status still shouts.
+        # A single-sided check would pass on a grace of infinity.
+        _sf = root / "docs" / ".session-state.json"
+        _d = json.loads(_sf.read_text())
+        _dl = _d["deadline"]
+
+        # THE OFFSETS ARE LITERALS, NOT DERIVED FROM `GRACE`. The first version
+        # wrote `time.time() - (GRACE + 60)`, so raising GRACE moved the test's
+        # own needle with it: set GRACE to 10**9 and the suite still scored
+        # 16/16 on a grace that had effectively removed the deadline. That is
+        # T100's pattern -- a control computing its needle from the thing it
+        # checks -- and it is why the rule is "~5 minutes" written HERE as a
+        # number the implementation cannot move. Change the policy and this
+        # control must be changed deliberately, which is the point.
+        _d["deadline"] = time.time() - 60             # 1 min over
+        _sf.write_text(json.dumps(_d))
+        _in = p(["status"]).stdout
+        _d["deadline"] = time.time() - (11 * 60)      # 11 min over: past ANY
+        _sf.write_text(json.dumps(_d))                # grace this rule allows
+        _out = p(["status"]).stdout
+        _d["deadline"] = _dl                          # put it back
+        _sf.write_text(json.dumps(_d))
+
+        chk("inside the grace, status says finish — it does not shout",
+            "grace" in _in and "BEYOND" not in _in,
+            f"got: {_in.splitlines()[0] if _in else 'nothing'}")
+        chk("PAST the grace, status still shouts (a grace is bounded)",
+            "BEYOND" in _out,
+            f"got: {_out.splitlines()[0] if _out else 'nothing'}")
 
         # THE DISCRIMINATING CLOCK CONTROL. A status that printed a constant --
         # or the planned duration -- would look perfectly healthy. This asserts

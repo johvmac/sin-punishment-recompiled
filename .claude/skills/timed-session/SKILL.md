@@ -51,6 +51,18 @@ scripts/session.py status
 work had happened and was wrong by up to eleven minutes in both directions —
 once almost stopping a session at its halfway point. `status` costs nothing.
 
+**RUNNING ~5 MINUTES OVER ANY BUDGET IS FINE — the user's standing decision.**
+The deadline is a boundary for *starting* new work, not a guillotine on work in
+flight. If a checkpoint is nearly done, finish it properly — the entry, the
+`SO WHAT:` line, the commit — rather than truncating it to land on the minute.
+An unfinished checkpoint costs the next session more than five minutes.
+
+**This is slack, not a budget to spend.** It does not license starting a
+checkpoint you already know will not fit, and it is not cumulative: five
+minutes over a 30-minute session, not five per checkpoint. When the remaining
+work needs a build and a 200-second run and there are four minutes left, the
+honest move is still to shelve it and say so.
+
 ## When something blocks
 
 This is the judgement. Ask: **can any other useful work proceed right now?**
