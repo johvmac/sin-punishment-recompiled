@@ -41,6 +41,16 @@ each checkpoint. Tick the box when done.
          each checked against splat's `endlabel`. Fix only genuine truncations
          (the L1/L7 class). Bounded: stop at 20 checked, record the hit rate.
       *(moved up from 08-22 when PR 2 was closed.)*
+
+      > **NOT STARTED ON 2026-08-21, AND ITS BLOCKER HAS SINCE CLEARED.**
+      > A258-A261 showed this is harder than the plan assumes and A262 was named
+      > the prerequisite. **A262 was ANSWERED on 2026-08-21 by A292**, which
+      > found one exit in 1,240 bytes of ovlfile07's own ROM and put the true
+      > boundary at `0x518` rather than the declared `0x40` — by static proof,
+      > overturning A149's refutation of A96. **So the prerequisite is met and
+      > this is startable.** Note A261's warning before writing any checker for
+      > it: four controls that are all truncation-flagged-or-not are ONE
+      > control; vary the failure MODE.
 - [ ] **2026-08-21** — **RT64 debugger inspector on a paused tutorial frame.**
       *(User-requested 2026-08-20; sequenced AFTER the T11 triage above.)*
       **Setup is already done and verified** — `developer_mode` is `true` in
@@ -69,6 +79,37 @@ each checkpoint. Tick the box when done.
          silhouette in the depth buffer means a combiner/texture/lighting
          fault, not a geometry one.
 
+      > **STATUS AT END OF 2026-08-21 — PART DONE, NOT TICKED. Read this before
+      > re-running any of it.** The user sat through several attempts.
+      > * **F1 works, but ONLY on a REAL display** — it does nothing under Xvfb
+      >   or Xephyr, so the line above suggesting `SNP_ISO=xephyr` is WRONG.
+      >   Use `SNP_VISIBLE=1`. **Nothing is recorded in real mode by design
+      >   (T59), so the user's description is the only evidence.**
+      > * **THE PANEL IS A HAZARD (A288):** three runs with it open died at
+      >   37 / 70 / 88 s; keeping it CLOSED through the attract reached 190 s.
+      >   Clicking **Resume** killed three runs. **Ctrl+Click text entry commits
+      >   on ENTER, and ENTER is bound to START** — that skipped the attract and
+      >   SIGSEGVed two runs (T134). **Drag the slider, never type.** Arrow keys
+      >   cannot work (`NavEnableKeyboard` is never set).
+      > * **1 (frame stats) — DONE**, → A285: draw calls 234/231/249/232 and
+      >   triangles 1246/1244/1377/1242 across the tutorial, framebuffer pairs
+      >   4→5 in attract, 1 on the start screen, 2 in the tutorial. A290/A293/
+      >   A296 corroborate the pair counts from the census, independently.
+      > * **4 (draw-call slider) — ATTEMPTED, INCONCLUSIVE.** From a paused
+      >   tutorial frame the slider would only take −1, 0, 1; unpausing crashed
+      >   the run. **But an earlier paused run DID allow scanning hundreds of
+      >   draw calls (A245, ~164 of 256), so pausing is UNRELIABLE rather than
+      >   useless, and nothing yet predicts which behaviour you get.**
+      > * **3 (View Depth Buffer) — NOT DONE, and it is now the highest-value
+      >   item on this list** (A289). A274 left "drawn black" and "never drawn"
+      >   indistinguishable because both write zero colour; **depth does not
+      >   care what colour something wrote.** One checkbox, not a 234-step
+      >   sweep.
+      > * **2 (free camera) — NOT DONE. 5 (texture dump) — the user located the
+      >   button; no output has been confirmed.**
+      > These live in `scripts/user_queue.py` as U2/U3/U6/U7 — **work the queue,
+      > not this list**, so one sitting clears several.
+
       **Caution (T88 family):** this shows RT64's interpretation of the list,
       so it is authoritative for presence, identity and "is this geometry
       anywhere", and NOT for pixel-accuracy claims.
@@ -89,6 +130,41 @@ each checkpoint. Tick the box when done.
          look through with nothing built. **It is NOT A227**: it captures what
          is USED, not what is PACKED, textures only, and only from the stretch
          we can reach.
+- [ ] **2026-08-22** — **FIRST THING: a memory-poke facility, so the cheat
+      codes can be used.** *(User-requested 2026-08-21 evening, deferred from
+      that night explicitly.)*
+
+      **WHY THIS AND NOT "BUILD THE DEBUG MENU":** T145 established the gap.
+      We have `0x80075DD6` (**unlock levels**) from the libretro `(J)` set, and
+      T5 confirms these are KSEG0 and usable verbatim. What we do **not** have
+      is any way to WRITE to RDRAM — `SNP_WATCH` samples, `rdram_peek.py` reads
+      a snapshot, and a grep of the runtime for a poke returns nothing. **Until
+      a write exists, no cheat is usable and nothing else on this path can
+      start.** That is why this is the item rather than the menu.
+
+      **Bounded to the poke alone.** Do NOT also build input scripting in this
+      slot; it is the next item, not this one.
+
+      1. `SNP_POKE=0xADDR:0xVALUE[:size][,...]`, applied **every frame, not
+         once** — a real cheat device re-applies continuously, and a one-shot
+         write at startup is very likely to be overwritten by the game's own
+         save/load. If it must be one-shot to start with, say so in the entry.
+      2. **T71's three gates before its output is evidence:** a dry run that
+         prints the writes it *would* make and exits; a control **verified to
+         FAIL**, not merely to pass — the obvious one is poke-then-read-back
+         through `SNP_WATCH` at the same address, which must report the new
+         value and must report the OLD value when the poke is disabled; and a
+         playbook write-up plus a Tool-inventory row in the same checkpoint.
+      3. **CONTAMINATED BY DESIGN**, exactly like `send_key.py`. Any run using
+         it is usable for *reaching a scene* and must **never** be cited as
+         evidence of normal behaviour. Say so in the tool's own `--help`.
+
+      **Free win available with the READ facility we already have, if there is
+      time:** `0x800D5A9B` (energy/time) is **fixed across all levels**, so
+      watching it gives an "are we actually in a level yet?" signal — which is
+      what T143 found the Mischief Makers harness waits on instead of sleeping.
+      Worth having regardless of whether the poke lands.
+
 *(Nothing else scheduled. The two remaining upstream slots were removed —
 see "Closed without doing" below.)*
 
