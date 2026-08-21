@@ -174,3 +174,4 @@ A gap in the numbering means a roll was skipped.
 - roll #155: **EXPLORE** (drew 0.122 vs eps 0.3) -> `A97` [witness `8b1077`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #156: **EXPLOIT** (drew 0.693 vs eps 0.3) -> `A264` [witness `0962f2`] — User-directed, no roll — the user supplied the URL: github.com/ThiagoLira/trouble-makers-pc-reco
 - roll #157: **EXPLOIT** (drew 0.416 vs eps 0.3) -> `A219` [witness `973b3f`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #158: **EXPLORE** (drew 0.022 vs eps 0.3) -> `A225` [witness `4f1ac4`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
