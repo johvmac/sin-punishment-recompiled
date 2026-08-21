@@ -66,6 +66,30 @@ SNP_ISO_GEOM_WH=""
 snp_start_recording() {
     local label="${1:-run}"
     [ "${SNP_REC:-1}" = "0" ] && return 0
+    # REFUSE A SECOND RECORDING OVER A LIVE ONE (2026-08-21).
+    #
+    # This overwrote SNP_REC_FILE unconditionally. `snp_isolate_display` ALREADY
+    # starts a recording, so any caller that called it and then called this --
+    # ares_capture.sh did, to redirect into its own directory -- orphaned the
+    # first one: cleanup finalises only the file SNP_REC_FILE now names, while
+    # the first ffmpeg ran on to its 400 s cap and left a LOSSLESS master
+    # nobody compressed. **Three such masters were 42% of the whole archive
+    # (1,353 MB), and were one command from being deleted as junk (T140) --
+    # they were the ares reference captures.**
+    #
+    # The second cost is worse than the disk: TWO concurrent x11grabs during a
+    # reference capture, competing for CPU on a run this file's own comments
+    # say must not be perturbed.
+    #
+    # The audio path has refused a second capture since T133; this is the same
+    # guard on the video path, which simply never got one. Set SNP_REC_DIR
+    # BEFORE isolating, not after.
+    if [ -n "${SNP_REC_PID:-}" ] && kill -0 "$SNP_REC_PID" 2>/dev/null; then
+        echo "[$label] NOT starting a second recording -- '$SNP_REC_FILE' is still" >&2
+        echo "[$label] being written (pid $SNP_REC_PID). Set SNP_REC_DIR before" >&2
+        echo "[$label] snp_isolate_display; a second one orphans the first (T141)." >&2
+        return 0
+    fi
     # THE CONTROL THAT MATTERS. `real` means the user's own desktop.
     if [ "$SNP_ISO_MODE" = "real" ]; then
         echo "[$label] NOT recording: mode is 'real' and that display is the user's desktop" >&2

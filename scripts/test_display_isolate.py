@@ -213,6 +213,57 @@ def main():
         "not starting a second" in iso,
         "two null sinks on one stream would give both a partial recording")
 
+    # --- a SECOND video recording must be refused (T141) --------------------
+    # The audio path has refused this since T133; the video path never did, so
+    # `snp_isolate_display` + a later `snp_start_recording` started two ffmpegs
+    # and orphaned the first. Its lossless master was never finalised: three of
+    # them were 1,353 MB, 42% of the archive, and were nearly deleted as junk
+    # when they were the only full-length ares reference captures (T140).
+    add("a SECOND video recording is refused over a live one",
+        "NOT starting a second recording" in src,
+        "two ffmpegs orphan the first master AND contend for CPU mid-run")
+    # DISCRIMINATING: the guard must test a LIVE pid, not merely a set variable.
+    # SNP_REC_FILE survives a finished recording, so keying on it would refuse
+    # every legitimate second run in the same shell.
+    add("the second-recording guard tests a LIVE pid, not a stale variable",
+        re.search(r'SNP_REC_PID:-\}"?\s*\]\s*&&\s*kill -0 "\$SNP_REC_PID"', src)
+        or ('kill -0 "$SNP_REC_PID"' in src.split("NOT starting a second")[0][-400:]),
+        "keying on SNP_REC_FILE would refuse a legitimate later run")
+
+    # THE CALLER THAT HIT IT, checked by DISCOVERY not by memory: any script
+    # that sets SNP_REC_DIR must do so BEFORE it isolates, or its recording
+    # lands in the default directory and a redirect afterwards orphans it.
+    # COMMENTS ARE STRIPPED FIRST. The first version scanned raw text and
+    # flagged ares_capture.sh because the comment EXPLAINING this very fix
+    # names `snp_isolate_display` above the assignment. A checker that reads
+    # prose as code fires on the documentation of its own rule -- and the
+    # obvious "fix" is to reword the comment, which teaches exactly the wrong
+    # lesson. Same class as audit.py's probe check matching any entry that
+    # merely said the word "probe".
+    # ANCHORED TO STATEMENTS, not to text anywhere in the file. This check gave
+    # TWO false positives in a row, both on ares_capture.sh and both from
+    # matching prose instead of code: first the comment explaining this very
+    # fix, then the script's OWN self-test, which greps for the strings
+    # 'snp_isolate_display' and 'SNP_REC_DIR' in that order. So it now requires
+    # an actual assignment and an actual call, each at the start of a line.
+    # Same class as audit.py's probe check firing on any entry that merely said
+    # the word "probe" -- a predicate matched against a wider thing than the one
+    # it describes.
+    ASSIGN = re.compile(r"^\s*(?:export\s+)?SNP_REC_DIR=", re.M)
+    CALL = re.compile(r"^\s*snp_isolate_display\b", re.M)
+    late = []
+    for f in sorted(SCRIPTS.glob("*.sh")):
+        code = "\n".join(re.sub(r"(^|\s)#.*$", "", l)
+                         for l in f.read_text().split("\n"))
+        a, c = ASSIGN.search(code), CALL.search(code)
+        if not a or not c:
+            continue
+        if a.start() > c.start():
+            late.append(f.name)
+    add("every caller sets SNP_REC_DIR BEFORE isolating (discovered, not declared)",
+        not late,
+        f"late: {' '.join(late) if late else 'none'}")
+
     # An artifact nobody measured is indistinguishable from one nobody looked at.
     add("the amplitude is REPORTED, not just the filename",
         "volumedetect" in iso and "ABOVE THE NOISE FLOOR" in iso,

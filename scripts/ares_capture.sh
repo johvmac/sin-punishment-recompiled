@@ -159,12 +159,22 @@ export SNP_ISO="${SNP_ISO:-xephyr}"
 . "$ROOT/scripts/display_isolate.sh"
 trap snp_display_cleanup EXIT INT TERM
 
-snp_isolate_display
+# SNP_REC_DIR MUST BE SET BEFORE ISOLATING, and the label passed to
+# snp_isolate_display -- because THAT is what starts the recording.
+#
+# This used to isolate first and then call snp_start_recording again to
+# redirect into $DEST. That started a SECOND recording and orphaned the first:
+# cleanup finalised only the second, while the first ran on to its 400 s cap
+# and left a lossless master in the default evidence dir that nothing ever
+# compressed. Three of them reached 1,353 MB -- 42% of the archive -- and were
+# very nearly deleted as unreferenced junk when they were in fact the only
+# full-length copies of the ares reference captures (T140/T141).
+#
 # snp_start_recording takes a LABEL and prepends SNP_REC_DIR -- it is NOT a
 # path. Passing an absolute path concatenated the two and ffmpeg died on a
 # nonsense filename, which the 30s smoke test caught on its first run.
 export SNP_REC_DIR="$DEST"
-snp_start_recording "ares-$LABEL"
+snp_isolate_display "ares-$LABEL"
 
 echo "[ares] launching ares on the reference rom — WATCH THE WINDOW."
 echo "[ares] the tutorial autoplays; tell me when it is over and I will stop."
