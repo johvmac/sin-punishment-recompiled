@@ -141,3 +141,6 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T14:25:49+10:00	180	180	0	0	0	5377	30	CLEAN	audio-verify.log	none
 2026-08-21T14:44:41+10:00	215	215	0	0	0	6169	0	STALLED	watch-sendcount.log	SNP_WATCH=0x8007AB94
 2026-08-21T15:19:17+10:00	215	215	0	0	0	6169	0	STALLED	cpu-run.log	none
+2026-08-21T15:36:25+10:00	600	91	137	0	0	1639	30	CRASHED	inspector-session.log	SNP_VISIBLE=1
+2026-08-21T15:39:13+10:00	600	126	137	0	0	2332	30	CRASHED	inspector-session2.log	SNP_VISIBLE=1
+2026-08-21T15:44:31+10:00	600	306	137	0	0	6169	0	CRASHED	inspector-session3.log	SNP_VISIBLE=1
