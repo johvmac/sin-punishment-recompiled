@@ -124,6 +124,14 @@ cannot record these sessions: real mode records nothing by design (T59), so the
 user's written answer IS the evidence.** An item I have to re-interpret
 afterwards has failed.
 
+**HOW OBSERVATIONS COME BACK (2026-08-21).** For anything with a recording, the
+user annotates it in ELAN (`/home/joh/opt/ELAN_7.1/bin/ELAN_7.1`, see the
+playbook) and exports tab-delimited text: **each note carries its own start and
+end time**, so a described fault lands on exact frames instead of on a
+conversation about which moment was meant. Live items at the keyboard — the F1
+ones — still come back as written answers, because **real mode records nothing
+by design (T59)**.
+
 **CROSS-REFERENCE IS BIDIRECTIONAL AND CHECKED.** `SERVES` names the entries an
 item would advance; `user_queue.py --check` fails on an ID that does not exist.
 **An item is not SWEPT when the observation is made — it is SWEPT when an entry
