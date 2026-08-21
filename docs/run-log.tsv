@@ -170,3 +170,5 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T20:16:18+10:00	14	14	0	0	0	369	30	CLEAN	selftest-cyc.log	SNP_DL_CENSUS=selftest
 2026-08-21T20:19:52+10:00	200	200	0	0	0	5979	30	CLEAN	cycle.log	SNP_DL_CENSUS=300
 2026-08-21T20:28:10+10:00	215	215	0	0	0	6169	0	STALLED	stall-bt.log	SNP_TASK_BT=1 SNP_TASK_BT_FROM=6160
+2026-08-21T20:48:23+10:00	14	14	0	0	0	369	30	CLEAN	selftest-mtx.log	SNP_DL_CENSUS=selftest
+2026-08-21T20:51:58+10:00	200	200	0	0	0	5979	30	CLEAN	mtx.log	SNP_DL_CENSUS=300
