@@ -140,3 +140,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T14:00:51+10:00	180	180	0	0	0	5371	30	CLEAN	audio-wired.log	none
 2026-08-21T14:25:49+10:00	180	180	0	0	0	5377	30	CLEAN	audio-verify.log	none
 2026-08-21T14:44:41+10:00	215	215	0	0	0	6169	0	STALLED	watch-sendcount.log	SNP_WATCH=0x8007AB94
+2026-08-21T15:19:17+10:00	215	215	0	0	0	6169	0	STALLED	cpu-run.log	none
