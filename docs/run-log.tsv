@@ -131,3 +131,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T09:44:31+10:00	60	60	0	0	0	1744	30	CLEAN	dev-on.log	none
 2026-08-21T09:45:39+10:00	60	60	0	0	0	1745	30	CLEAN	dev-off.log	none
 2026-08-21T09:58:58+10:00	600	600	0	0	0	6169	0	DEGRADED	drawcall-timeline.log	none
+2026-08-21T10:03:49+10:00	14	14	0	0	0	367	30	CLEAN	logo-bt.log	SNP_TASK_BT=1 SNP_TASK_BT_FROM=100 SNP_DL_CENSUS=1
