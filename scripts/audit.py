@@ -392,6 +392,34 @@ def main():
         if "REFUSING" in last or "error" in last.lower() or "fatal" in last.lower():
             findings.append(f"cron: last push ended in a refusal/error — {last[:90]}")
 
+    # THE SECOND CRON JOB, added 2026-08-21 when the Drive backup was scheduled
+    # at 18:45. Same reasoning as the block above and it must not be left out:
+    # the backup carries the ONLY off-machine copy of the probe patches, which
+    # cannot go to GitHub at all (T36/T38). A nightly job whose log nobody reads
+    # is a signal with no reader, and this one fails silently in the ways that
+    # matter most -- an expired OAuth token, the archive drive unmounted, or a
+    # probe patch failing its reverse-apply check and aborting the run.
+    #
+    # THIS LIST IS DECLARED, NOT DISCOVERED, and that is a known weakness rather
+    # than an oversight: reading the crontab would break this script's own rule
+    # that it touches only structured PROJECT data (see the docstring). So a
+    # THIRD scheduled job would go unwatched until someone adds it here.
+    bkp_log = ROOT / "scripts" / "backup_drive.log"
+    if bkp_log.exists():
+        b_age = (_now_dt - _dt.datetime.fromtimestamp(bkp_log.stat().st_mtime)).days
+        b_lines = [l for l in bkp_log.read_text().strip().split("\n") if l.strip()]
+        b_last = b_lines[-1] if b_lines else ""
+        b_stale = 0 if _now_dt.hour > 18 or (_now_dt.hour == 18 and _now_dt.minute >= 50) else 1
+        if b_age > b_stale:
+            findings.append(f"cron: backup_drive.log is {b_age}d old — the 18:45 Drive "
+                            f"backup may not be running. It holds the only off-machine "
+                            f"copy of the probe patches.")
+        if "REFUSING" in b_last or "FAILED" in b_last or "NOTHING SENT" in b_last:
+            findings.append(f"cron: last Drive backup did not complete — {b_last[:90]}")
+        elif b_lines and not any("done --" in l for l in b_lines[-6:]):
+            findings.append("cron: the last Drive backup did not print its completion "
+                            "line. It may have died partway; check scripts/backup_drive.log.")
+
     # --- resolution pass -----------------------------------------------------
     # Re-apply each carried finding's predicate to the entry's CURRENT row. This
     # is the step that lets a fix be counted, and it deliberately ignores the
