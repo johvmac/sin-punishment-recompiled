@@ -150,3 +150,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T16:11:25+10:00	600	88	139	0	0	2556	30	CRASHED	inspector-slider4.log	SNP_VISIBLE=1
 2026-08-21T16:16:24+10:00	600	190	139	0	0	5613	30	CRASHED	inspector-pause.log	SNP_VISIBLE=1
 2026-08-21T16:26:11+10:00	20	20	0	0	0	545	30	CLEAN	logo-dense.log	SNP_DL_CENSUS=10
+2026-08-21T16:36:54+10:00	215	215	0	0	0	6169	0	STALLED	viprobe-gfx.log	SNP_VI_PROBE=0x800A3234
