@@ -181,3 +181,4 @@ A gap in the numbering means a roll was skipped.
 - roll #162: **EXPLOIT** (drew 0.836 vs eps 0.3) -> `A219` [witness `c4deb5`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #163: **EXPLOIT** (drew 0.673 vs eps 0.3) -> `A225` [witness `86af99`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #164: **EXPLOIT** (drew 0.623 vs eps 0.3) -> `A262` [witness `3d9009`] — Opened from A261 at the user's direction. Two structural rules for finding function extents both
+- roll #165: **EXPLOIT** (drew 0.600 vs eps 0.3) -> `A218` [witness `1486a1`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
