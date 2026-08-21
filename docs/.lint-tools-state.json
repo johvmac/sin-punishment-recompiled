@@ -68,7 +68,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 15,
+ "runs": 16,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
