@@ -144,3 +144,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T15:36:25+10:00	600	91	137	0	0	1639	30	CRASHED	inspector-session.log	SNP_VISIBLE=1
 2026-08-21T15:39:13+10:00	600	126	137	0	0	2332	30	CRASHED	inspector-session2.log	SNP_VISIBLE=1
 2026-08-21T15:44:31+10:00	600	306	137	0	0	6169	0	CRASHED	inspector-session3.log	SNP_VISIBLE=1
+2026-08-21T16:02:03+10:00	600	70	139	2	0	1985	30	CONTAMINATED	inspector-slider.log	SNP_VISIBLE=1
