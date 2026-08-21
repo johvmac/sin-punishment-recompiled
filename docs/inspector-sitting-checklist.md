@@ -1,203 +1,162 @@
 # F1 / RT64 inspector sitting — run sheet
 
-**Version 1, 2026-08-22.** Everything here is measured, and each rule cost a
-dead run. Read it before launching, not during — **the working window is about
-53 seconds** and there is no time to look anything up inside it.
+**Version 2, 2026-08-22.** Replaces v1 entirely. v1's first step crashed the
+game (A310) and is gone, not struck out — a sheet read at speed should not
+contain instructions you must remember not to follow.
 
-Queue items this clears: **U9, U2, U3, U6.** Do them in that order.
+**Build `53a41b75`** (START moved off ENTER, T152). Runs before 08:34 today were
+on `c14b30b5`.
+
+**TWO RUNS, IN THIS ORDER.** Run 1 is safe and carries the highest-value
+question. Run 2 is the hazardous one and comes second on purpose.
 
 ---
 
-## The one command
+## The rule that replaced v1's step 1
+
+**NEVER TOUCH `View Framebuffer`.** Setting it to 0 in the tutorial killed the
+run instantly on 2026-08-22. The slider value sizes an unclamped loop over the
+frame's framebuffer pairs, and **index 1 is not known to be safer — it forces
+two iterations rather than one.** The depth buffer is not reachable this way.
+`View Draw Call` is a different control and is the one we want.
+
+---
+
+# RUN 1 — Xephyr, no panel, ~4 min. **The control arm.**
 
 ```bash
-scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/inspector-depth.log SNP_VISIBLE=1
+scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/warp-xephyr.log SNP_ISO=xephyr
 ```
 
-**`SNP_VISIBLE=1` GOES AT THE END, AS AN ARGUMENT — not as a shell prefix.**
-Version 1 of this sheet used the prefix form. It works, but the run log records
-its env column from the ARGUMENTS, so the run was written down as headless and
-the changed-signature alarm called a user-triggered crash "a HEADLESS SIGSEGV
-... a regression" (A310). `run_game.sh` now records the resolved mode either
-way, and the argument form is still the one to use.
+Windowed, input isolated, **and recorded** — so this run produces a video I can
+check against your eyes.
 
-**Real display, never `xephyr`.** F1 does nothing under Xvfb or Xephyr
-(A245) — this is the one task that must run on the real display.
+**DO NOT PRESS F1. DO NOT PRESS ANYTHING.** Just watch.
 
-**Nothing is recorded in real mode, by design (T59). Your description is the
-only evidence that will exist.** Have somewhere to write.
+## What to watch for, in two specific places
+
+1. **The attract soldiers** — the ones you reported still warping.
+2. **The room with three characters together, shortly before the gun-spinning
+   shot** (that shot is just before the start screen). This is the scene you
+   reported for the first time today and nobody has ever looked for.
+
+**OBSERVE, for each:** warping present or absent, and if present, how strong.
+You described it as *"a LITTLE like Z-fighting but much more dramatic"* — say
+whether what you see here matches that, is milder, or is absent.
+
+> **Please answer this run on its own terms.** You already suspect warping is
+> absent in this mode, and it would be easy to see what we expect. "Absent" and
+> "present" are equally good answers and the second one is more interesting,
+> because it would kill the display-mode theory cheaply.
 
 ---
 
-## The timeline you are working against
+# RUN 2 — real display, ~4 min. **Hazardous. Panel work.**
 
-| t | what | what you do |
+```bash
+scripts/run_game.sh 240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/inspector-drawcall.log SNP_VISIBLE=1
+```
+
+`SNP_VISIBLE=1` **at the end, as an argument** — not as a shell prefix, or the
+run log records the wrong mode (A310). **Nothing is recorded in real mode by
+design, so your description is the only evidence that will exist.**
+
+## Timeline
+
+| t | what | you |
 |---|---|---|
-| 0–155 s | attract sequence | **PANEL CLOSED.** Watch it (see below) |
+| 0–155 s | attract | **PANEL CLOSED.** Watch the same two scenes as run 1 |
 | ~155 s | tutorial starts | **press F1 now** |
-| 155–208 s | **the working window, ~53 s** | steps 1–5 |
-| ~208 s+ | graphics submission stalls | **F1 is useless past here** — RT64 draws the panel during frame presentation, so once submission dies the panel opens nothing (T134) |
+| 155–208 s | **~53 s of working time** | steps 2 and 3 |
+| ~208 s+ | submission stalls | **F1 is dead past here** |
 
----
+## Hard rules — each cost a dead run
 
-## Hard rules — each one killed a run
+1. **PANEL CLOSED THROUGH THE ATTRACT.** Three runs with it open died at
+   37/70/88 s; closed reached 190 s (A288). One had *zero* input, so this is not
+   about the keyboard.
+2. **NEVER `View Framebuffer`.** See above.
+3. **DO NOT PAUSE. DO NOT CLICK RESUME.** Resume has killed three runs.
+4. **DRAG, DO NOT TYPE.** START is now INSERT rather than ENTER (T152), so the
+   old ENTER trap should be gone — but that remap is **not yet confirmed**, so
+   behave as if it were still armed.
+5. **ARROW KEYS DO NOTHING AND THAT IS NOT YOUR FAULT** — ImGui keyboard nav is
+   off entirely in RT64. Do not retry.
+6. **WRITE EACH ANSWER DOWN BEFORE THE NEXT CONTROL.** The run may die at any
+   moment. An answer in your head when it dies is a step that did not happen.
 
-1. **KEEP THE PANEL CLOSED THROUGH THE ATTRACT.** Three runs with it open died
-   at 37 / 70 / 88 s; keeping it closed reached 190 s (A288). One of those three
-   had *zero* input, so this is not about the keyboard.
-2. **DO NOT PAUSE. DO NOT CLICK RESUME.** Resume has killed three runs
-   (A245 twice, A289 once). Every step below works on a running game.
-3. **DRAG SLIDERS. NEVER TYPE.** Ctrl+Click opens a text box that commits on
-   ENTER. **START HAS BEEN MOVED OFF ENTER ONTO INSERT (T152)** so this is no
-   longer the hazard it was — but typing in the panel is still worth avoiding,
-   and **the remap is not yet confirmed by a run.** If you must enter an exact
-   value: Ctrl+Click, type, then **click elsewhere** to commit on focus loss.
-4. **ARROW KEYS DO NOT WORK, AND THAT IS NOT YOUR FAULT.** `NavEnableKeyboard`
-   is never set in RT64, so ImGui keyboard navigation is off entirely. Do not
-   retry it.
-5. **F4 does not pause** — a global texture-replacement shortcut eats it. The
-   panel has a Pause button that works, and rule 2 says do not use it.
-6. **WRITE EACH ANSWER DOWN BEFORE MOVING TO THE NEXT CONTROL.** The run may
-   die at any point. A step whose answer is in your head when it dies is a step
-   that did not happen.
+## STEP 0 — during the attract, one keypress (T152)
 
----
+**Press ENTER once. Nothing should happen.** That confirms START is off ENTER.
 
-## While the attract plays (0–155 s) — free observation, costs nothing
+**Do NOT press INSERT this run** — INSERT is START now, and it would skip the
+attract and cost you the warping observation.
 
-You have two and a half minutes with nothing to do and the panel must stay shut.
+## STEP 1 — the attract, panel shut. **The positive arm.**
 
-**WATCH FOR MODEL WARPING.** You have reported warping in the attract that does
-**not** appear in recordings, and three entries calling the logo window dark all
-read recordings (A287's unresolved aside). This is a real display, so this is
-the condition where it should show.
+Same two scenes as run 1: the soldiers, and the three-character room before the
+gun spinning. **Present or absent, and how strong compared to run 1.**
 
-Say: **is it present at all this build**, which models, and roughly when.
-"Not present anywhere in the attract" is a real answer — A246 names that as its
-own falsifier.
+## STEP 2 — read two labels. Five seconds, no risk, settles an open question.
 
----
+Open F1 at ~155 s. Before touching anything, read the **labels**:
 
-## STEP 0 — one keypress, confirms the START remap (T152)
-
-Any time after the window appears: **press ENTER once.** Nothing should happen.
-Then **press INSERT once** — that is now START, so it will skip the attract, so
-**only do the INSERT half if you are willing to lose the attract for this run.**
-Skipping ENTER-does-nothing is fine; skipping it means the remap stays unverified.
-
----
-
-## STEP 1 — U9, the depth buffer. **REMOVED — IT CRASHES THE GAME**
-
-**DO NOT DO THIS.** Attempted 2026-08-22: setting `View Framebuffer` to 0 in
-the tutorial killed the run instantly (`rc=139` at 166 s). The slider value
-sizes an unclamped loop over the frame's framebuffer pairs, and 0 forces one
-iteration unconditionally — index 1 is not known to be safer, it forces two.
-**The depth buffer is not currently reachable this way. Skip to STEP 2.**
-The old instructions are struck out below for the record only.
-
-<details><summary>the instruction that crashed it — do not follow</summary>
-
-**It is TWO controls and the order matters** (A309). The checkbox is inside a
-disabled block and its enabling control defaults to the disabling value, so
-clicking the box first does nothing and looks broken.
-
-1. Find **`View Framebuffer`** — a slider near the top of the panel.
-2. **Drag it from −1 to 0.** In the tutorial it offers only **−1, 0, 1** — that
-   is correct and not a fault (the tutorial uses 2 framebuffer pairs, A285).
-3. **Now tick `View Depth Buffer`** — same row as that slider, immediately to
-   its right. It only becomes clickable once step 2 is done.
-
-**OBSERVE — this is the whole question:**
-
-> Behind the character and the two pylons, where the environment should be:
-> **is there a BACKGROUND SILHOUETTE in the depth view, or is that area FLAT?**
-
-Then **drag `View Framebuffer` to 1** and say whether the two look different.
-
-**What it would have meant:** a silhouette means the geometry *is* being
-rasterised and lost in colour; flat depth means nothing was ever drawn there.
-Both write zero colour and are indistinguishable in a frame grab (A274).
-
-</details>
-
----
-
-## STEP 2 — read two labels. **Free, five seconds, settles an open question.**
-
-There are two sliders near each other. Last sitting, one of them offered only
-−1, 0, 1 and we assumed it was the draw-call one — but that is exactly
-`View Framebuffer`'s range in the tutorial, and nobody recorded which was under
-the cursor (A309 flags A289 on this).
-
-**OBSERVE:** read the **labels** and report the range of each:
-
-* `View Framebuffer` — reads −1 to ___
+* `View Framebuffer` — reads −1 to ___   *(read it, do not drag it)*
 * `View Draw Call` — reads −1 to ___
 
-If `View Draw Call` runs to ~230 or so, the "pausing collapses the workload"
-finding loses its only instance.
+Last sitting a slider offered only −1, 0, 1 and we assumed it was the draw-call
+one — but that is exactly `View Framebuffer`'s range in the tutorial, and nobody
+recorded which was under the cursor (A309). **If `View Draw Call` runs to ~230,
+the "pausing collapses the workload" finding loses its only instance.**
 
----
+## STEP 3 — `View Draw Call`, climbing. U2 then U3, one control.
 
-## STEP 3 — U2, duplicate overlay clutter
+This slider **truncates**: it renders only the first N draw calls, so the frame
+builds up as you climb. It worked before — A245 scanned to ~164 of 256.
 
-On a tutorial frame showing the multiplied overlay clutter:
+**3a (U2) — low indexes.** Drag to 0, then 1, then climb slowly to about 5.
+Exact 0 is one pixel wide; **anything up to ~5 answers this. Do not fight it.**
 
-1. **Drag `View Draw Call` to 0, then 1.** Exact 0 is one pixel wide and easy
-   to overshoot — **anything up to about 5 answers this just as well. Do not
-   fight the slider.**
-2. Climb slowly through the low indexes.
+> On a frame showing the multiplied overlay clutter: do the duplicate copies
+> appear **one per index** as you climb — or is the truncated frame **CLEAN of
+> duplicates at every index**?
 
-**OBSERVE:**
+Clean means the residue lives in the buffer, not the submitted list (A247
+predicts this). Copies per index would reopen A219.
 
-> Do the duplicate copies appear **one per index** as you climb — or is the
-> truncated frame **CLEAN of duplicates at every index**?
+**3b (U3) — sweep, do not step.** 50, 100, 150, 200, then the top.
 
-Clean means the residue lives in the buffer, not in the submitted list (which
-is what A247 predicts). Copies arriving per index would reopen A219.
+> At which index, if any, does **background scenery** appear behind the
+> character and the two pylons — and what do the last few indexes add?
 
----
+The tutorial submits *more* triangles than the attract that renders correctly
+(A263), yet shows a character, two pylons and black. Background appearing at
+some index → it is drawn and lost downstream. Never appearing → it goes
+off-screen or is discarded. **Different fixes, and nothing currently separates
+them** — this is the only route left to that question now that the depth-buffer
+route is dead.
 
-## STEP 4 — U3, background sweep. **Only if the run is still alive.**
+## STEP 4 — only with spare time. Produces no evidence.
 
-`View Draw Call` **truncates** — it renders the first N calls, so the frame
-builds up. **Sweep, do not step:** 0, 50, 100, 150, 200, 232, then narrow
-around anything that appears.
-
-**OBSERVE:** at which index, if any, does **background scenery** appear behind
-the character and pylons — and what do the last few indexes add?
-
-**If STEP 1 gave a clear answer, this may be redundant. Say so and stop.**
-
----
-
-## STEP 5 — U6, only with spare time. **Produces no evidence.**
-
-Press **F3** (`ViewRDRAM`) on a tutorial frame and describe what changes.
-Marked non-evidence deliberately: we know what the flag does to the present
-path but not its exact semantics, so nothing from it can be cited yet.
+Press **F3** and describe what changes. Non-citable until its semantics are read.
 
 ---
 
 ## If it dies
 
-Expected, not a failure of yours. Note **roughly when** and **what you had just
-touched** — that is data about A288's hazard, which still has four candidate
-triggers and only three data points.
+Expected. Note **when** and **what you had just touched** — that is data on a
+hazard that now has one confirmed trigger and several unconfirmed ones.
 
----
+## What to tell me
 
-## What to tell me afterwards
-
-1. Attract warping — present or not, which models, roughly when.
-2. Did ENTER do nothing, and did INSERT start the game? (STEP 0)
-3. The two slider labels and their ranges.
-4. Draw call 0–5: duplicates per index, or clean?
-5. Anything from the sweep, if you got there.
-6. **Anything that contradicts what I have claimed.** It becomes its own ledger
-   entry, never a quiet correction.
+1. **Run 1 (Xephyr): warping in the soldiers? In the three-character room?**
+2. **Run 2 (real): the same two, and how they compare to run 1.**
+3. Did ENTER do nothing?
+4. The two slider labels and their ranges.
+5. Draw call 0–5: duplicates per index, or clean?
+6. The sweep: any background, and at what index?
+7. **Anything contradicting what I have claimed.** It becomes its own entry,
+   never a quiet correction.
 
 **"I could not tell" and "I did not get to it" are real answers.** A guess
-recorded as an observation is worse than a gap, and this list is already longer
-than 53 seconds comfortably holds.
+recorded as an observation is worse than a gap.
