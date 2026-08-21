@@ -132,6 +132,55 @@ def main():
               status="CORRECTS A239 (5 runs)"),
         "a correction is a claim and must still show a control")
 
+    # --- RESOLUTION TRACKING (2026-08-21) -----------------------------------
+    # L1 emitted a finding once and never revisited it, so L2/L3 counted the
+    # problem and never the fix -- A273 was flagged and corrected in the SAME
+    # commit and still read as a recurring class three digests later.
+    #
+    # The predicates are IMPORTED, not restated. The patterns above are already
+    # a second copy of audit.py's and that is a known wart; adding a third would
+    # let a finding be raised by one definition and cleared by another, which is
+    # the bug this feature exists to prevent.
+    aspec = importlib.util.spec_from_file_location("au", ROOT / "scripts" / "audit.py")
+    au = importlib.util.module_from_spec(aspec); aspec.loader.exec_module(au)
+
+    ONE = ("MEASURED (1 run)", "the probe fired", "2026-08-21; `run-a.log`")
+    chk("an entry resting on one log IS flagged as single-run",
+        au.is_single_run(*ONE), "the rule must still fire or resolution is moot")
+
+    # THE DIRECTION THAT MATTERS. Without it, a predicate hard-wired to False
+    # would 'resolve' every finding ever raised and the tracker would report
+    # perfect discipline forever.
+    WAIVED = (ONE[0], ONE[1] + " ONE RUN IS ENOUGH: the claim is about the "
+                               "instrument, not the game", ONE[2])
+    chk("the SAME entry stops being flagged once it carries the waiver",
+        not au.is_single_run(*WAIVED),
+        "this is what 'resolved' means -- if it cannot go False, nothing resolves")
+
+    chk("an empty evidence cell IS flagged",
+        au.is_no_evidence("MEASURED (1 run)", "body", "   "), "")
+    chk("filling the evidence cell resolves it",
+        not au.is_no_evidence("MEASURED (1 run)", "body", "2026-08-21; a.log"), "")
+
+    asrc = (ROOT / "scripts" / "audit.py").read_text()
+    # A deleted entry must NOT read as a fix, or removing a row would clear the
+    # record -- the one way this feature could make the ladder LESS honest.
+    chk("an entry GONE from the ledger is not counted as resolved",
+        "NOT counted as fixed" in asrc and "vanished.append" in asrc,
+        "deletion would otherwise launder a finding into a fix")
+    chk("resolutions are reported, not merely tracked",
+        "resolved since last audit" in asrc,
+        "a level that only ever prints problems teaches that the number can only rise")
+
+    # END-TO-END ON LIVE DATA: the audit must not contradict itself. Its
+    # 'nothing flagged' line hung off `suppressed` rather than `findings`, so a
+    # window with findings and no suppressions printed both, one line apart.
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "audit.py"), "--dry-run"],
+                         capture_output=True, text=True).stdout
+    chk("the audit never says 'nothing flagged' in the same breath as a finding",
+        not ("thing(s) to look at" in out and "nothing flagged" in out),
+        "a level that contradicts itself stops being read (T29)")
+
     print()
     print(f"{n - bad}/{n} controls pass")
     return 1 if bad else 0

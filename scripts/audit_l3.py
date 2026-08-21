@@ -45,10 +45,21 @@ def l2_blocks(text):
 
 
 def class_counts(body):
-    """{class: (this_window, prior)} from an L2 block's 'by class' lines."""
+    """{class: (this_window, prior, fixed, still_open)} from an L2 'by class' line.
+
+    L2 gained two extra columns on 2026-08-21 -- FIXED this window and STILL
+    OPEN. Older digests have only two numbers and are read with fixed/open as
+    None, NOT as zero: "we did not track it then" and "there were none" are
+    different facts, and scoring the first as the second would let this level
+    claim clean history it never actually measured.
+    """
     out = {}
-    for m in re.finditer(r"^\s*- `([a-z-]+)` \([^)]*\): (\d+) / (\d+)", body, re.M):
-        out[m.group(1)] = (int(m.group(2)), int(m.group(3)))
+    for m in re.finditer(r"^\s*- `([a-z-]+)` \([^)]*\): (\d+) / (\d+)"
+                         r"(?: / (\d+) / (\d+))?", body, re.M):
+        f, o = m.group(4), m.group(5)
+        out[m.group(1)] = (int(m.group(2)), int(m.group(3)),
+                           int(f) if f is not None else None,
+                           int(o) if o is not None else None)
     return out
 
 
@@ -127,10 +138,31 @@ def self_check():
                        "docs/audit-l2-log.md missing — run scripts/audit_l2.py first"))
 
     # A synthetic block with a known shape: recurrence must be detected.
+    # OLD FORMAT (pre-2026-08-21, two columns): fixed/open read as None, which
+    # means "not tracked then", NOT "none then".
     fake = "- **defects by class (this window / all prior):**\n  - `churn` (I14): 2 / 5 — **recurs**\n"
     got = class_counts(fake)
-    checks.append(("detects a recurring class in a synthetic block",
-                   got.get("churn") == (2, 5), f"got {got}"))
+    checks.append(("parses a legacy 2-column digest, resolution UNKNOWN not zero",
+                   got.get("churn") == (2, 5, None, None), f"got {got}"))
+
+    # NEW FORMAT, and the pair that matters. `single-run` was raised 3 times and
+    # every instance fixed; `no-control` was raised once and is still open. The
+    # old test (`cur and prior`) called BOTH of them recurrences, which is
+    # exactly why L3 reported a permanent recurrence while the loop was working.
+    fake4 = ("- **defects by class (raised this window / all prior / FIXED this window / still open):**\n"
+             "  - `single-run` (T22): 3 / 12 / 3 / 0 — **raised, all fixed**\n"
+             "  - `no-control` (I1/I13): 1 / 4 / 0 / 1 — **UNRESOLVED**\n")
+    g4 = class_counts(fake4)
+    checks.append(("parses the 4-column digest",
+                   g4.get("single-run") == (3, 12, 3, 0)
+                   and g4.get("no-control") == (1, 4, 0, 1), f"got {g4}"))
+    # THE DISCRIMINATING ONE. Both classes were raised in this window AND in
+    # prior ones, so the old rule flags both. Only one is actually still broken.
+    flagged = {c for c, (cur, pri, _f, still) in g4.items()
+               if (still if still is not None else (cur and pri))}
+    checks.append(("recurrence means STILL OPEN, not merely raised twice",
+                   flagged == {"no-control"},
+                   f"flagged {flagged or '{}'} — 'single-run' was raised 3x and fixed 3x"))
 
     # A single digest must not yield a direction claim.
     import io, contextlib
@@ -239,18 +271,38 @@ def main():
         # Which classes survive their fixes? A class marked `recurs` in a LATER
         # digest than one where it appeared is a fix that addressed an instance
         # rather than the class.
-        recurring = {}
+        # RECURRENCE NOW MEANS "STILL BROKEN", NOT "NOTICED AGAIN" (2026-08-21).
+        #
+        # The old test was `cur and prior` -- a class counted as surviving its
+        # fix merely by being RAISED in two windows. Nothing anywhere counted a
+        # fix, so a class whose every instance was corrected on the spot scored
+        # identically to one being ignored, and this line fired permanently.
+        # A273 was flagged and waived in the SAME COMMIT and read as recurring
+        # for three digests. An alarm that always sounds is not read (T29).
+        #
+        # Digests from before L2 tracked resolution have `still is None`. Those
+        # fall back to the old test, and say so, rather than being silently
+        # reclassified either way.
+        recurring, untracked = {}, {}
         for n, b in new:
-            for cls, (cur, prior) in class_counts(b).items():
-                if cur and prior:
+            for cls, (cur, prior, _fixed, still) in class_counts(b).items():
+                if still is None:
+                    if cur and prior:
+                        untracked.setdefault(cls, []).append(n)
+                elif still:
                     recurring.setdefault(cls, []).append(n)
         if recurring:
-            lines.append("- **classes that RECUR despite tooling — a fix that addressed an "
+            lines.append("- **classes with instances STILL OPEN — a fix that addressed an "
                          "instance, not the class:**")
             for cls, ns in sorted(recurring.items()):
-                lines.append(f"  - `{cls}`: recurred in L2 #{', #'.join(map(str, ns))}")
-        else:
-            lines.append("- no class recurred across this window")
+                lines.append(f"  - `{cls}`: still open at L2 #{', #'.join(map(str, ns))}")
+        if untracked:
+            lines.append("- classes raised in two windows in digests from BEFORE resolution "
+                         "was tracked — **cannot say whether these were fixed:**")
+            for cls, ns in sorted(untracked.items()):
+                lines.append(f"  - `{cls}`: seen twice at L2 #{', #'.join(map(str, ns))}")
+        if not recurring and not untracked:
+            lines.append("- no class has an instance still open across this window")
 
     digested = bool(new)
     quiet = digested and "RISING" not in "\n".join(lines)

@@ -80,6 +80,33 @@ def classify(body):
     return counts
 
 
+def resolutions(body):
+    """(resolved, still_open) counts by class, from L1's resolution lines.
+
+    WHY THIS EXISTS. L1 used to emit a finding once and never revisit it, so
+    this level counted problems FOUND and never problems FIXED. A class whose
+    every instance was corrected in the next commit read exactly like one being
+    ignored, and L3 duly reported it as recurring forever -- an alarm that
+    always sounds (T29). A273 was flagged and waived in the SAME COMMIT and
+    still counted as a recurrence three digests running.
+
+    These lines start at column 0; `classify` only counts INDENTED bullets, so
+    a resolution can never be miscounted as a fresh defect. That separation is
+    load-bearing, not incidental.
+    """
+    res, still = {}, {}
+    for tgt, head in ((res, r"resolved since last audit"),
+                      (still, r"STILL OPEN from earlier audits")):
+        m = re.search(head + r"[^:]*:\*\*\s*(.+)", body)
+        if not m:
+            continue
+        for item in m.group(1).split(";"):
+            c = re.search(r"\((?:.*?)\b(single-run|no-control|no-evidence)\b", item)
+            if c:
+                tgt[c.group(1)] = tgt.get(c.group(1), 0) + 1
+    return res, still
+
+
 def load_state():
     if STATE.exists():
         return json.loads(STATE.read_text())
@@ -171,6 +198,30 @@ def self_check():
                    "; ".join(wrong) if wrong else
                    "no-op holds the streak; only an examined-and-clean window advances it"))
 
+    # --- resolution parsing (2026-08-21) ------------------------------------
+    # The point of the whole feature: found-and-fixed must be distinguishable
+    # from found-and-ignored. A parser that returned nothing would make every
+    # class look unresolved forever -- which is the bug being fixed -- so this
+    # asserts BOTH sides against one block, and asserts they do not bleed into
+    # the defect count.
+    blk = ("- **2 thing(s) to look at:**\n"
+           "  - A9: rests on ONE run (x.log). Repeat it or say why one is enough.\n"
+           "  - A8: no evidence recorded. Say what was observed and when.\n"
+           "- **resolved since last audit (2):** A1 (single-run, open since #3); "
+           "A2 (no-evidence, open since #4)\n"
+           "- **STILL OPEN from earlier audits (1):** A3 (no-control, open since #2, 5 audit(s))\n")
+    r, s = resolutions(blk)
+    checks.append(("resolutions are read from L1's output",
+                   r == {"single-run": 1, "no-evidence": 1} and s == {"no-control": 1},
+                   f"resolved={r} still_open={s}"))
+    # DISCRIMINATING: the resolution lines sit at column 0 and `classify` counts
+    # only indented bullets. If that ever changes, a FIX would be tallied as a
+    # fresh DEFECT -- the exact inversion this feature exists to prevent.
+    cls = classify(blk)
+    checks.append(("a resolution is never counted as a defect",
+                   cls == {"single-run": 1, "no-evidence": 1},
+                   f"got {cls} — must see the 2 findings only, not the 3 resolutions"))
+
     bad = 0
     for name, ok, detail in checks:
         bad += not ok
@@ -209,25 +260,51 @@ def main():
     else:
         # by class, this window vs everything before it
         cur, prior = {}, {}
+        fixed, open_now = {}, {}
         for n, b in blocks:
             tgt = cur if n > st["last_l1"] else prior
             for k, v in classify(b).items():
                 tgt[k] = tgt.get(k, 0) + v
+            if n > st["last_l1"]:
+                r, s = resolutions(b)
+                for k, v in r.items():
+                    fixed[k] = fixed.get(k, 0) + v
+                for k, v in s.items():
+                    open_now[k] = max(open_now.get(k, 0), v)   # a level, not a flow
         lines.append(f"- L1 blocks digested: {len(new)}")
-        if cur:
-            lines.append("- **defects by class (this window / all prior):**")
+        if cur or fixed:
+            lines.append("- **defects by class (raised this window / all prior / "
+                         "FIXED this window / still open):**")
             for name, _pat, origin in CLASSES:
                 c, p = cur.get(name, 0), prior.get(name, 0)
-                if not c and not p:
+                f, o = fixed.get(name, 0), open_now.get(name, 0)
+                if not c and not p and not f:
                     continue
-                trend = "NEW" if p == 0 and c else ("recurs" if c and p else "quiet")
-                lines.append(f"  - `{name}` ({origin}): {c} / {p} — **{trend}**")
-            # The question the playbook says L2 exists to ask.
-            recur = [n for n, _p, _o in CLASSES if cur.get(n) and prior.get(n)]
+                # A CLASS "RECURS" ONLY IF SOMETHING IS STILL BROKEN. Raised-and-
+                # fixed is the system working, and scoring it as recurrence is
+                # what made this line fire permanently.
+                if o:
+                    trend = "UNRESOLVED"
+                elif c and f >= c:
+                    trend = "raised, all fixed"
+                elif p == 0 and c:
+                    trend = "NEW"
+                elif c and p:
+                    trend = "recurs"
+                else:
+                    trend = "quiet"
+                lines.append(f"  - `{name}` ({origin}): {c} / {p} / {f} / {o} — **{trend}**")
+            # The question the playbook says L2 exists to ask -- now asked of
+            # what is STILL WRONG rather than of what was ever noticed.
+            recur = [n for n, _p, _o in CLASSES if open_now.get(n)]
             if recur:
-                lines.append(f"- **DID THE FIX HOLD? These classes recurred despite tooling: "
-                             f"{', '.join('`'+r+'`' for r in recur)}.** A class that recurs after a "
+                lines.append(f"- **DID THE FIX HOLD? These classes have instances STILL OPEN: "
+                             f"{', '.join('`'+r+'`' for r in recur)}.** A class that stays open after a "
                              f"fix means the fix addressed an instance, not the class.")
+            elif fixed:
+                lines.append(f"- every defect raised in this window was FIXED "
+                             f"({sum(fixed.values())} resolved, 0 still open). "
+                             f"**Found-and-fixed is the loop working, not a recurrence.**")
         else:
             lines.append("- no defects reported in this window")
 

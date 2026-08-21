@@ -113,7 +113,81 @@ def parse_rows(text):
 def load_state():
     if STATE.exists():
         return json.loads(STATE.read_text())
-    return {"audits": 0, "last_rev": "", "last_roll": 0, "quiet_streak": 0}
+    return {"audits": 0, "last_rev": "", "last_roll": 0, "quiet_streak": 0,
+            "open": {}}
+
+
+# ---------------------------------------------------------------------------
+# RESOLUTION TRACKING (2026-08-21, user-directed)
+#
+# THE PROBLEM THIS FIXES. L1 examines only entries ADDED since the last audit,
+# so a finding is emitted exactly once and never mentioned again -- whether it
+# was fixed in the next commit or ignored for a week. L2 groups those emissions
+# into classes and L3 reports which classes "recur". **Nothing anywhere counted
+# a fix.** So a class whose every instance was corrected on the spot looks
+# identical to one being ignored, and L3's "this class recurs despite tooling"
+# fires permanently. An alarm that always sounds stops being heard (T29).
+#
+# The concrete case: audit #14 flagged A273 as resting on one run, and the SAME
+# COMMIT added its "ONE RUN IS ENOUGH" waiver. Fixed immediately, counted as a
+# recurrence three digests running.
+#
+# WHICH FINDINGS CAN BE CARRIED, and this distinction is the whole design:
+#
+#   * RESOLVABLE -- a property of an entry's CURRENT text, so re-reading the
+#     row answers whether it still holds. single-run, no-control, no-evidence.
+#     These are carried until they stop being true.
+#   * HISTORICAL -- a fact about something that already happened, which no edit
+#     can undo. `churn` is "created AND withdrawn inside one window"; the entry
+#     stays withdrawn forever. Carrying it would manufacture an eternal finding,
+#     which is the exact failure being fixed.
+#   * TRANSIENT -- a property of a window or of the world right now: explore
+#     ratio, contaminated runs, the cron state. Next audit measures its own
+#     window; carrying last window's is meaningless.
+#
+# Only RESOLVABLE findings are carried. The other two are reported and dropped,
+# and this comment exists so that is a decision rather than an oversight.
+# ---------------------------------------------------------------------------
+
+def is_single_run(status, body, ev):
+    """The predicate behind the single-run finding, minus supersession.
+
+    Factored out so it can be re-applied to an entry that is no longer in the
+    audit window -- which is what "was it fixed?" requires.
+    """
+    if not re.search(r"MEASURED|INTERVENED", status):
+        return False
+    logs = re.findall(r"[\w.-]+\.log", ev + " " + body)
+    if len(set(logs)) != 1:
+        return False
+    if re.search(r"\b(\d+|two|three|both)\s+runs?\b", ev + " " + body, re.I):
+        return False
+    if re.search(r"ONE RUN[,:]?\s*(IS ENOUGH|and (the )?reason)", ev + " " + body, re.I):
+        return False
+    return True
+
+
+def is_no_evidence(status, body, ev):
+    return (not OPEN_RE.match(status) and not WD_RE.match(status)
+            and not ev.strip())
+
+
+# Set by main() once the module-level regexes for the control check exist.
+# Kept as a hook rather than duplicating those patterns: two definitions of
+# "mentions a control" would let an entry be flagged by one and cleared by the
+# other, which is the failure the single-run comment already warns about.
+_no_control_pred = None
+
+
+def is_no_control(status, body, ev):
+    return bool(_no_control_pred and _no_control_pred(status, body, ev))
+
+
+RESOLVABLE = {
+    "single-run": is_single_run,
+    "no-evidence": is_no_evidence,
+    "no-control": is_no_control,
+}
 
 
 def main():
@@ -146,6 +220,7 @@ def main():
     added = {k: v for k, v in now.items() if k not in then}
     findings = []
     suppressed = []
+    opened = []          # (class, entry-id) raised THIS window; carried forward
 
     # Supersession is decided by check_ledger's vocabulary, adapted to this
     # script's row shape. Falls back to "nothing is superseded" if the import
@@ -195,6 +270,7 @@ def main():
                 suppressed.append(f"{eid} (single-run, superseded by {killer})")
                 continue
             findings.append(f"{eid}: rests on ONE run ({logs[0]}). Repeat it or say why one is enough.")
+            opened.append(("single-run", eid))
 
     # 2. entries that describe a probe THEY RAN but never mention a control.
     #
@@ -243,11 +319,20 @@ def main():
     # purpose**: A244 corrects A239 and carries its own 5 runs, an A/B pair and
     # a contamination control. A correction is a claim; a pointer is not.
     POINTER = re.compile(r"^\**(?:ANSWERED by|CLOSED by|MERGED into)\b", re.I)
-    for eid, (status, body, ev) in added.items():
+    # ONE definition, shared with the resolution re-check above (T121). Bound
+    # here because the patterns are local to this function.
+    global _no_control_pred
+
+    def _nc(status, body, ev):
         if ZERO_RUNS.search(status + body + ev) or POINTER.match(status.strip()):
-            continue
-        if DEPLOYED.search(body) and not CONTROL.search(body + ev):
+            return False
+        return bool(DEPLOYED.search(body) and not CONTROL.search(body + ev))
+    _no_control_pred = _nc
+
+    for eid, (status, body, ev) in added.items():
+        if _nc(status, body, ev):
             findings.append(f"{eid}: describes a probe with no control mentioned. A dead probe reads as a clean negative.")
+            opened.append(("no-control", eid))
 
     # 3. churn: created AND withdrawn inside this window
     for eid, (status, body, ev) in added.items():
@@ -266,8 +351,9 @@ def main():
 
     # 5. entries with an empty evidence cell
     for eid, (status, body, ev) in added.items():
-        if not OPEN_RE.match(status) and not WD_RE.match(status) and not ev.strip():
+        if is_no_evidence(status, body, ev):
             findings.append(f"{eid}: no evidence recorded. Say what was observed and when.")
+            opened.append(("no-evidence", eid))
 
     # 6. contaminated or invalid runs in the window
     runs = []
@@ -306,6 +392,33 @@ def main():
         if "REFUSING" in last or "error" in last.lower() or "fatal" in last.lower():
             findings.append(f"cron: last push ended in a refusal/error — {last[:90]}")
 
+    # --- resolution pass -----------------------------------------------------
+    # Re-apply each carried finding's predicate to the entry's CURRENT row. This
+    # is the step that lets a fix be counted, and it deliberately ignores the
+    # audit window: the whole point is to look at entries that left it.
+    #
+    # An entry that has VANISHED from the ledger is NOT resolved -- it is
+    # unreadable, and calling that a fix would let deletion clear the record.
+    # It is reported separately so it cannot be mistaken for either.
+    carried = st.get("open", {})
+    resolved, still_open, vanished = [], [], []
+    for key, meta in sorted(carried.items()):
+        cls, eid = meta["cls"], meta["eid"]
+        pred = RESOLVABLE.get(cls)
+        row = now.get(eid)
+        if row is None:
+            vanished.append(f"{eid} ({cls}, raised #{meta['since']})")
+        elif pred is None or not pred(*row):
+            resolved.append(f"{eid} ({cls}, open since #{meta['since']})")
+        else:
+            still_open.append(f"{eid} ({cls}, open since #{meta['since']}, "
+                              f"{st['audits'] + 1 - meta['since']} audit(s))")
+
+    new_open = {k: v for k, v in carried.items()
+                if any(s.startswith(v["eid"] + " ") for s in still_open)}
+    for cls, eid in opened:
+        new_open[f"{cls}:{eid}"] = {"cls": cls, "eid": eid, "since": st["audits"] + 1}
+
     lines = [f"## Audit #{st['audits'] + 1} — since {since[:8] or 'start'}",
              f"- ledger: {len(now)} entries (+{len(added)} this window), "
              f"{sum(1 for s, _, _ in now.values() if WD_RE.match(s))} withdrawn",
@@ -314,6 +427,16 @@ def main():
     if findings:
         lines.append(f"- **{len(findings)} thing(s) to look at:**")
         lines += [f"  - {f}" for f in findings]
+    # RESOLUTIONS ARE REPORTED EVEN WHEN NOTHING ELSE IS. A level that only ever
+    # prints problems teaches its reader that the number can only go up, which
+    # is precisely how L3 came to report a permanent recurrence.
+    if resolved:
+        lines.append(f"- **resolved since last audit ({len(resolved)}):** " + "; ".join(resolved))
+    if still_open:
+        lines.append(f"- **STILL OPEN from earlier audits ({len(still_open)}):** " + "; ".join(still_open))
+    if vanished:
+        lines.append(f"- gone from the ledger, NOT counted as fixed ({len(vanished)}): "
+                     + "; ".join(vanished))
     if suppressed:
         # NAMED, NEVER SILENT. A suppression rule that hides its own work is
         # indistinguishable from a broken check, and "the audit found nothing"
@@ -321,7 +444,14 @@ def main():
         # known debt every run.
         lines.append(f"- suppressed as superseded ({len(suppressed)}): "
                      + "; ".join(suppressed))
-    else:
+    # THIS `else` WAS ATTACHED TO `suppressed`, NOT `findings` (fixed
+    # 2026-08-21). An audit with findings but no suppressions printed BOTH
+    # "1 thing(s) to look at" AND "nothing flagged", one line apart. The
+    # quiet-streak COUNTER was always computed from `findings` and so was
+    # right; only the sentence a human reads was wrong -- which is the worse
+    # half, because L2 reads this file and a reader who sees a level contradict
+    # itself stops trusting the level (T29).
+    if not findings:
         lines.append("- nothing flagged "
                      f"(quiet streak {st.get('quiet_streak', 0) + 1}; at 3, halve the frequency)")
 
@@ -353,6 +483,7 @@ def main():
         st["last_roll"] = int(rolls[-1][0]) if rolls else st.get("last_roll", 0)
         st["last_runs"] = len(runs)
         st["quiet_streak"] = 0 if findings else st.get("quiet_streak", 0) + 1
+        st["open"] = new_open
         STATE.write_text(json.dumps(st, indent=1))
         if not OUT.exists():
             OUT.write_text("# Audit log\n\nLevel-1 discipline audits. The daily "
