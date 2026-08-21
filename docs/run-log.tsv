@@ -166,3 +166,6 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-21T20:00:02+10:00	12	12	0	0	0	308	30	CLEAN	selftest-vp-broken.log	SNP_DL_CENSUS=selftest
 2026-08-21T20:03:41+10:00	200	200	0	0	0	5979	30	CLEAN	viewport.log	SNP_DL_CENSUS=300
 2026-08-21T20:10:05+10:00	215	215	0	0	0	6169	0	STALLED	stall-dense.log	SNP_DL_CENSUS=10
+2026-08-21T20:15:40+10:00	14	14	0	0	0	368	30	CLEAN	selftest-cyc.log	SNP_DL_CENSUS=selftest
+2026-08-21T20:16:18+10:00	14	14	0	0	0	369	30	CLEAN	selftest-cyc.log	SNP_DL_CENSUS=selftest
+2026-08-21T20:19:52+10:00	200	200	0	0	0	5979	30	CLEAN	cycle.log	SNP_DL_CENSUS=300
