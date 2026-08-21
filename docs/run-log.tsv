@@ -178,3 +178,5 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-22T08:54:00+10:00	240	1	1	0	0	NA	NA	CRASHED	run_game.sh	240 /media/joh/extra/sin-punishment-archive/evidence/2026-08-22/warp-xephyr.log SNP_ISO=xephyr SNP_VISIBLE=1
 2026-08-22T08:58:49+10:00	5	5	0	0	0	98	30	CLEAN	iso-check.log	SNP_ISO=xephyr
 2026-08-22T09:04:40+10:00	240	240	0	0	0	6169	0	STALLED	warp-xephyr.log	SNP_ISO=xephyr
+2026-08-22T09:13:54+10:00	240	179	139	0	0	5257	30	CRASHED	inspector-drawcall.log	SNP_VISIBLE=1
+2026-08-22T09:38:34+10:00	240	240	0	0	0	6169	0	STALLED	warp-nointerp.log	SNP_VISIBLE=1
