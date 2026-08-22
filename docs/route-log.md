@@ -236,3 +236,4 @@ A gap in the numbering means a roll was skipped.
 - roll #217: **EXPLOIT** (drew 0.440 vs eps 0.3) -> `T165` [witness `c9305f`] — USER-DIRECTED, drafted in a side session and ENTERED HERE WITH ITS PREREQUISITE NOW CHECKED. The
 - roll #218: **EXPLOIT** (drew 0.376 vs eps 0.3) -> `A218` [witness `b2949c`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #219: **EXPLORE** (drew 0.240 vs eps 0.3) -> `T150` [witness `9e6edc`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
+- roll #220: **EXPLORE** (drew 0.222 vs eps 0.3) -> `A218` [witness `a4cdae`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
