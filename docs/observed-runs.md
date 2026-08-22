@@ -62,3 +62,6 @@ correction.
 - **feel:** NA
 - **CONTRADICTS MY CLAIMS:** NA
 
+## DEFERRED 2026-08-23 — user away (away from PC until Monday)
+- no observed run today; deferred deliberately, not skipped.
+
