@@ -8,6 +8,7 @@ flagged.
 
     scripts/test_check_ledger.py
 """
+import datetime
 import re
 import shutil
 import subprocess
@@ -436,6 +437,41 @@ def main():
           f"signature  — ceiling-broken={broke}, normal-stall={stall}, "
           f"short={short}, headless-139={regress}, visible-139={vis}")
     extra += 1; bad += not pr_ok
+
+    # THE IDLE-DAY GATE (T151, the user's rule). Trigger 1 carried a comment
+    # saying it was "GATED ON WORK HAVING HAPPENED" and guarded on `rows` --
+    # every ledger entry ever written, never empty. So it nagged on days nobody
+    # touched the project, including from the 18:30 cron job. This one spends
+    # the USER's time and a policy that wastes it gets abandoned (T29).
+    #
+    # DISCRIMINATING IN BOTH DIRECTIONS, because either failure is silent: a
+    # gate that never opens loses the reminder entirely, and one that always
+    # opens is the bug being fixed. Same fixture, one field different -- the
+    # run-log row's DATE.
+    _today = datetime.date.today().isoformat()
+
+    def idle_case(run_date, entry_body="x"):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            (root / "docs" / "findings-ledger.md").write_text(
+                "| # | status | finding |\n|---|---|---|\n"
+                f"| A1 | MEASURED (2 runs) | {entry_body} |\n")
+            (root / "docs" / "run-log.tsv").write_text(
+                HDR + f"{run_date}T10:00:00+10:00\t20\t20\t0\t0\t0\t600\t30\tCLEAN\tx.log\tnone\n")
+            p = subprocess.run([sys.executable, str(root / "scripts" / "check_ledger.py")],
+                               capture_output=True, text=True)
+            return "observed run: none today" in (p.stdout + p.stderr)
+
+    worked = idle_case(_today)                       # a run today -> must nag
+    idle = idle_case("2026-01-01")                   # nothing today -> must not
+    entry_only = idle_case("2026-01-01", f"measured {_today}")   # entry today -> must nag
+    idle_ok = worked and not idle and entry_only
+    print(f"{'ok  ' if idle_ok else 'FAIL'}  idle days do not accrue an observed-run nag "
+          f"(T151)  — run-today={worked}, idle-day={idle}, entry-today={entry_only}")
+    extra += 1; bad += not idle_ok
 
     # THE COMPOSING-STEP CHECK (T112). Three directions, because the failure
     # modes are opposite: not firing at all (T57 stays prose), or firing on

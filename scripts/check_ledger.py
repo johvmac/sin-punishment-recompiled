@@ -649,7 +649,32 @@ def main():
             _m = re.findall(r"^## (\d{4}-\d{2}-\d{2})T", _obs.read_text(), re.M)
             _last_obs = _m[-1] if _m else ""
         _today2 = __import__("datetime").date.today().isoformat()
-        if _last_obs != _today2 and rows:
+        # GATED ON WORK HAVING HAPPENED -- AND NOW ACTUALLY GATED (T151).
+        #
+        # The comment above trigger 1 promised this and the code guarded on
+        # `rows`, i.e. every ledger entry ever written, which is never empty.
+        # The predicate was described, justified at length, and never
+        # implemented, so the nag fired on any day at all -- including days
+        # nobody touched the project, when `daily_push.sh` runs it from cron at
+        # 18:30. **This one spends the USER'S time, and a policy that wastes it
+        # gets abandoned (T29).** The user's rule, 2026-08-22: missing a day
+        # must not mean owing two the next.
+        #
+        # THE SIGNAL IS "did anything happen today", NOT "was a roll consumed".
+        # Keying on a roll would be circular: the observed run is meant to come
+        # BEFORE the first roll of the day, so a roll-gated nag could never fire
+        # in time to be useful. A run in run-log.tsv or an entry dated today are
+        # the two things that mean a session is under way, and NEITHER is
+        # produced by the cron job -- which is the whole point, since the cron
+        # job is exactly the caller that used to nag about idle days.
+        _rl_early = LEDGER.parent / "run-log.tsv"
+        _worked_today = False
+        if _rl_early.exists():
+            _worked_today = any(r.startswith(_today2)
+                                for r in _rl_early.read_text().split("\n"))
+        if not _worked_today:
+            _worked_today = any(_today2 in (_b or "") for _t, _b, _l in rows.values())
+        if _last_obs != _today2 and _worked_today:
             reminders.append(
                 f"observed run: none today (last: {_last_obs or 'never'}) — "
                 f"run scripts/observed_run.sh. I cannot hear audio at all, and "
