@@ -206,3 +206,8 @@ A gap in the numbering means a roll was skipped.
 - roll #187: **EXPLORE** (drew 0.108 vs eps 0.3) -> `A218` [witness `4d65bd`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #188: **EXPLORE** (drew 0.260 vs eps 0.3) -> `A211` [witness `f8c82e`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #189: **EXPLORE** (drew 0.147 vs eps 0.3) -> `A218` [witness `26704b`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #190: **EXPLORE** (drew 0.198 vs eps 0.3) -> `A315` [witness `d5f074`] — THE UNDERLYING DEFECT BEHIND A314 IS UNFIXED: RT64's frame matching produces broken interpolatio
+- roll #191: **EXPLOIT** (drew 0.821 vs eps 0.3) -> `A225` [witness `244045`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #192: **EXPLORE** (drew 0.111 vs eps 0.3) -> `T150` [witness `6e526c`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
+- roll #193: **EXPLOIT** (drew 0.480 vs eps 0.3) -> `A219` [witness `c9c40f`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #194: **EXPLOIT** (drew 0.992 vs eps 0.3) -> `A211` [witness `8deb79`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
