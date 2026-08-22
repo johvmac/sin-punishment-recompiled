@@ -2818,6 +2818,64 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `eaf_read.py` — the user's annotations, readable by a tool (added 2026-08-22, T150)
+
+**Purpose.** T101 settled time-aligned annotation as the return path for the two
+things I cannot check: I cannot hear audio at all, and scene identity has been
+wrong twice from my own sampling. The user marks spans on a recording in ELAN.
+
+**The incident.** A266's `.eaf` has sat on the archive since 2026-08-21 and
+**nothing could read it.** Its content survived only because I transcribed it by
+hand into A266 at the time. T160 did the slice that made a reader possible — the
+observed run now records *which* video and *which* audio file — and named this
+as the remainder: "the recording is not served up for annotation, no `.eaf` is
+read back".
+
+**The control is the real tool's real output.** `--self-check` runs against
+`evidence/2026-08-21/run_game-135748.eaf`, a file ELAN itself wrote on this
+machine — **not a fixture written by whoever wrote the parser.** That matters
+because a fixture can be wrong in the same direction as the author's reading of
+the format, which is T100's standing complaint about controls that cannot
+discriminate. Expected content is asserted **by value**: 8 time slots, 4
+annotations at 140-6980, 6980-7230, 21000-32400 and 155600-182367 ms. A parser
+returning plausible nonsense passes a shape check and fails this.
+
+**Second, independent check:** the reader's output matches A266's hand
+transcription word for word. Tool and human agree on the same file.
+
+**10 controls, verified to FAIL:**
+
+| break | controls that fired |
+|---|---|
+| transpose `TIME_SLOT_REF1`/`REF2` | 2 — exact spans, and every span running forwards |
+| stop disclosing declared-but-empty tiers | 1 — the disclosure control |
+
+**Two refusals rather than empty returns.** A document with no annotations, and
+an annotation referencing a time slot that does not exist, both **raise**. A
+reader that returns `[]` on a malformed file is indistinguishable from one
+reading a file the user deliberately left blank, and those mean opposite things.
+Unresolvable references are reported, never defaulted — the same rule the census
+walker follows for segments.
+
+**An empty tier is NAMED, never omitted**, and this is the control worth keeping:
+`audio` is the return path for the one thing I cannot check at all, so a silently
+absent tier and a tier the user left blank would look identical in the output.
+Same rule as T76 — hide content, never existence. **Building this is how A362
+found that `scene` and `audio` have never carried a single annotation.**
+
+**Times come out in seconds as well as milliseconds**, because every other
+instrument here speaks in seconds and an annotation that cannot be lined up
+against a run log by eye is still write-only in practice.
+
+```bash
+scripts/eaf_read.py <file.eaf>              # annotations, time-ordered
+scripts/eaf_read.py <file.eaf> --tier audio
+scripts/eaf_read.py <file.eaf> --dry-run    # print, read nothing
+scripts/eaf_read.py --self-check            # 10/10
+```
+
+---
+
 ## `away.py` — hold the eyes-needed flags, with a mandatory expiry (added 2026-08-22)
 
 **Purpose.** Two checks here spend the USER'S time, not mine: the observed-run

@@ -22,6 +22,7 @@
   "daily_push.sh",
   "decomp.sh",
   "display_isolate.sh",
+  "eaf_read.py",
   "ensure_stdio.py",
   "fix_dangling_gotos.py",
   "fix_zero_writes.py",
@@ -71,7 +72,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 24,
+ "runs": 25,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
