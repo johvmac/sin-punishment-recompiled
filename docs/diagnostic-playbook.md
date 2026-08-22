@@ -86,6 +86,39 @@ the reference emulator is missing.
 **ABSENT:** `vulkaninfo` — so GPU identity comes from RT64's own startup lines
 in the run log, not from that tool (T144).
 
+### Sub-agents — a reading amplifier, with measured limits (T157)
+
+**`docs/agent-brief.md` is the single source. Part 1 decides whether to spawn
+one; Part 2 is pasted into the prompt verbatim.** Do not restate its rules here
+— a second copy is a copy that goes stale (the whole reason `CLAUDE.md` says so).
+
+**T71's three gates are cleared and the trial is T157**, not an argument:
+
+* **Dry run / gate first.** `guard_bash.py` **does** fire for sub-agent tool
+  calls — verified with one agent attempting a bare `echo` of the binary path,
+  refused with identical text. A cold agent cannot launch the game. **Nothing
+  else was allowed to run until that passed.**
+* **A control that failed.** Two models on ONE prompt returned **opposite
+  verdicts on the same line** — Sonnet 5 `UNGUARDED` with a correct
+  cross-object trace, Haiku 4.5 `GUARDED`, signing off "no unguarded container
+  accesses found in scope" on the exact path that had SIGSEGVed the game twice
+  that morning. **The repeatability control failed and that is the result, not
+  a disappointment**: a single agent run is a SAMPLE, not a survey.
+* **The incident that motivated it.** The user proposed it 2026-08-22; it was
+  designed as T153 before anything ran, precisely so the criteria could not be
+  invented after seeing the output.
+
+**The economics, measured once:** 9 records returned, **6 targeted reads to
+verify, against 41,030 lines not read.** Strongly favourable — but only for the
+capable model, and only because the output was `file:line` rather than prose.
+**A narrative costs the same to check as to derive, which cancels the benefit.**
+
+**What it bought that is NOT token economy:** the agent had not read A310, so it
+had none of my priors and **found an error in it that I would very likely have
+re-confirmed**, having already written it down. That failure — reading past
+one's own recorded conclusion — has a history here (T135, A305). **An
+independent reader is worth most exactly where I already believe something.**
+
 ### Other applications
 
 * **ELAN 7.1** — `/home/joh/opt/ELAN_7.1/bin/ELAN_7.1`. Annotate recordings with

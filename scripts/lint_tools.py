@@ -245,6 +245,37 @@ def self_check():
                    not gone,
                    f"{len(claimed)} claimed; MISSING: {' '.join(gone) if gone else 'none'}"))
 
+    # 4a2. THE SUB-AGENT BRIEF MUST STILL BIND (T157). It is pasted into every
+    #      agent prompt and it is the ONLY thing standing between a cold agent
+    #      and the run discipline -- an agent has no memory to leave a rule in,
+    #      which is T28 with the one mitigation removed.
+    #
+    #      CONTENT, NOT EXISTENCE. A file that exists and has been gutted looks
+    #      identical to a healthy one from `Path.exists()`, and this checker
+    #      would then vouch for nothing while appearing to pass -- the false-pass
+    #      shape that observed_run.sh's control 6 already paid for once. So it
+    #      asserts the load-bearing PROHIBITIONS are still present, and that the
+    #      two-part structure survives: Part 1 decides whether to spawn, Part 2
+    #      is what the agent actually receives, and collapsing them would send
+    #      my own decision criteria to the agent as if they were instructions.
+    #
+    #      NEEDLES ASSEMBLED FROM PARTS, because this file is itself prose about
+    #      the brief and a literal string would match HERE and vouch for a
+    #      deleted rule -- the self-referential failure recorded three times
+    #      (T100) and once as a false PASS in observed_run.sh.
+    brief = ROOT / "docs" / "agent-brief.md"
+    bt = brief.read_text() if brief.exists() else ""
+    need = ["Never launch the game" + " binary",
+            "Never edit `Recompiled" + "Funcs/`",
+            "Never commit" + " anything",
+            "Do not write to `docs/findings-" + "ledger.md`",
+            "PART 1", "PART 2"]
+    missing = [n for n in need if n not in bt]
+    checks.append(("the sub-agent brief exists and still carries its prohibitions",
+                   bool(bt) and not missing,
+                   f"missing: {missing if missing else 'none'}"
+                   + ("" if bt else " (file absent)")))
+
     # 4b. T47 DISCRIMINATION, on a synthetic tree with one of each shape. This
     #     is the control that matters: a regex tuned to today's nine offenders
     #     would pass a "does it find them" test while being useless. Each

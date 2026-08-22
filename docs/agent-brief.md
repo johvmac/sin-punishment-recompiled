@@ -1,5 +1,55 @@
 # Standing brief for sub-agents
 
+> **PART 1 is for ME, deciding whether to spawn one. PART 2 is for THE AGENT
+> and gets pasted into its prompt verbatim.**
+
+---
+
+# PART 1 — When to use one (measured 2026-08-22, T157)
+
+**Use a sub-agent as a READING AMPLIFIER, never as a source of conclusions.**
+
+Five rules, and every one of them was paid for by the trial in T157, not
+reasoned out in advance:
+
+1. **Sonnet 5 or better for anything involving a JUDGEMENT — including
+   judgements that look mechanical.** "Is this array access guarded?" looks
+   like grep and is not. In the trial Haiku 4.5 found the right file and the
+   right line and then classified it **backwards**, closing with a clean bill
+   of health on code that had crashed the game twice that morning. **The
+   retrieval was fine; the verdict was wrong, and the verdict was the point.**
+2. **Two independent runs minimum**, or treat the result as a SAMPLE and say so
+   in the entry. Two models on one prompt returned opposite verdicts on the
+   same line.
+3. **NEVER accept an absence.** "I searched and found nothing" is discarded,
+   every time. An agent cannot honestly state its own coverage, and T100
+   already says a checker that finds nothing on its first run should be
+   suspected rather than celebrated.
+4. **Nothing enters the ledger without my own reads.** In the trial that step
+   caught both the good finding *and* an error in my own earlier entry.
+   Verification cost 6 targeted reads against 41,030 lines not read — that
+   ratio is the whole economic case, and it only holds because the output was
+   a list of `file:line` rather than a narrative.
+5. **Seed any positive control from GROUND TRUTH — a measured crash, a logged
+   failure — never from my own prior source reading.** T153's control was void
+   because one of the two instances I seeded it with turned out to be wrong.
+   A control built on the seeder's unverified work cannot discriminate.
+
+**Ask for LISTS, not conclusions.** A narrative claim costs the same to check
+as to derive, which cancels the benefit entirely. If a task can only produce
+prose, restate it until it produces a table — or do it inline instead.
+
+**Good shapes:** broad read-only sweeps over a large directory; differentials
+against the reference recompilations; anything where I already hold a belief and
+my own re-reading is therefore least trustworthy.
+
+**Bad shapes:** anything that runs the game, builds, writes an entry, reports an
+absence, or needs the visited set to interpret.
+
+---
+
+# PART 2 — Paste everything below into the agent's prompt
+
 **Paste this verbatim into every sub-agent prompt.** It exists because a
 sub-agent starts cold: it has none of the session's context, none of the ledger,
 and none of the rules below. Every discipline left to memory on this project has
