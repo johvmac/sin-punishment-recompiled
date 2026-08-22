@@ -14,4 +14,12 @@ Append-only. Written by `scripts/session.py end`.
 | 2026-08-22 10:14 | 21m36s / 30m00s | 9 | 9 | 0 | 0 | 0 | worked through nine checkpoints on the display-list captures we already had, moved the audio suspect, and found that the picture stops changing just after a small box disappears |
 | 2026-08-22 10:55 | 21m22s / 30m00s | 6 | 6 | 0 | 0 | 0 | Built the missing ability to write to the game's memory, found that the smooth-motion feature was never set up for this game rather than broken, and narrowed two long-standing puzzles by re-reading recordings we already had. |
 | 2026-08-22 11:55 | 17m27s / 30m00s | 6 | 7 | 1 | 0 | 0 | Recorded the user's decision to park smooth motion and took it off the routing frontier, then found that the broken scene is built by stamping shapes in many places while the working one is not, corrected one of my own claims from this morning, and established that the missing opening logo artwork is genuinely loaded into memory. |
-| 2026-08-22 12:25 | 3m27s / 13m00s | 0 | 1 | 0 | 0 | 0 | Recorded that I keep finishing timed sessions early, tried to make the tooling stop me doing it, and threw that attempt away because I could not prove it worked. |
+| 2026-08-22 12:25 | **3m27s (WRONG — see note)** / 13m00s | 0 | 1 | 0 | 0 | 0 | Recorded that I keep finishing timed sessions early, tried to make the tooling stop me doing it, and threw that attempt away because I could not prove it worked. |
+
+> **The 12:25 row's duration is WRONG and the cause is UNKNOWN.** That stretch ran
+> roughly twenty minutes; the tool recorded 3m27s. `end` computes elapsed from the
+> stored start time, so something rewrote it mid-session — but the self-check only
+> touches a sandbox state file and its one call to the real script is a dry run that
+> writes nothing, so **the obvious explanation was checked and is not it.**
+> Recorded as unreliable rather than corrected to a number I would be inventing, and
+> queued as a small owed job under T162. Every other row in this file is measured.
