@@ -169,6 +169,34 @@ def main():
         if "REFUSING TO ROLL" not in src:
             fails.append("FAIL: the gate does not refuse the roll")
 
+    # AWAY SUPPRESSION must FILL THE GATE IN, never cut a hole in it.
+    #
+    # The tempting implementation is `if away: skip the gate`, and it is wrong
+    # in a way that is invisible: the days would leave no record, and T101's
+    # discipline is "not SILENTLY skipped", not "the run happened". So the away
+    # branch has to (a) write a dated DEFERRAL, (b) hand back to the SAME gate
+    # rather than jumping past it, and (c) fail towards asking when the away
+    # module is unavailable. Each is checked separately because each can rot on
+    # its own, and (a) and (b) are what a hole-cutting rewrite would drop.
+    _aw = src.split("THE USER IS AWAY")
+    if len(_aw) < 2:
+        fails.append("FAIL: route.py has no away-suppression branch — the user's "
+                     "eyes-needed flags cannot be held")
+    else:
+        _branch = _aw[1][:1400]
+        if "## DEFERRED" not in _branch:
+            fails.append("FAIL: away branch does not RECORD a deferral — the skipped "
+                         "days would leave no trace, which is the one thing T101 forbids")
+        if _branch.count("observed_today(") < 1 and "observed_today(" not in src.split("_obs_text = _obs.read_text()")[-1]:
+            fails.append("FAIL: away branch bypasses the gate instead of re-consulting "
+                         "it — the gate is no longer what decides")
+        if "_b = None" not in _branch:
+            fails.append("FAIL: away branch does not fail towards ASKING — a broken "
+                         "away module would silence the gate invisibly")
+        if src.count("REFUSING TO ROLL") != 1:
+            fails.append("FAIL: the refusal is duplicated or gone — away must leave "
+                         "exactly one gate, not fork it")
+
     # A brand-new entry must read as staleness 0, not `roll`. It defaulted to 0
     # in `last_seen`, so B67 was born at roll #74 with staleness 74 and ~90% of
     # the next explore draw -- the exact inverse of what staleness is for.
@@ -350,7 +378,7 @@ def main():
         fails.append("FAIL: the roll does not record a routable baseline — "
                      "check_ledger would compare against a stale number")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 14
+    total = len(POSITIVE) + len(NEGATIVE) + 18
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -364,7 +392,8 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness, 1 observed-run gate, 2 prior-work, 3 entry-count, 2 routable)")
+          f"1 witness, 1 observed-run gate, 4 away-suppression, 2 prior-work, "
+          f"3 entry-count, 2 routable)")
     return 1 if fails else 0
 
 

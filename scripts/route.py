@@ -453,6 +453,32 @@ def main():
     _today = __import__("datetime").date.today().isoformat()
     _obs_text = _obs.read_text() if _obs.exists() else ""
     if not observed_today(_obs_text, _today):
+        # THE USER IS AWAY: supply the deferral REASON, do not bypass the gate.
+        #
+        # The gate has always accepted a recorded deferral, because the rule is
+        # "the run was not SILENTLY skipped", not "the run happened". So an
+        # absence does not need a hole cut in it -- it needs the reason filled
+        # in automatically. Every skipped day still gets a dated, reasoned line
+        # in `observed-runs.md`, written ON the day, and Monday still owes
+        # exactly ONE run rather than three (T151, the user's own rule).
+        try:
+            _sd = str(Path(__file__).resolve().parent)
+            if _sd not in sys.path:
+                sys.path.insert(0, _sd)
+            import away as _away
+            _b = _away.banner()
+        except Exception:
+            _b = None          # fail towards ASKING, never towards silence
+        if _b:
+            with _obs.open("a") as _f:
+                _f.write(f"## DEFERRED {_today} — user away ({_away.status()[2]})\n"
+                         f"- no observed run today; deferred deliberately, not skipped.\n\n")
+            print(f"[route] {_b}", file=sys.stderr)
+            print(f"[route] deferral RECORDED for {_today} — the roll proceeds.",
+                  file=sys.stderr)
+            _obs_text = _obs.read_text()
+
+    if not observed_today(_obs_text, _today):
         print("[route] REFUSING TO ROLL — no user-observed run recorded today.", file=sys.stderr)
         print("        It is the FIRST task of the day (T103). I cannot do it myself:", file=sys.stderr)
         print("        I cannot hear audio at all, and scene identity has been wrong", file=sys.stderr)

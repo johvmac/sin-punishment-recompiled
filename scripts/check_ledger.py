@@ -966,7 +966,19 @@ def main():
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import user_queue
         _fired, _probs = user_queue.report(text, _dt.date.today(), quiet=True)
-        if _fired:
+        # WHILE THE USER IS AWAY the alarm collapses to ONE line. It is not
+        # deleted: T76's rule is that quiet may hide a note's CONTENT, never its
+        # EXISTENCE, and a sitting they cannot attend is a nag with nowhere to
+        # go. Expires by itself on the date it names.
+        try:
+            import away as _away
+            _ab = _away.banner()
+        except Exception:
+            _ab = None         # fail towards NAGGING, never towards silence
+        if _fired and _ab:
+            reminders.append(
+                f"USER QUEUE — {len(_fired)} alarm(s) held: {_ab}")
+        elif _fired:
             reminders.append(
                 "USER QUEUE worth a sitting — " + "; ".join(_fired)
                 + ". Run scripts/user_queue.py for the items. REMINDER, not a gate.")

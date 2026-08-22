@@ -2818,6 +2818,104 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `away.py` — hold the eyes-needed flags, with a mandatory expiry (added 2026-08-22)
+
+**Purpose.** Two checks here spend the USER'S time, not mine: the observed-run
+gate (T101), which `route.py` cannot clear without them, and the user-queue
+reminder (T131), which nags until the queue is swept. Both are worth having.
+Neither is worth anything while the user is not at the machine.
+
+**The incident.** 2026-08-22, the user's own words: away from the PC until
+Monday, cut the flags until then. At that moment the queue alarm had been firing
+for two days with four items and six entries waiting on it, and the observed-run
+gate would have demanded a `--defer` reason at every roll across the weekend.
+
+**How it works, and the one design decision that matters.** It does **not cut a
+hole in the gate.** The gate has always accepted a recorded deferral, because
+the rule is *"the run was not SILENTLY skipped"*, never *"the run happened"*. So
+`away.py` supplies the deferral REASON automatically: every skipped day still
+gets a dated, reasoned line in `observed-runs.md`, **written on the day**. The
+audit trail is unchanged; only the asking stops. Monday still owes exactly ONE
+run, not three — T151, the user's rule, and this does not touch it.
+
+**Three properties it is built around, all previously paid for:**
+
+* **The expiry is mandatory.** `set` refuses without a return date. A silencing
+  with no end is a deleted safeguard with extra steps, discovered months later
+  by its absence.
+* **It hides content, never existence (T76).** Both channels still print one
+  line naming what is held and when it returns.
+* **Every failure means NOT AWAY.** Missing file, corrupt JSON, unparseable
+  date, empty reason — all read as *flags fire*. A bug here must fail towards
+  nagging, because silence is invisible and nagging is not.
+
+**The controls, and which of them can fail.** 16/16, and **verified to FAIL
+when broken**, not merely to pass when working:
+
+| break | controls that fired |
+|---|---|
+| expiry never triggers (`if False`) | 3 — away on the return date, away after it, banner still printing |
+| corrupt/missing read as AWAY | 3 — the two fail-safe controls plus the banner |
+
+The discriminating triple is *away before the date / not away ON it / not away
+after*: a stub returning always-True passes the first and fails both others, and
+always-False does the reverse. Neither can pass all three.
+
+`test_route.py` carries four more, asserting the WIRING rather than the module:
+the away branch must write `## DEFERRED`, must hand back to the same gate rather
+than jump past it, must fail towards asking, and must leave exactly one refusal
+in the file. Those four are what a "simplify it to `if away: skip`" rewrite
+would quietly drop.
+
+```bash
+scripts/away.py                                    # status
+scripts/away.py --dry-run set 2026-08-24 "reason"  # print, write nothing
+scripts/away.py set 2026-08-24 "away from PC"
+scripts/away.py clear
+scripts/away.py --self-check                       # 16/16
+```
+
+---
+
+## `backlog.py` — somewhere for leftover time to GO (added 2026-08-22, T161/T162)
+
+**Purpose.** Three timed sessions on 2026-08-22 closed early — 21m36s, 21m22s
+and 17m27s of 30m — and **the user caught it, not a control.** The reasoning
+error each time was asking *"does the BIGGEST pending item fit?"* and stopping
+when it did not. `session.py status` catches the stop; this gives the stop
+somewhere to go.
+
+**The risk, which the user raised themselves** ("or would that be
+counterintuitive"): a backlog of tidy jobs is an excellent way to LOOK BUSY
+while avoiding the expensive question. So the discipline is in code, not in
+prose:
+
+* **Frontier first.** `next` REFUSES to hand out a job while a full checkpoint
+  (3 min, measured over six consecutive zero-run rolls) still fits. It is not a
+  menu; it is what is left when rolling is not an option.
+* **Owed, never invented.** `add` REFUSES an item that does not state why it is
+  already owed — a count that drifted, a check not re-run since its script
+  changed, a flag left unanswered.
+* **Drainable.** An item that cannot be shown done or not done does not belong.
+
+**The control that discriminates.** A backlog that never empties and one that is
+never consulted are BOTH failures, and neither is visible by reading the file.
+`--check` reports added against closed and the age of the oldest open item:
+growth with no closures is a wish-list, no closures at all means the mechanism
+is decoration. 11/11 controls, and the pair that matters is *`next` refuses at
+10 minutes left / serves at 1* — an implementation that always served would pass
+half of it.
+
+```bash
+scripts/backlog.py                      # open items
+scripts/backlog.py next <minutes-left>  # a job, IF a checkpoint no longer fits
+scripts/backlog.py add "<job>" "<why it is owed>"
+scripts/backlog.py --check              # the added-vs-closed control
+scripts/backlog.py --self-check         # 11/11
+```
+
+---
+
 ## `single-run` is asked at WRITE time now, not at audit time (added 2026-08-20, T99)
 
 `single-run` is the defect class that will not die: **21 instances, and L2 #5 still
