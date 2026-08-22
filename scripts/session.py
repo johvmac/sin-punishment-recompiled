@@ -217,6 +217,19 @@ def cmd_status(now=None):
                   f"[session]     item fits — ask whether ANY does. Roll again (T161).")
         else:
             print(f"[session] under one checkpoint left — finishing up is right now.")
+            # ...and THIS is where the early closes happened, so it is the only
+            # place the backlog is offered (T162). Frontier first: above this
+            # line the answer is always "roll again", never "tidy something".
+            try:
+                import subprocess as _sp
+                _b = _sp.run([sys.executable, str(ROOT / "scripts" / "backlog.py"),
+                              "next", str(max(0.0, left / 60.0))],
+                             capture_output=True, text=True)
+                for _l in _b.stdout.strip().split("\n"):
+                    if _l.strip():
+                        print(_l)
+            except Exception:
+                pass          # fail OPEN: never break `status` over a nicety
     if d.get("task"):
         print(f"[session] opening task: {d['task']}")
     print(f"[session] rolls consumed so far: {last_roll() - d['roll_at_start']}"
@@ -412,7 +425,17 @@ def self_check():
         # THE FINISHING ALLOWANCE (T161, user instruction 2026-08-22). Asking for
         # 30m must PLAN 35m, and must SAY SO. Both halves are checked: a silent
         # extension would be a tool quietly changing the number you gave it.
-        _r = run(["--dry-run", "start", "30m"], cwd=str(root))
+        # ISOLATED, and it was not before: this used to invoke the REAL script,
+        # so it FAILED whenever a live session happened to be open -- a control
+        # whose result depends on the machine's state is not a control. Run the
+        # sandbox copy with its state set aside, then put it back.
+        _sst = root / "docs" / ".session-state.json"
+        _keep = _sst.read_text() if _sst.exists() else None
+        if _sst.exists():
+            _sst.unlink()
+        _r = p(["--dry-run", "start", "30m"])
+        if _keep is not None:
+            _sst.write_text(_keep)
         chk("a 30m request PLANS 35m (the finishing allowance is applied)",
             "35m00s" in _r.stdout, f"planned {_r.stdout.strip()[:80]}")
         chk("the allowance is DISCLOSED, not silent",
