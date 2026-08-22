@@ -510,6 +510,49 @@ def main():
           f"single={c_single}, wd={c_wd}")
     extra += 1; bad += not c_ok
 
+    # --- QUIET MODE (T163) -----------------------------------------------
+    #
+    # Suppressing output at source is only safe if it suppresses the RIGHT
+    # things. A quiet flag that swallowed a real warning would be the A196
+    # failure with a nicer interface -- and A196 is worth citing accurately: the
+    # tool there was NOT silent, the operator truncated its stderr away.
+    #
+    # FOUR CONTROLS, DISCRIMINATING IN BOTH DIRECTIONS. Two of them must FAIL if
+    # quiet ever over-reaches: a real problem must still print, and the withheld
+    # notes' EXISTENCE must still be disclosed (T76 -- content may be hidden,
+    # existence may not).
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _td:
+        _fr = Path(_td) / "fakeroot"
+        (_fr / "scripts").mkdir(parents=True)
+        (_fr / "docs").mkdir(parents=True)
+        shutil.copy(CHECKER, _fr / "scripts" / "check_ledger.py")
+        # The fixture needs BOTH halves or the control cannot discriminate: a
+        # REAL problem (a negative with no stated scope) and enough bulk to
+        # actually trigger the standing LENGTH/SIZE notes. A two-row ledger
+        # trips neither threshold, so quiet and loud came out identical and the
+        # control failed -- correctly, on a fixture that could not test it.
+        _filler = " ".join(["padding"] * 400)
+        (_fr / "docs" / "findings-ledger.md").write_text(
+            "| # | status | finding | evidence |\n|---|---|---|---|\n"
+            "| A1 | MEASURED | nothing calls this function | one.log |\n"
+            f"| A2 | MEASURED (in the ROM) | {_filler} | two.log |\n")
+
+        def _run(*flags):
+            r = subprocess.run([sys.executable, str(_fr / "scripts" / "check_ledger.py"), *flags],
+                               capture_output=True, text=True)
+            return r.stdout + r.stderr
+
+        loud, quiet = _run(), _run("--quiet")
+        q1 = len(quiet) < len(loud)
+        q2 = "thing(s) to look at" in quiet          # a REAL problem still prints
+        q3 = "withheld" in quiet                      # existence disclosed (T76)
+        q4 = "note — LENGTH" in loud or "note — SIZE" in loud or "withheld" not in loud
+        q_ok = q1 and q2 and q3 and q4
+        print(f"{'ok  ' if q_ok else 'FAIL'}  --quiet: shorter, but a real problem AND the withheld "
+              f"count still print  — shorter={q1}, problem={q2}, disclosed={q3}, loud-unchanged={q4}")
+        extra += 1; bad += not q_ok
+
     total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0

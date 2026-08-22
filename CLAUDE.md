@@ -63,6 +63,31 @@ sentence is **plain**, not merely present: an address, an entry ID, a filename
 or a register fails it. Everything that was checked survived; the one thing
 that was not, did not.
 
+## Make commands say less, never read less of what they say (T163)
+
+**`guard_bash.py` refuses to truncate a project script's output, and it is
+right.** A196 is the case and it is worth citing accurately, because it was
+**withdrawn**: the tool there was NOT silent — it printed all fifteen candidate
+overlays on stderr — and `2>&1 | tail -25` destroyed the warning. The wrong
+overlay was then disassembled. **The failure was truncation after the fact, not
+verbosity at source.**
+
+So the fix is at the source. These are measured, not guessed:
+
+* **`scripts/check_ledger.py --quiet`** — withholds only the two STANDING notes
+  (file length, file size), which no action will change; `SIZE` says outright
+  that housekeeping is spent. **1,380 B → 723 B, a 48% cut.** Problems, overdue
+  levels and the user-queue reminder always print, and the withheld count is
+  still disclosed — **T76's line: quiet may hide a note's content, never its
+  existence.** `--hook` implies it, because the hook fires on every ledger edit
+  and that is where the repetition costs most.
+* **`git commit -q`** — already used everywhere; keep it.
+* **`scripts/ledger.py --index`** before `--show`. The index is the quiet mode
+  for the ledger, and @-mentioning the ledger file would undo it entirely (T163).
+
+**Do not reach for `grep -v` on a project script's output.** If it is too noisy,
+that is a missing flag on the script, and adding one is a normal checkpoint.
+
 ## New tools — three gates (T71)
 
 Before a new tool's output counts as evidence:

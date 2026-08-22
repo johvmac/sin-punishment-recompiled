@@ -233,6 +233,12 @@ def main():
         print(__doc__)
         return 0
     hook = "--hook" in sys.argv
+    # --hook IMPLIES --quiet (T163). The hook is the highest-frequency channel
+    # by far -- once per ledger edit -- and it is precisely where re-reading an
+    # unchanging standing fact costs most. Overdue reminders still escalate and
+    # still exit 2; only the two standing notes are withheld, and their
+    # existence is still disclosed.
+    quiet = hook or "--quiet" in sys.argv or "-q" in sys.argv
     if hook:
         try:
             payload = json.load(sys.stdin)
@@ -976,8 +982,47 @@ def main():
                             f"Merge; one ID, one current status."))
 
     out = sys.stderr if hook else sys.stdout
-    for r in reminders:
-        print(f"[ledger] note — {r}", file=out)
+
+    # --- STANDING NOTES ARE SUPPRESSIBLE; NOTHING ELSE IS (T163) --------------
+    #
+    # MEASURED before changing anything: this script emits 1,380 bytes and 786 of
+    # them -- 57% -- are the LENGTH and SIZE notes. They are STANDING FACTS about
+    # a long file: SIZE says outright that housekeeping is spent and not to try
+    # again, so no action will ever change it. And this runs as a PostToolUse
+    # hook on EVERY ledger edit, which was well over a dozen times in one session
+    # on 2026-08-22, so the same 786 bytes were re-read all day.
+    #
+    # WHY SUPPRESS AT THE SOURCE RATHER THAN FILTER AFTER: I filtered these with
+    # `grep -v` six times in one session -- dropping output by pattern after the
+    # fact, which is what `guard_bash.py` exists to refuse. A196 is the case,
+    # and it is worth citing accurately because it was WITHDRAWN by A197: the
+    # tool was NOT silent, it printed all fifteen candidate overlays on stderr,
+    # and `2>&1 | tail -25` destroyed the warning. The wrong overlay was then
+    # disassembled. The failure was truncation after the fact, never verbosity
+    # at source -- so making the command say less is the fix that does not
+    # reintroduce it.
+    #
+    # THE LINE THIS MUST NOT CROSS IS T76's: truncation may hide a reminder's
+    # CONTENT but NEVER ITS EXISTENCE. The audit nag fired for 13 rolls into a
+    # channel nothing read, and the audit ran 13 rolls late. So quiet mode still
+    # says how many it withheld and how to see them.
+    #
+    # ONLY the two standing notes are eligible. The USER QUEUE reminder is NOT:
+    # it carries thresholds that move, it names the entries currently blocked,
+    # and it is asking for something to be done.
+    _STANDING = re.compile(r"^(LENGTH|SIZE):")
+    if quiet:
+        _held = [r for r in reminders if _STANDING.match(r)]
+        for r in reminders:
+            if not _STANDING.match(r):
+                print(f"[ledger] note — {r}", file=out)
+        if _held:
+            print(f"[ledger] ({len(_held)} standing note(s) withheld — file length and "
+                  f"size, unchanged and not actionable. Run without --quiet to read "
+                  f"them.)", file=out)
+    else:
+        for r in reminders:
+            print(f"[ledger] note — {r}", file=out)
 
     # The SUMMARY line names how many notes preceded it.
     #
