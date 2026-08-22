@@ -1,10 +1,10 @@
 {
- "start": 1787357658.1041749,
- "deadline": 1787359458.1041749,
- "task": "make the tooling, playbook and docs reflect today's sub-agent findings (T157/T158/A317/A318)",
+ "start": 1787360117.8208857,
+ "deadline": 1787361917.8208857,
+ "task": "",
  "shelf": [],
  "blocks": [],
- "roll_at_start": 179,
+ "roll_at_start": 188,
  "entries_at_start": [
   "A1",
   "A10",
@@ -238,6 +238,14 @@
   "A316",
   "A317",
   "A318",
+  "A319",
+  "A320",
+  "A321",
+  "A322",
+  "A323",
+  "A324",
+  "A325",
+  "A326",
   "A36",
   "A38",
   "A39",
@@ -394,6 +402,7 @@
   "T155",
   "T157",
   "T158",
+  "T159",
   "T16",
   "T17",
   "T18",
@@ -496,5 +505,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }

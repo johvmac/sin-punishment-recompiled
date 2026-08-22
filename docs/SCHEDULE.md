@@ -130,7 +130,22 @@ each checkpoint. Tick the box when done.
          look through with nothing built. **It is NOT A227**: it captures what
          is USED, not what is PACKED, textures only, and only from the stretch
          we can reach.
-- [ ] **2026-08-22** — **FIRST THING: a memory-poke facility, so the cheat
+- [x] **2026-08-22** — **DONE, see A327.** `SNP_POKE=0xADDR:0xVALUE[:size][,...]`
+      lands in `ultramodern/src/events.cpp`, applied **every VI** from
+      `vi_thread_func`. All three gates met, and the every-frame requirement
+      turned out to be load-bearing rather than cautious: the game clobbers
+      `0x80075DD6` three times during startup before our value sticks, so the
+      one-shot fallback the item allowed for would have been overwritten and
+      would have read as "the cheat does nothing".
+      **The control discriminates the `^3` byte swizzle, not merely the write.**
+      **STILL OWED FROM THIS ITEM — the optional "free win" was NOT done:**
+      watching `0x800D5A9B` (energy/time, fixed across levels) for an
+      "are we actually in a level yet?" signal, which T143 found the Mischief
+      Makers harness waits on instead of sleeping. It needs no new code — the
+      read facility already exists — so it is cheap whenever it is wanted.
+      **Input scripting was deliberately NOT built; it is the next item.**
+
+      **FIRST THING: a memory-poke facility, so the cheat
       codes can be used.** *(User-requested 2026-08-21 evening, deferred from
       that night explicitly.)*
 

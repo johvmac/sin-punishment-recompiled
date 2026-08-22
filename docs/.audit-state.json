@@ -1,8 +1,14 @@
 {
- "audits": 17,
- "last_rev": "11e1b6ef5fbbccd435a32ee518cf1f3b2a37693f",
- "last_roll": 179,
- "quiet_streak": 1,
- "last_runs": 173,
- "open": {}
+ "audits": 18,
+ "last_rev": "212c427ecbd212472142ed1e0903af617115ee34",
+ "last_roll": 189,
+ "quiet_streak": 0,
+ "last_runs": 184,
+ "open": {
+  "single-run:A316": {
+   "cls": "single-run",
+   "eid": "A316",
+   "since": 18
+  }
+ }
 }
