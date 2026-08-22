@@ -72,3 +72,14 @@ Daily digests. Each reads ONLY the L1 blocks in `audit-log.md`. The weekly L3 re
 - quiet: yes (streak 1; at 2, drop L2 to weekly)
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #9 — covering L1 audits 18..21
+- L1 blocks digested: 4
+- **defects by class (raised this window / all prior / FIXED this window / still open):**
+  - `single-run` (T22): 1 / 36 / 1 / 0 — **raised, all fixed**
+  - `no-control` (I1/I13): 0 / 50 / 0 / 0 — **quiet**
+  - `churn` (I14): 0 / 39 / 0 / 0 — **quiet**
+  - `no-evidence` (A24/B35): 0 / 25 / 0 / 0 — **quiet**
+- every defect raised in this window was FIXED (1 resolved, 0 still open). **Found-and-fixed is the loop working, not a recurrence.**
+- quiet: no (streak 0; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+
