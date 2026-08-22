@@ -237,3 +237,4 @@ A gap in the numbering means a roll was skipped.
 - roll #218: **EXPLOIT** (drew 0.376 vs eps 0.3) -> `A218` [witness `b2949c`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #219: **EXPLORE** (drew 0.240 vs eps 0.3) -> `T150` [witness `9e6edc`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
 - roll #220: **EXPLORE** (drew 0.222 vs eps 0.3) -> `A218` [witness `a4cdae`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #221: **EXPLORE** (drew 0.060 vs eps 0.3) -> `A97` [witness `8d77e9`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
