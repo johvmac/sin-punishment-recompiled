@@ -2692,7 +2692,7 @@ below is installed and verified working.
 | `scripts/crop_recording.py` | repo | crop + compress a lossless run master in ONE pass. **REFUSES unless everything outside the crop is black** — `--check` to verify only, `--finalize` for the capture pipeline |
 | `scripts/classify_recording.py` | repo | "which scenes did this run reach, and when" — dHash vs `<archive>/scene-refs/*.png`. `--fps 0` for absence claims. `--self-check` asserts discrimination |
 | `scripts/test_display_isolate.py` | repo | 6 controls over isolation + recording, incl. the **never-film-the-user's-desktop** guard |
-| `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (5 controls) |
+| `scripts/observed_run.sh` | repo | **a run the USER watches and listens to.** Prints `observation-checklist.md` BEFORE launching, runs via `run_game.sh` in `xephyr` (visible, input isolated — never `real`, T59), then records their answers to `docs/observed-runs.md`. `--checklist` / `--dry-run` / `--self-check` (**8 controls** (was 5; the row went stale, found by T150 and corrected by T160)) |
 | `scripts/gdb_trace.sh --watch` | repo | **the only instrument here that needs no LIST.** Anchors on a line to resolve `ctx`, then installs a location watchpoint — catches ANY writer without anyone enumerating them. **Arm LATE; it stops on every write.** 4 controls, verified to fail (T109) |
 | `scripts/ledger.py --chain` | repo | **the correction chain, chronological** — makes a circle visible while it is happening. Reports the correction rate lifetime AND over the last 15; warns at 1/3 recent. Skeleton only, never says what was established (T110) |
 | `scripts/regenerate.sh` | repo | **the ONLY correct way to regenerate.** Snapshot -> N64Recomp -> 3 repairs (one SILENT) -> build both -> SMOKE TEST on `gfx_tasks`. 'It links' was the check that passed on an inert binary (T116) |
@@ -2810,7 +2810,7 @@ Per-application capture is the safe form and is **not built**. Until it is, the
 user's ears are the only instrument, so the answer must be written down.
 
 ```bash
-scripts/observed_run.sh --self-check   # 7/7
+scripts/observed_run.sh --self-check   # 8/8
 scripts/audio_capture.sh --self-check  # 4/4 (isolation + finalize)
 scripts/observed_run.sh --checklist    # print the list, run nothing
 scripts/observed_run.sh 180            # the real thing
