@@ -61,6 +61,16 @@ ROUTELOG = ROOT / "docs" / "route-log.md"
 # SO WHAT line, no commit -- costs the NEXT session more than the overrun saves.
 # ONE definition, shared by `status` and `end`, so the two cannot drift.
 GRACE = 5 * 60
+# THE FINISHING ALLOWANCE, the user's instruction on 2026-08-22: "better to just
+# extend whatever time I say by five minutes -- worst case I wait a few minutes
+# while you finish up". Added to the BUDGET, which is a different thing from
+# GRACE above: grace permits running over to finish work already in flight,
+# this permits STARTING work in those five minutes. Printed, never silent --
+# a tool that quietly changes the number you asked for is a tool you stop
+# trusting about numbers.
+FINISHING_ALLOWANCE = 5 * 60
+# A zero-run checkpoint, measured: 17m27s over 6 rolls on 2026-08-22 = 2.9 min.
+CHECKPOINT = 3 * 60
 
 sys.path.insert(0, str(ROOT / "scripts"))
 try:
@@ -149,17 +159,21 @@ def cmd_start(args, dry=False, now=None):
               file=sys.stderr)
         return 2
     t0 = now if now is not None else time.time()
-    d = {"start": t0, "deadline": t0 + secs, "task": task, "shelf": [], "blocks": [],
+    requested = secs
+    secs = secs + FINISHING_ALLOWANCE
+    d = {"start": t0, "deadline": t0 + secs, "requested": requested, "task": task, "shelf": [], "blocks": [],
          "roll_at_start": last_roll(), "entries_at_start": sorted(entry_ids()), "ended": False}
     if dry:
         print("=== DRY RUN — no session started ===")
-        print(f" duration : {hms(secs)}")
+        print(f" duration : {hms(requested)} requested + {hms(FINISHING_ALLOWANCE)} "
+              f"finishing allowance = {hms(secs)}")
         print(f" task     : {task or '(none given — first checkpoint is a roll)'}")
         print(f" roll now : #{d['roll_at_start']}   ledger: {len(d['entries_at_start'])} entries")
         print(" would write: docs/.session-state.json")
         return 0
     save(d)
-    print(f"[session] started — {hms(secs)}, ends at {time.strftime('%H:%M:%S', time.localtime(d['deadline']))}")
+    print(f"[session] started — {hms(requested)} requested + {hms(FINISHING_ALLOWANCE)} finishing allowance = {hms(secs)}")
+    print(f"[session] ends at {time.strftime('%H:%M:%S', time.localtime(d['deadline']))}")
     print(f"[session] task: {task or '(none — start with a roll)'}")
     print(f"[session] baseline: roll #{d['roll_at_start']}, {len(d['entries_at_start'])} ledger entries")
     print(f"[session] optional notification (run in background):")
@@ -190,6 +204,19 @@ def cmd_status(now=None):
     else:
         note = f"   <<< OVER by {hms(over)}, BEYOND the {hms(GRACE)} grace — close it"
     print(f"[session] elapsed {hms(t - d['start'])}, remaining {hms(left)}" + note)
+    # T161: I closed three sessions early on 2026-08-22 by asking "does the
+    # BIGGEST pending item fit?" instead of "does ANY item fit?". Minutes
+    # invite the first question; checkpoints invite the second. A zero-run
+    # checkpoint on this project measured ~2.9 minutes over six consecutive
+    # rolls, so the remaining time is restated in the unit of the decision.
+    if left > 0:
+        n = int(left // CHECKPOINT)
+        if n >= 1:
+            print(f"[session] that is room for ~{n} more checkpoint(s) at "
+                  f"{hms(CHECKPOINT)} each. DO NOT ask whether the biggest pending\n"
+                  f"[session]     item fits — ask whether ANY does. Roll again (T161).")
+        else:
+            print(f"[session] under one checkpoint left — finishing up is right now.")
     if d.get("task"):
         print(f"[session] opening task: {d['task']}")
     print(f"[session] rolls consumed so far: {last_roll() - d['roll_at_start']}"
@@ -381,6 +408,34 @@ def self_check():
                      (int(gb.group(1)) * 60 + int(gb.group(2))))
         chk("the clock is LIVE (remaining actually decreases)", moved,
             f"first={ga.group(0) if ga else None} second={gb.group(0) if gb else None}")
+
+        # THE FINISHING ALLOWANCE (T161, user instruction 2026-08-22). Asking for
+        # 30m must PLAN 35m, and must SAY SO. Both halves are checked: a silent
+        # extension would be a tool quietly changing the number you gave it.
+        _r = run(["--dry-run", "start", "30m"], cwd=str(root))
+        chk("a 30m request PLANS 35m (the finishing allowance is applied)",
+            "35m00s" in _r.stdout, f"planned {_r.stdout.strip()[:80]}")
+        chk("the allowance is DISCLOSED, not silent",
+            "30m00s" in _r.stdout and "allowance" in _r.stdout.lower(),
+            "the extension does not name itself in the output")
+
+        # THE RULE THAT BINDS: status must restate time as CHECKPOINTS, because
+        # minutes are what invited "the big item does not fit, so stop".
+        # DISCRIMINATING PAIR: it must say so with plenty of time AND must say
+        # the opposite with almost none -- a message that always appears is not
+        # information.
+        _st = json.loads((root / "docs" / ".session-state.json").read_text())
+        _st["deadline"] = time.time() + 1800
+        (root / "docs" / ".session-state.json").write_text(json.dumps(_st))
+        chk("status counts REMAINING CHECKPOINTS, not just minutes (T161)",
+            "checkpoint(s)" in p(["status"]).stdout, "only minutes are shown")
+        _st["deadline"] = time.time() + 40
+        (root / "docs" / ".session-state.json").write_text(json.dumps(_st))
+        chk("and says the OPPOSITE when under one checkpoint remains",
+            "finishing up is right" in p(["status"]).stdout,
+            "it nags to roll again even with 40 seconds left")
+        _st["deadline"] = time.time() + 1800
+        (root / "docs" / ".session-state.json").write_text(json.dumps(_st))
 
         chk("end REFUSES with no summary", p(["end"]).returncode == 2, "ended silently")
         chk("end REFUSES a jargon summary",

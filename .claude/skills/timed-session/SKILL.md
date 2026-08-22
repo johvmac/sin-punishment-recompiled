@@ -21,6 +21,13 @@ judgement: whether a blocker is HARD or SOFT.** Everything else is measured.
 scripts/session.py start 25m "the opening task, if the user gave one"
 ```
 
+**IT PLANS FIVE MINUTES MORE THAN YOU ASK, and says so** — the user's
+instruction on 2026-08-22: *"better to just extend whatever time I say by five
+minutes? then worst case I wait a few minutes while you finish up"*. `start 25m`
+budgets 30m. This is a LONGER BUDGET, in which starting work is legitimate —
+different from the GRACE below, which only permits finishing work already in
+flight.
+
 It refuses a second session while one is open, and prints a background command
 that fires a notification at the deadline. Run that in the background too — but
 **it is a backstop, not the clock.**
@@ -46,6 +53,15 @@ Between checkpoints:
 ```bash
 scripts/session.py status
 ```
+
+**DO NOT STOP EARLY, AND THE TEST IS NOT THE ONE YOU WILL REACH FOR (T161).**
+Three sessions on 2026-08-22 closed at 21m36s, 21m22s and 17m27s of 30m — about
+half an hour of the user's time unused, and the user had to point it out. The
+error each time: asking **"does the biggest pending item fit?"** and stopping
+when it did not. The shelf is ONE item; the frontier is the rest. **Ask whether
+ANY item fits.** A zero-run checkpoint here measures ~3 minutes, so `status` now
+restates the remaining time as a NUMBER OF CHECKPOINTS — keep rolling until it
+says under one is left.
 
 **NEVER ESTIMATE THE CLOCK.** On 2026-08-20 I judged elapsed time from how much
 work had happened and was wrong by up to eleven minutes in both directions —
