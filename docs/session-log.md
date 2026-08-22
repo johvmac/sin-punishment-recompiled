@@ -23,3 +23,4 @@ Append-only. Written by `scripts/session.py end`.
 > writes nothing, so **the obvious explanation was checked and is not it.**
 > Recorded as unreliable rather than corrected to a number I would be inventing, and
 > queued as a small owed job under T162. Every other row in this file is measured.
+| 2026-08-22 14:00 | 29m43s / 35m00s | 14 | 11 | 1 | 0 | 0 | Found that the sound patch tells the game to abort on every check, killed my own theory that the missing scenery was stacking on itself, built the small-jobs list, and made the public README say honestly that the game is not playable. |
