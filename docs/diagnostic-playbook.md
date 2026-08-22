@@ -2665,7 +2665,44 @@ Before running, ask how long the window of interest is and divide. This is the
 same sparse-sampling failure as A223 wearing different clothes — there the
 samples existed and went unread, here the samples were never taken.
 
-### DO NOT COMPARE LIST ENTRIES BY INDEX ACROSS FRAMES
+#### THE SAMPLE PERIOD MUST NOT SHARE A FACTOR WITH THE PHENOMENON (added 2026-08-23, A367)
+
+**The game triple-buffers.** Three colour images — `0x8038F800`, `0x803B5000`,
+`0x803DA800` — exactly `0x25800` apart (320×240×2), rotating **one per frame**
+in strict order. A247 inferred this from pixel retention; A367 read it straight
+off the display list, 384/382/379 occurrences across 616 dense samples.
+
+**The census default was 300, and 300 is divisible by 3.** So every 300-spaced
+census this project has ever taken sampled **the same buffer every time** — one
+screen in three. A237's opening census used 15: same defect. The dense captures
+use ~10, which is the only reason the rotation was ever visible.
+
+That is not a small print issue. A356 called `0x803DA800` "**the** framebuffer"
+because all eighteen of its sampled tasks are ≡ 0 mod 3.
+
+**What survives such a sample, and what does not** — the arithmetic matters more
+than the caution:
+
+* A **contrast between two bands sampled at the same period** is safe. Every arm
+  sits in the same phase, so a phase-dependent effect appears in both or
+  neither and cannot manufacture a difference. A356's attract-versus-tutorial
+  finding survives on exactly this ground.
+* A **universal** does not. "Every frame", "all 18 sampled tasks" mean *one
+  buffer in three* and must be re-scoped.
+
+**The default is now 301** — coprime to 2, 3, 4 and 5, so short cycles walk
+through phases instead of hiding — and the probe **warns** when an explicitly
+passed interval is divisible by 2 or 3. Rebuilt and re-controlled at 18/18 in
+the same checkpoint.
+
+**The general rule, which is why this sits in the playbook and not just in an
+entry:** an instrument whose sampling period shares a factor with the period of
+what it measures cannot see it, and the output looks perfectly clean. Before
+trusting a periodic sample, ask what periods it is blind to.
+
+---
+
+## DO NOT COMPARE LIST ENTRIES BY INDEX ACROSS FRAMES
 
 Comparing child `k` at two times showed swings of +57 and −66 commands, which
 reads as violent growth and shrinkage. It is neither: the list is rebuilt every
