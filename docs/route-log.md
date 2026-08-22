@@ -217,3 +217,14 @@ A gap in the numbering means a roll was skipped.
 - roll #198: **EXPLOIT** (drew 0.339 vs eps 0.3) -> `A211` [witness `ec32ee`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #199: **EXPLOIT** (drew 0.727 vs eps 0.3) -> `A218` [witness `d1f25f`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #200: **EXPLOIT** (drew 0.323 vs eps 0.3) -> `A225` [witness `58489f`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #201: **EXPLORE** (drew 0.252 vs eps 0.3) -> `A97` [witness `09f9e7`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #202: **EXPLORE** (drew 0.158 vs eps 0.3) -> `A218` [witness `bb70fb`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #203: **EXPLOIT** (drew 0.383 vs eps 0.3) -> `T162` [witness `f5ce42`] — USER-DIRECTED (no roll consumed to open it). THE USER'S WORDS: "surely you can also keep a backl
+- roll #204: **EXPLORE** (drew 0.018 vs eps 0.3) -> `A225` [witness `510e67`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #205: **EXPLOIT** (drew 0.951 vs eps 0.3) -> `T166` [witness `a17729`] — USER-DIRECTED (no roll consumed to open it). IT IS CHEAPER THAN IT LOOKS: <archive>/scene-refs/ 
+- roll #206: **EXPLORE** (drew 0.225 vs eps 0.3) -> `A211` [witness `df23b0`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #207: **EXPLOIT** (drew 0.688 vs eps 0.3) -> `T166` [witness `550173`] — USER-DIRECTED (no roll consumed to open it). IT IS CHEAPER THAN IT LOOKS: <archive>/scene-refs/ 
+- roll #208: **EXPLOIT** (drew 0.370 vs eps 0.3) -> `T166` [witness `b12a9f`] — USER-DIRECTED (no roll consumed to open it). IT IS CHEAPER THAN IT LOOKS: <archive>/scene-refs/ 
+- roll #209: **EXPLOIT** (drew 0.740 vs eps 0.3) -> `T166` [witness `2e2ac5`] — USER-DIRECTED (no roll consumed to open it). IT IS CHEAPER THAN IT LOOKS: <archive>/scene-refs/ 
+- roll #210: **EXPLOIT** (drew 0.367 vs eps 0.3) -> `A219` [witness `122178`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #211: **EXPLOIT** (drew 0.578 vs eps 0.3) -> `T165` [witness `819d05`] — USER-DIRECTED, drafted in a side session and ENTERED HERE WITH ITS PREREQUISITE NOW CHECKED. The

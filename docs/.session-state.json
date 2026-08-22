@@ -1,8 +1,14 @@
 {
- "start": 1787365525.622725,
- "deadline": 1787366305.622725,
- "task": "make session.py refuse a premature close",
- "shelf": [],
+ "start": 1787371259.4229944,
+ "deadline": 1787373359.4229944,
+ "requested": 1800,
+ "task": "",
+ "shelf": [
+  {
+   "what": "install the chosen attract/title/tutorial frames into the README",
+   "why": "needs one explicit yes from the user: daily_push.sh cron-pushes at 18:30, so committing game frames publishes them. Frames are chosen and preserved to scene-refs; everything else about T166 is done, and no other work depends on it"
+  }
+ ],
  "blocks": [],
  "roll_at_start": 200,
  "entries_at_start": [
@@ -265,6 +271,7 @@
   "A343",
   "A344",
   "A345",
+  "A346",
   "A36",
   "A38",
   "A39",
@@ -424,6 +431,11 @@
   "T159",
   "T16",
   "T160",
+  "T161",
+  "T162",
+  "T163",
+  "T164",
+  "T165",
   "T17",
   "T18",
   "T19",
@@ -525,5 +537,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
