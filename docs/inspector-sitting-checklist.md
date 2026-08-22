@@ -82,6 +82,10 @@ design, so your description is the only evidence that will exist.**
    37/70/88 s; closed reached 190 s (A288). One had *zero* input, so this is not
    about the keyboard.
 2. **NEVER `View Framebuffer`.** See above.
+2b. **NEVER tick `View Transform Groups` or `View Native Samplers` (A318).** They look like inert
+   display toggles. Both enable an index into a `std::vector` with **no size check** — three sites,
+   verified in source. Not known to have fired, but the panel already kills runs for undiagnosed
+   reasons and these are two more ways it can.
 3. **DO NOT PAUSE. DO NOT CLICK RESUME.** Resume has killed three runs.
 4. **DRAG, DO NOT TYPE.** START is now INSERT rather than ENTER (T152), so the
    old ENTER trap should be gone — but that remap is **not yet confirmed**, so

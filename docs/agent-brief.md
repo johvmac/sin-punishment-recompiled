@@ -12,12 +12,21 @@
 Five rules, and every one of them was paid for by the trial in T157, not
 reasoned out in advance:
 
-1. **Sonnet 5 or better for anything involving a JUDGEMENT — including
-   judgements that look mechanical.** "Is this array access guarded?" looks
+1. **Default to FABLE 5. Opus 5 when a MISS is expensive. Never below
+   Sonnet 5 for anything requiring a VERDICT** (T158, measured across four
+   models on one prompt). Fable matched Sonnet's correctness at a third of
+   the tool calls and found more; Opus found three hazards no other model
+   did, in a panel the user physically operates. **Correctness saturates at
+   Sonnet — above it you buy COVERAGE, which is worth paying for on a
+   safety sweep and not much else.** Judgements that look mechanical are
+   still judgements: "is this array access guarded?" looks like grep and is
+   not.** "Is this array access guarded?" looks
    like grep and is not. In the trial Haiku 4.5 found the right file and the
    right line and then classified it **backwards**, closing with a clean bill
    of health on code that had crashed the game twice that morning. **The
    retrieval was fine; the verdict was wrong, and the verdict was the point.**
+   It also used the MOST tool calls of any model tried. **Effort does not
+   track correctness** (T158).
 2. **Two independent runs minimum**, or treat the result as a SAMPLE and say so
    in the entry. Two models on one prompt returned opposite verdicts on the
    same line.
