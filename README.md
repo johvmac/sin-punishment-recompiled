@@ -23,24 +23,71 @@ and symbol map into a native C++ executable.
 
 ## Project status
 
+**Last updated 2026-08-22.** Every claim below is dated and separated into what is
+*measured*, what is *inferred*, and what is *open*. Findings on this project have
+been overturned within hours more than once, so nothing here is presented as
+settled unless it was measured.
+
 > [!WARNING]
-> This is an active reverse-engineering repository, not a finished release. It does
-> not ship a ROM, game assets, or a redistributable playable build. The build reaches
-> a live, correctly-rendering title screen (see the 2026-08-13 update below), but
-> whether controller/keyboard input actually reaches the game from there is not yet
-> verified. Full gameplay, menus, two-player support, enhancement features, and
-> release QA are all still ahead.
+> This is an active reverse-engineering repository, not a finished release. It ships
+> no ROM, no game assets, and no playable build. **The game is not playable.** It boots,
+> renders, and runs for roughly three and a half minutes before display-list submission
+> stops. Sound is silent throughout.
 
-### At a glance
+### What actually happens when you run it
 
-| Area | Current state |
-| --- | --- |
-| Toolchain | N64Recomp and RSPRecomp build locally; CMake/Ninja tree is wired |
-| Reverse engineering | Symbol sections and custom audio microcode have been mapped |
-| Runtime | Native window, RT64 presentation, audio callbacks, input callbacks, and overlays are integrated |
-| Visual milestone | Reached: a live, correctly-rendering title screen, reproduced on the current build (2026-08-13) |
-| Playability | Phase 3 validation is in progress; input handling past the title screen not yet verified |
-| Release | No packaged build, ROM distribution, or final QA pass |
+| Section | State | How we know |
+| --- | --- | --- |
+| Opening publisher logos | **Never appear.** The screen is black where Nintendo and Treasure should be | Reference capture shows both, 4.8–8.8 s; ours shows neither |
+| Attract sequence | **Plays, and mostly renders correctly.** This is the healthiest part of the build | Frame captures; it is used as the control in most comparisons |
+| Title screen | **Reached and renders** | Confirmed on the current build |
+| Tutorial / first playable scene | **Character and two structures draw; the background scenery does not.** A subset of the 3D scene is missing, not all of it | Measured: the geometry *is* submitted and *is* transformed |
+| Audio | **Silent — every sample is zero**, across 2.17 million samples | Measured on a 40 s capture |
+| Run length | **Submission stops at ~208 s** and the picture freezes | Measured across multiple runs |
+
+### What is measured, and what is only suspected
+
+**Measured:** the missing scenery is submitted to the renderer and each copy is
+separately and distinctly transformed — so it is not being drawn on top of itself.
+The audio microcode is told a yield has been requested on every check and quits
+before generating anything. The tutorial never clears its colour buffer, only depth.
+
+**Inferred, not proven:** that frame interpolation is unimplemented rather than
+broken (this renderer appears to need per-object transform tags that nobody has
+written for this game). That the difficulty here is concentrated in compressed
+overlays and symbol boundaries rather than in anything unusual about the renderer.
+
+**Open:** why the submitted scenery never reaches the screen; why the audio path
+deadlocks when the yield flag is set honestly; why submission stops.
+
+## How you could help
+
+If you know any of the following, you would likely save weeks. Each is a specific
+question rather than a general appeal, and each has a stated way to prove it wrong.
+
+1. **RSP audio microcode.** The recompiler pins `SP_STATUS` so the SIG0 (yield-request)
+   bit always reads set. The audio ucode polls it, concludes a yield is pending, writes
+   an acknowledgement and breaks — every task, so nothing is ever generated. The runtime
+   states in its own comments that yields are ignored and tasks are never yielded, so the
+   honest value is 0 — **and 0 deadlocks on the first audio task, reproducibly.** The same
+   emitter also pins the RSP semaphore to "always acquired", which is our current suspect.
+   *What would help: why that path deadlocks.*
+
+2. **RT64 frame interpolation.** Object matching between frames appears to rely on
+   per-object transform IDs supplied by the port. Without them, matching falls back to a
+   greedy nearest-neighbour pairing with no identity and no distance limit. Two reference
+   projects ship large hand-written transform-tagging patch sets; we have none.
+   *What would help: confirming that reading, and how tags are normally assigned.*
+
+3. **A scene that clears depth but never colour.** Measured, repeatedly, and unexplained.
+   *What would help: circumstances under which an N64 title legitimately does this.*
+
+> [!NOTE]
+> **This project is AI-assisted.** That is disclosed because it is materially relevant:
+> upstream N64Recomp projects prohibit AI-generated contributions and have asked us not
+> to file AI-written issue reports, which is why nothing from here is submitted upstream
+> and why all patches stay local. If you contribute, your work is your own — but you
+> should know the context before spending time.
 
 ## Progress
 
