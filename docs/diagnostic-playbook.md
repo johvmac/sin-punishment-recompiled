@@ -2818,6 +2818,69 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `audit_misses.py` — did the audit catch the things that went wrong? (added 2026-08-23, T172)
+
+**Purpose.** `audit.py` has no `--self-check` (T171). Writing it one is the
+obvious fix and it is **the trap**: a control written in the same sitting, from
+the same reading of the same source, by the same reader, inherits whatever that
+reader misunderstood. That is why T153's control was VOID and why the agent
+brief says to seed a control from ground truth, never from one's own prior
+source reading.
+
+**So this invents nothing.** The ledger already holds the experiments: entries
+that were later withdrawn, corrected, refuted or scope-flagged. Each is a fault
+that really happened, in a real window. The only question per entry is whether
+an audit flagged it.
+
+**Three verdicts, and the middle one matters:**
+
+| verdict | meaning |
+|---|---|
+| `CAUGHT` | flagged, and the flag names the thing it was wrong about |
+| `CAUGHT-OTHER` | flagged for a *different* reason — right by accident, not a catch |
+| `MISSED` | no audit ever flagged it |
+
+**What it deliberately refuses to decide:** whether a `MISSED` entry was
+*catchable*. That turns on whether the fault was visible at the time or only
+became visible when a later measurement contradicted it — and it is exactly the
+call the author of both the mistake and the checker must not make alone. It is
+`--sitting` output, for a human.
+
+**Two defects were found by reading its own output rather than its code**, and
+both are recorded because both are instructive:
+
+* **It matched vocabulary, not subject.** The first version swept in 30 entries
+  that were *doing* the correcting — A156 corrects A154, A177 refutes A176's
+  suspect, T57 is a method entry about withdrawals — plus A97, whose cell merely
+  says "Superseded costing follows". **A358's failure exactly.** Population fell
+  81 → 51 once the marker had to *govern* the cell.
+* **A control that could not fail.** Deleting the VOID-audit exclusion left the
+  suite passing 9/9, because both real VOID blocks carry zero flag lines, so no
+  control over the real file could ever discriminate. Closed by **injection** — a
+  synthetic log whose VOID block does carry a flag. Found by running the break,
+  not by reading the code (T65/T71 gate 2).
+
+**11 controls, verified to FAIL:**
+
+| break | controls that fired |
+|---|---|
+| count VOID audits as real | 1 — the injected case |
+| drop flag reasons, keep ids | 3 — reason kept, known catch, all-three-verdicts |
+| loosen the subject test to a word-search | 1 — the named negative control |
+
+The named negative control replaced a "<25% of the file" size check that the
+loosened matcher passed anyway — **a threshold is not a control if the failure
+it is meant to catch slips under it.**
+
+```bash
+scripts/audit_misses.py             # the table
+scripts/audit_misses.py --sitting   # only rows needing a human call
+scripts/audit_misses.py --dry-run
+scripts/audit_misses.py --self-check   # 11/11
+```
+
+---
+
 ## `eaf_read.py` — the user's annotations, readable by a tool (added 2026-08-22, T150)
 
 **Purpose.** T101 settled time-aligned annotation as the return path for the two

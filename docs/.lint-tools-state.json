@@ -7,6 +7,7 @@
   "audit.py",
   "audit_l2.py",
   "audit_l3.py",
+  "audit_misses.py",
   "auto_label_fix.py",
   "auto_stub_pass.py",
   "away.py",
@@ -72,7 +73,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 25,
+ "runs": 26,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
