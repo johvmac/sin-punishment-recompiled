@@ -162,6 +162,22 @@ if [[ "${1:-}" == "--self-check" ]]; then
     chk "the run log's rc AND verdict reach the permanent record" "$got" \
         "would record rc=0, or drop the verdict, for a crashed run"
 
+    # 8. THE MEDIA MUST REACH THE RECORD, NOT JUST THE TERMINAL (T150). The
+    #    stanza named the run LOG alone, while run_game.sh printed the finished
+    #    .mp4 to the screen where it died with the scrollback. The agreed return
+    #    path is time-aligned annotation of that recording (A266), which cannot
+    #    start if the permanent record does not say which file.
+    #    SAME FALSE-PASS SHAPE AS 6 AND 7, so the same defence: check the STANZA
+    #    TEMPLATE, not the resolution step -- resolving a path the record never
+    #    prints is precisely the failure being replaced. Needles assembled from
+    #    parts, and BOTH media are required separately, because our .mp4 carries
+    #    no audio track: a check satisfied by the video alone would vouch for
+    #    handing the user a silent film and leaving A97 where it is.
+    _vid="VIDEO=\$(""ls"; _vln="**vi""deo:**"; _sln="**sou""nd:**"
+    got=0; grep -qF "$_vid" "$0" && grep -qF "$_vln" "$0" && grep -qF "$_sln" "$0" && got=1
+    chk "video AND sound paths reach the permanent record (T150)" "$got" \
+        "the annotator gets a text log and is told to go find the recording"
+
     echo; echo "$((n-fails))/$n controls pass"
     [[ $fails -eq 0 ]] || exit 1
     exit 0
@@ -218,6 +234,23 @@ else
 fi
 "$ROOT/scripts/audio_capture.sh" finish 2>/dev/null || true
 
+# THE TWO THINGS AN ANNOTATOR ACTUALLY NEEDS, AND THEY WERE BEING THROWN AWAY
+# (T150). The stanza below named the run LOG and nothing else; run_game.sh
+# prints the finished .mp4 to the TERMINAL, where it is lost the moment the
+# scrollback goes. The agreed return path is time-aligned annotation of the
+# recording (T101, and A266 is the worked example) -- which is impossible if
+# the permanent record does not say WHICH FILE. Resolved here rather than
+# parsed out of run_game.sh's output, because a path scraped from a log line
+# breaks the next time that line is reworded.
+#
+# Audio finalises to .flac beside the .wav, and our .mp4 has NO audio track --
+# so both are named separately and deliberately. A player handed only the video
+# annotates a silent film and A97 stays exactly where it is.
+VIDEO=$(ls -1t "$EVID"/run_game-*.mp4 2>/dev/null | head -1)
+SOUND="${AUDIO%.wav}.flac"
+[[ -f "$SOUND" ]] || SOUND="$AUDIO"
+[[ -f "$SOUND" ]] || SOUND=""
+
 # THE OUTCOME COMES FROM run-log.tsv, NOT from run_game.sh's exit status.
 # The first observed run recorded "rc=0" in this file while run-log.tsv said
 # "158 139 CRASHED" -- run_game.sh exits 0 having successfully run a game that
@@ -251,6 +284,8 @@ HDR
 cat >> "$LOG" <<EOF
 ## $STAMP — build \`$HASH\`, ${SECS}s requested, rc=$RC ($VERDICT)
 - run log: \`$(basename "$RUNLOG")\`
+- **video:** ${VIDEO:-\*\*NOT RECORDED\*\* — nothing to annotate}
+- **sound:** ${SOUND:-\*\*NOT CAPTURED\*\* — A97 cannot be answered from this run}
 - **audio:** $A_AUDIO
 - **last 10s / scene:** $A_SCENE
 - **title screen:** $A_TITLE
