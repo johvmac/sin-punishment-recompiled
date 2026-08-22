@@ -196,3 +196,12 @@ A gap in the numbering means a roll was skipped.
 - roll #177: **EXPLORE** (drew 0.232 vs eps 0.3) -> `A211` [witness `94129a`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #178: **EXPLOIT** (drew 0.668 vs eps 0.3) -> `A225` [witness `146d22`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #179: **EXPLOIT** (drew 0.326 vs eps 0.3) -> `A218` [witness `0962fa`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #180: **EXPLORE** (drew 0.163 vs eps 0.3) -> `A97` [witness `b2bf62`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #181: **EXPLORE** (drew 0.299 vs eps 0.3) -> `A219` [witness `42a7f0`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #182: **EXPLOIT** (drew 0.999 vs eps 0.3) -> `T151` [witness `13ecc1`] — USER-STATED POLICY 2026-08-22: RECURRING OBLIGATIONS MUST NOT ACCUMULATE ACROSS IDLE DAYS. "Once
+- roll #183: **EXPLORE** (drew 0.206 vs eps 0.3) -> `A225` [witness `9d4e0d`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #184: **EXPLOIT** (drew 0.994 vs eps 0.3) -> `A211` [witness `ed37e5`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #185: **EXPLOIT** (drew 0.798 vs eps 0.3) -> `A218` [witness `42a9da`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #186: **EXPLOIT** (drew 0.669 vs eps 0.3) -> `A219` [witness `bb5162`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #187: **EXPLORE** (drew 0.108 vs eps 0.3) -> `A218` [witness `4d65bd`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #188: **EXPLORE** (drew 0.260 vs eps 0.3) -> `A211` [witness `f8c82e`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
