@@ -306,3 +306,15 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
 - suppressed as superseded (2): A350 (single-run, justified in the entry); A346 (single-run, justified in the entry)
 - nothing flagged (quiet streak 2; at 3, halve the frequency)
 
+## Audit #21 — since 62ec9422
+- ledger: 548 entries (+16 this window), 38 withdrawn
+- rolls: 10 this window; runs: 0 (0 exited early, 0 contaminated)
+- suppressed as superseded (4): A363 (single-run, justified in the entry); A361 (single-run, justified in the entry); A356 (single-run, justified in the entry); A353 (single-run, justified in the entry)
+- nothing flagged (quiet streak 3; at 3, halve the frequency)
+
+<!-- Audit #22 WITHDRAWN 2026-08-22 (T171): it was a re-run of audit.py to test a
+     change to audit.py ITSELF, over a 1-entry / 0-roll window. The script's own
+     empty-window guard only fires at 0 entries AND 0 rolls, so it did not catch
+     this, and the run pushed the quiet streak 3 -> 4. The streak drives the audit
+     frequency, so a self-inflicted increment is exactly what that guard exists to
+     prevent. State restored to #21 / streak 3. -->

@@ -101,9 +101,30 @@ def git(*args):
 
 
 def parse_rows(text):
-    """id -> (status, body, evidence)."""
+    """id -> (status, body, evidence).
+
+    ROWS UNDER A NON-ENTRY HEADING ARE SKIPPED, using check_ledger's OWN
+    definition rather than a second copy. Fixed 2026-08-22 (T171): this counted
+    the 9 user-queue rows as ledger entries, so every audit header reported 548
+    where check_ledger reported 539. check_ledger's comment names this exact
+    failure -- "two definitions would let a row be an entry for one tool and not
+    for another and nobody could say which was authoritative" (T121) -- and
+    audit.py already imports SUPERSEDES_RE from there. This closes the gap.
+    """
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location(
+        "_cl_rows", Path(__file__).resolve().parent / "check_ledger.py")
+    _cl = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_cl)
+
     out = {}
+    skipping = False
     for line in text.split("\n"):
+        if line.startswith("## "):
+            skipping = _cl.is_non_entry_section(line)
+            continue
+        if skipping:
+            continue
         m = ROW.match(line)
         if m and m.group(1) not in out:
             out[m.group(1)] = (m.group(2), m.group(3), m.group(4))

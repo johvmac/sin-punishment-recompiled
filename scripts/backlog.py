@@ -37,7 +37,7 @@ Usage:
     scripts/backlog.py --all                # include closed
     scripts/backlog.py next <minutes-left>  # a job, IF a checkpoint no longer fits
     scripts/backlog.py add "<job>" "<why it is owed>"
-    scripts/backlog.py close B3
+    scripts/backlog.py close BL3
     scripts/backlog.py --check              # the added-vs-closed control
     scripts/backlog.py --dry-run add ...    # print what it would write, change nothing
     scripts/backlog.py --self-check
@@ -47,6 +47,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
+# IDs ARE `BL<n>`, NOT `B<n>` (T171). The ledger already has a B family, and
+# backlog B3/B6 collided with ledger B3/B6 -- both existed, meaning different
+# things, so a bare "B3" was genuinely ambiguous. Caught by check_ledger's
+# citation checker one day after this tool was built. Do not "simplify" it back.
 ROOT = Path(__file__).resolve().parent.parent
 BACKLOG = ROOT / "docs" / "BACKLOG.md"
 
@@ -55,7 +59,7 @@ BACKLOG = ROOT / "docs" / "BACKLOG.md"
 # so the two cannot disagree about when rolling is still possible.
 CHECKPOINT_SECS = 3 * 60
 
-ROW = re.compile(r"^\|\s*(B\d+)\s*\|\s*([\d-]+)\s*\|\s*(\S+[^|]*?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$")
+ROW = re.compile(r"^\|\s*(BL\d+)\s*\|\s*([\d-]+)\s*\|\s*(\S+[^|]*?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$")
 
 
 def rows(text=None):
@@ -109,8 +113,8 @@ def cmd_next(mins):
 
 
 def _next_id(rs):
-    n = max([int(r["id"][1:]) for r in rs], default=0)
-    return f"B{n + 1}"
+    n = max([int(r["id"][2:]) for r in rs], default=0)
+    return f"BL{n + 1}"
 
 
 def cmd_add(job, why, dry):
@@ -198,7 +202,7 @@ def self_check():
         BACKLOG = Path(td) / "BACKLOG.md"
         BACKLOG.write_text(
             "| id | opened | status | job | why it is owed |\n|---|---|---|---|---|\n"
-            "| B1 | 2026-08-01 | OPEN | a job that is owed | because something drifted |\n")
+            "| BL1 | 2026-08-01 | OPEN | a job that is owed | because something drifted |\n")
 
         chk("parses an existing row", len(rows()) == 1, "row not parsed")
 
@@ -221,15 +225,15 @@ def self_check():
             (cmd_add("another job entirely", "owed because a flag went unanswered", True) == 0
              and len(rows()) == 2), "dry run mutated the file")
 
-        chk("close marks an item closed", cmd_close("B1", False) == 0, "could not close")
-        chk("close REFUSES an already-closed item", cmd_close("B1", False) == 2,
+        chk("close marks an item closed", cmd_close("BL1", False) == 0, "could not close")
+        chk("close REFUSES an already-closed item", cmd_close("BL1", False) == 2,
             "double-closing accepted, so counts would drift")
-        chk("close REFUSES an unknown id", cmd_close("B99", False) == 2, "closed a phantom")
+        chk("close REFUSES an unknown id", cmd_close("BL99", False) == 2, "closed a phantom")
 
         # The control must FIRE on a wish-list, not merely exist.
         BACKLOG.write_text(
             "| id | opened | status | job | why it is owed |\n|---|---|---|---|---|\n"
-            + "".join(f"| B{i} | 2026-08-01 | OPEN | job number {i} | owed for a real reason |\n"
+            + "".join(f"| BL{i} | 2026-08-01 | OPEN | job number {i} | owed for a real reason |\n"
                       for i in range(1, 7)))
         import io, contextlib
         buf = io.StringIO()
@@ -240,8 +244,8 @@ def self_check():
         buf2 = io.StringIO()
         BACKLOG.write_text(
             "| id | opened | status | job | why it is owed |\n|---|---|---|---|---|\n"
-            "| B1 | 2026-08-01 | OPEN | a job | owed for a real reason |\n"
-            "| B2 | 2026-08-01 | CLOSED 2026-08-02 | another | owed for a real reason |\n")
+            "| BL1 | 2026-08-01 | OPEN | a job | owed for a real reason |\n"
+            "| BL2 | 2026-08-01 | CLOSED 2026-08-02 | another | owed for a real reason |\n")
         with contextlib.redirect_stdout(buf2):
             cmd_check()
         chk("--check is QUIET on a backlog that drains",
