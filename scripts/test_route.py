@@ -193,6 +193,39 @@ def main():
         if "_b = None" not in _branch:
             fails.append("FAIL: away branch does not fail towards ASKING — a broken "
                          "away module would silence the gate invisibly")
+    # LOAD-BEARING PRIOR WORK (T173). Seeded from the failure that happened,
+    # not from my reading of route.py: roll #223 re-derived A237, which had
+    # resolved A225's central ambiguity 89 rolls earlier, because the footer
+    # showed the four NEWEST citers and A237 sat 24th of 28. Nineteen entries
+    # rest on A237 -- it was the second most load-bearing entry on that target
+    # and the least visible. The control asserts the block would have named it.
+    import io, contextlib
+    _pw = getattr(route, "_print_recent_work_on", None)
+    if _pw is None:
+        fails.append("FAIL: route._print_recent_work_on is gone — the prior-work "
+                     "footer that prevents re-derivation is off")
+    else:
+        _buf = io.StringIO()
+        with contextlib.redirect_stdout(_buf):
+            _pw("A225")
+        _out = _buf.getvalue()
+        if "MOST LOAD-BEARING" not in _out:
+            fails.append("FAIL: no load-bearing block — the footer shows only recency, "
+                         "which is what let roll #223 re-derive A237")
+        if "A237" not in _out:
+            fails.append("FAIL: the A225 footer does not name A237 — the exact entry "
+                         "re-derived at roll #223 is still invisible")
+        # THE ID COLUMN, not the text. A first version searched the whole
+        # recency block for "A237" and fired because A366's CLAIM mentions it
+        # ("this RE-DERIVES A237") -- matching vocabulary where the subject was
+        # meant, which is the third time that shape has bitten in two days.
+        _head = _out.split("MOST LOAD-BEARING")[0]
+        _listed = {ln.split()[0] for ln in _head.split("\n")
+                   if ln.startswith("          ") and ln.split()}
+        if "A237" in _listed:
+            fails.append("FAIL: A237 appears in the RECENCY list, so this fixture no "
+                         "longer tests what it was built for — re-seed it")
+
         if src.count("REFUSING TO ROLL") != 1:
             fails.append("FAIL: the refusal is duplicated or gone — away must leave "
                          "exactly one gate, not fork it")
@@ -378,7 +411,7 @@ def main():
         fails.append("FAIL: the roll does not record a routable baseline — "
                      "check_ledger would compare against a stale number")
 
-    total = len(POSITIVE) + len(NEGATIVE) + 18
+    total = len(POSITIVE) + len(NEGATIVE) + 21
     if dropped:
         print(f"discrimination: OK — anchoring drops {sorted(dropped)} "
               f"({len(old_hits)} -> {len(new_hits)} open rows)")
@@ -392,7 +425,7 @@ def main():
     print(f"\n{total - len(fails)}/{total} correct "
           f"({len(POSITIVE)} positive, {len(NEGATIVE)} negative, 1 discrimination, "
           f"1 closing-requirement, 1 opening-requirement, 1 staleness, 1 tie-break, "
-          f"1 witness, 1 observed-run gate, 4 away-suppression, 2 prior-work, "
+          f"1 witness, 1 observed-run gate, 4 away-suppression, 5 prior-work, "
           f"3 entry-count, 2 routable)")
     return 1 if fails else 0
 

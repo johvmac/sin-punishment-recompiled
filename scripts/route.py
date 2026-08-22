@@ -348,7 +348,37 @@ def _print_recent_work_on(target, n=4):
               f"({len(hits)} total) — EXPAND BEFORE PLANNING, NOT AFTER:")
         for eid, tag, claim in hits[:n]:
             print(f"          {eid:6} {tag[:20]:20} {claim[:88]}")
-        print(f"          scripts/ledger.py --show {' '.join(e for e,_,_ in hits[:n])}")
+        shown = [e for e, _, _ in hits[:n]]
+
+        # AND THE LOAD-BEARING PRIOR WORK, WHICH IS NOT THE SAME LIST (T173).
+        #
+        # The recency list is what a target's work looked like LAST. It is not
+        # what ANSWERED it. Roll #223 re-derived A237 -- which had resolved
+        # A225's central ambiguity 89 rolls earlier, in almost the same words --
+        # because A237 sat at position 24 of 28 newest-first and the footer
+        # showed four. **19 other entries rest on A237; it was the second most
+        # load-bearing entry on that target and the least visible.**
+        #
+        # So rank the citers by how much OTHER work cites THEM. The entry
+        # everything else leans on is the one most likely to already contain
+        # the answer, and recency is uncorrelated with that.
+        ids = [r[0] for r in rows]
+        blob = {r[0]: (r[4] or "").upper() for r in rows}
+        weight = {}
+        for eid, _, _ in hits:
+            pe = re.compile(rf"\b{re.escape(eid.upper())}\b")
+            weight[eid] = sum(1 for o in ids
+                              if o != eid and pe.search(blob.get(o, "")))
+        heavy = [h for h in sorted(hits, key=lambda h: -weight[h[0]])
+                 if h[0] not in shown and weight[h[0]] > 0][:2]
+        if heavy:
+            print(f"        MOST LOAD-BEARING PRIOR WORK ON {t} — what other entries "
+                  f"REST ON, which is NOT the newest:")
+            for eid, tag, claim in heavy:
+                print(f"          {eid:6} [{weight[eid]:>2} rest on it] "
+                      f"{tag[:16]:16} {claim[:70]}")
+            shown += [e for e, _, _ in heavy]
+        print(f"          scripts/ledger.py --show {' '.join(shown)}")
     except Exception as e:
         # NOT `pass`. A silent failure here means the citation list quietly
         # stops appearing and the duplication it prevents comes back with no
