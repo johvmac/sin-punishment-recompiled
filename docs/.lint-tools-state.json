@@ -9,6 +9,8 @@
   "audit_l3.py",
   "auto_label_fix.py",
   "auto_stub_pass.py",
+  "away.py",
+  "backlog.py",
   "backup_drive.sh",
   "boot_screen_check.sh",
   "bootstrap.sh",
@@ -69,7 +71,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 22,
+ "runs": 24,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
