@@ -234,3 +234,4 @@ A gap in the numbering means a roll was skipped.
 - roll #215: **EXPLOIT** (drew 0.905 vs eps 0.3) -> `A219` [witness `ff9681`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #216: **EXPLORE** (drew 0.257 vs eps 0.3) -> `A97` [witness `312acb`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
 - roll #217: **EXPLOIT** (drew 0.440 vs eps 0.3) -> `T165` [witness `c9305f`] — USER-DIRECTED, drafted in a side session and ENTERED HERE WITH ITS PREREQUISITE NOW CHECKED. The
+- roll #218: **EXPLOIT** (drew 0.376 vs eps 0.3) -> `A218` [witness `b2949c`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
