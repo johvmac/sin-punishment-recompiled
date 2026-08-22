@@ -148,6 +148,18 @@ live rather than pausing, and items are ordered below so a crash costs the least
 The panel cannot leave the game window and the window is not resizable
 (nothing calls `makeResizable()`).
 
+**THREE CONTROLS ARE NOW KNOWN-UNSAFE TO TOUCH, all found by reading source
+rather than by crashing:**
+* **`View Framebuffer` — MEASURED, it killed two runs (A310).** Setting it to 0
+  in the tutorial SIGSEGVed immediately, twice. Index 1 is NOT known to be
+  safer. **Read its label; never drag it.**
+* **`View Transform Groups` and `View Native Samplers` — READ, not yet fired
+  (A318).** Each enables an index into a `std::vector` with **no size check**,
+  three sites. They look like inert display toggles. **Do not tick them.**
+
+The full sitting procedure is `docs/inspector-sitting-checklist.md` — read that,
+not this preamble, before working the panel.
+
 | id | status | do this at the keyboard | what each outcome means | serves |
 |---|---|---|---|---|
 | U1 | SWEPT 2026-08-21 -> A284 (and A285) | **In ONE tutorial run, read `draw calls` off the panel at two known times — early (~the first tutorial frame) and ~30 s later. Write down both numbers AND roughly when.** Prefer reading live; only use the Pause button if the live number is unreadable, and write the first number down BEFORE touching Resume | **Constant (within a few %) → corroborates the flat submitted list from the renderer's own side, and A247's never-cleared mechanism stands. Climbing materially → A235 is withdrawn and the flat-list measurement is wrong.** A245 got 223 and 256 but from DIFFERENT runs at unknown points, which is the sampling-to-quantifier error A93/A161/A223 all record — **two numbers from one run at known times is the whole point** | A219, A235, A247, A245 |

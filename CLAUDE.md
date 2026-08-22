@@ -104,6 +104,18 @@ conclusion never followed. And **scene identity has been wrong twice from
 sampling** (A93, A161 — the observation right, the quantifier wrong). **A disagreement from the user becomes its own ledger entry,
 never a quiet correction.**
 
+## Sub-agents are sanctioned, with measured limits (T157/T158)
+
+**`docs/agent-brief.md` is the single source** — Part 1 decides whether to spawn
+one, Part 2 is pasted into the prompt verbatim. Do not restate its rules
+anywhere; a second copy goes stale.
+
+The three that must be true before spawning: **default Fable 5, Opus 5 when a
+miss is expensive, never below Sonnet 5 for anything requiring a verdict**; ask
+for **lists, not conclusions**, because a narrative costs the same to check as
+to derive; and **nothing enters the ledger without my own reads** — an agent's
+absence is never evidence.
+
 ## When I need the user, I STOP (T154)
 
 **Their instruction, 2026-08-22.** The moment the work needs their hands, eyes
