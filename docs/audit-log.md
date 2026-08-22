@@ -293,3 +293,10 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - A316: rests on ONE run (warp-nointerp.log). Repeat it or say why one is enough.
 - suppressed as superseded (5): A326 (single-run, justified in the entry); A325 (single-run, justified in the entry); A324 (single-run, justified in the entry); A323 (single-run, justified in the entry); A322 (single-run, justified in the entry)
 
+## Audit #19 — since 212c427e
+- ledger: 519 entries (+19 this window), 38 withdrawn
+- rolls: 11 this window; runs: 0 (0 exited early, 0 contaminated)
+- **resolved since last audit (1):** A316 (single-run, open since #18)
+- suppressed as superseded (5): A344 (single-run, justified in the entry); A343 (single-run, justified in the entry); A342 (single-run, justified in the entry); A331 (single-run, justified in the entry); A329 (single-run, justified in the entry)
+- nothing flagged (quiet streak 1; at 3, halve the frequency)
+

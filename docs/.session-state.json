@@ -1,10 +1,15 @@
 {
- "start": 1787360117.8208857,
- "deadline": 1787361917.8208857,
- "task": "",
- "shelf": [],
+ "start": 1787363712.74388,
+ "deadline": 1787365512.74388,
+ "task": "record the user's priority note on frame interpolation",
+ "shelf": [
+  {
+   "what": "the matrix-VALUE probe: log each G_MTX's resolved 64-byte matrix (hash or translation row) and count DISTINCT transforms per tutorial frame against the 115 placements",
+   "why": "needs a probe edit at events.cpp:780 (op 0xDA, w1 is the segmented pointer, resolve() is already in scope), a 13s runtime-only build and a ~165s run to reach the tutorial -- about 15 minutes with zero margin, and a failed attempt would leave an unfinished edit in the submodule working tree. Everything else this session was zero-run, so nothing else is blocked by shelving it."
+  }
+ ],
  "blocks": [],
- "roll_at_start": 188,
+ "roll_at_start": 194,
  "entries_at_start": [
   "A1",
   "A10",
@@ -246,6 +251,18 @@
   "A324",
   "A325",
   "A326",
+  "A327",
+  "A328",
+  "A329",
+  "A330",
+  "A331",
+  "A332",
+  "A333",
+  "A334",
+  "A335",
+  "A336",
+  "A337",
+  "A338",
   "A36",
   "A38",
   "A39",
@@ -404,6 +421,7 @@
   "T158",
   "T159",
   "T16",
+  "T160",
   "T17",
   "T18",
   "T19",
@@ -505,5 +523,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }

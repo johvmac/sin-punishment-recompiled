@@ -211,3 +211,9 @@ A gap in the numbering means a roll was skipped.
 - roll #192: **EXPLORE** (drew 0.111 vs eps 0.3) -> `T150` [witness `6e526c`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
 - roll #193: **EXPLOIT** (drew 0.480 vs eps 0.3) -> `A219` [witness `c9c40f`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #194: **EXPLOIT** (drew 0.992 vs eps 0.3) -> `A211` [witness `8deb79`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #195: **EXPLOIT** (drew 0.867 vs eps 0.3) -> `A218` [witness `df9dba`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #196: **EXPLOIT** (drew 0.676 vs eps 0.3) -> `A225` [witness `8854ae`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #197: **EXPLOIT** (drew 0.777 vs eps 0.3) -> `A219` [witness `459060`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #198: **EXPLOIT** (drew 0.339 vs eps 0.3) -> `A211` [witness `ec32ee`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #199: **EXPLOIT** (drew 0.727 vs eps 0.3) -> `A218` [witness `d1f25f`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #200: **EXPLOIT** (drew 0.323 vs eps 0.3) -> `A225` [witness `58489f`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
