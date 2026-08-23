@@ -43,6 +43,7 @@
   "overlay_map.py",
   "patch_si_stubs.py",
   "probe_stubs.py",
+  "qty.py",
   "rdram_peek.py",
   "recompile.sh",
   "regenerate.sh",
@@ -73,7 +74,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 28,
+ "runs": 29,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

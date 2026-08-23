@@ -600,6 +600,32 @@ def main():
           f"SILENT with a live blocker={p2}, fires when the blocker is finished={p3}")
     extra += 1; bad += not _ok
 
+    # VAGUE DURATION ABOUT OUR OWN HISTORY (T177). Four directions, because a
+    # checker that fires on everything is as useless as one that never fires --
+    # and "months" about the GAME's development is legitimate.
+    def _dur(body):
+        sp2 = _iu.spec_from_file_location("_cd", _fr / "scripts" / "check_ledger.py")
+        m2 = _iu.module_from_spec(sp2); sp2.loader.exec_module(m2)
+        hdr2 = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+        with _tf.TemporaryDirectory() as td:
+            f = _P(td) / "findings-ledger.md"; f.write_text("# L\n\n" + hdr2 + body)
+            m2.LEDGER = f; buf = _io.StringIO()
+            argv, _sy.argv = _sy.argv, ["check_ledger.py"]
+            try:
+                with _cl.redirect_stdout(buf): m2.main()
+            finally:
+                _sy.argv = argv
+            return "vague duration" in buf.getvalue()
+
+    d1 = _dur("| A1 | M | measured months of checkpoints ago | 2026-01-01 |\n")
+    d2 = _dur('| A2 | M | I wrote "months of checkpoints ago" once | 2026-01-01 |\n')
+    d3 = _dur("| A3 | M | the game spent months in development in 1999 | 2026-01-01 |\n")
+    d4 = _dur("| A4 | M | measured weeks ago and never fixed | 2026-01-01 |\n")
+    _dok = d1 and not d2 and not d3 and d4
+    print(f"{'ok  ' if _dok else 'FAIL'}  vague duration — fires on an assertion={d1}, "
+          f"SILENT when quoted={not d2}, SILENT about the game={not d3}, other units={d4}")
+    extra += 1; bad += not _dok
+
     total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0

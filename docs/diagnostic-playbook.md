@@ -2855,6 +2855,55 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `qty.py` — measure the quantity, do not recall it (added 2026-08-23, T177)
+
+**The failure.** I described something **four days old** as "months of
+checkpoints ago", twice, unhedged, on a project **ten days old**. The user caught
+it. Nothing in the apparatus could have: every entry carries a falsifier, which
+says what would prove a claim wrong, and a claim about elapsed time is not what
+falsifiers are aimed at.
+
+**The cause was not ignorance.** 554 entries, 230 rolls, 515 commits and ~12,000
+lines of tooling *feel* like months. I substituted the felt duration for the
+measured one — the same substitution as quoting "GAME 9 / STACK 5" from memory
+when recomputing gives 7:5 with two entries contested.
+
+**The rule, deliberately smaller than the calibration ledger it replaces:**
+> **A claim about a quantity gets the quantity MEASURED at the moment it is
+> stated** — not recalled from an earlier entry, not estimated from a sense of
+> how much has happened.
+
+**Both halves are wired, because a rule with no checker is a preference:**
+
+* **`qty.py` removes the excuse.** `age`, `since <ID>`, `between <A> <B>`,
+  `counts`. Every number one command away. 5 controls, including one asserting
+  the real ledger spans under 60 days — the exact claim that was got wrong,
+  checked against live data.
+* **`check_ledger.py` catches the lapse.** Flags vague duration language *about
+  our own history* and points here. Narrow on purpose, and tested in four
+  directions: fires on an assertion, **silent when the phrase is quoted** (T177
+  records the failure by naming it), **silent about the game's own development**
+  ("months in 1999" is legitimate), fires on other units.
+
+**It found three more instances on its first run** — beyond the one the user
+caught — in A360, A372 and A242. All three were corrected with measured figures:
+four days, three days, and "earlier in the same week". **A checker that finds
+nothing on day one is the suspect kind (T100); this one surprised us
+immediately.**
+
+**One imprecision, labelled rather than hidden:** `since <ID>` reports the first
+roll number in the row, and a correction prefix can put a *later* entry's roll
+first. The output says so. The day count is exact and is what the rule needs.
+
+```bash
+scripts/qty.py                  # age + counts
+scripts/qty.py since A179       # 4 days ago, roll #102 of 230
+scripts/qty.py between A92 A365
+scripts/qty.py --self-check     # 5/5
+```
+
+---
+
 ## Parking an item is a ONE-WAY DOOR unless something watches it (added 2026-08-23, T175)
 
 **`AWAITING THE USER` takes an item off the frontier** so the router stops

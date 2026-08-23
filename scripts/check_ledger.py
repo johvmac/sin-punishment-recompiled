@@ -1031,6 +1031,45 @@ def main():
         reminders.append(f"PARKED-ITEM check failed ({_e}) — parked items are "
                          f"unwatched again, which is the state T175 was written for.")
 
+    # 4g. VAGUE DURATION ABOUT OUR OWN HISTORY (T177).
+    #
+    # On 2026-08-23 I described something FOUR DAYS OLD as "months of checkpoints
+    # ago", twice, on a project ten days old. No existing check could catch it: a
+    # falsifier says what would prove a claim wrong, and a claim about elapsed
+    # time is not what falsifiers are aimed at.
+    #
+    # The rule this enforces is deliberately smaller than a calibration ledger:
+    # A CLAIM ABOUT A QUANTITY GETS THE QUANTITY MEASURED WHEN IT IS STATED.
+    # `scripts/qty.py` makes that one command, so this flags the phrasings that
+    # mean it was not run.
+    #
+    # NARROW ON PURPOSE: only vague units next to OUR OWN history vocabulary.
+    # "months" about the game's development is legitimate and must not fire.
+    try:
+        _vague = re.compile(
+            r"\b(months?|weeks?|ages|long ago|forever)\b[^.|]{0,40}"
+            r"\b(ago|of checkpoints|of rolls|of work|back)\b"
+            r"|\b(months?|weeks?)\s+of\s+(checkpoints|rolls|entries)\b", re.I)
+        for _l in text.split("\n"):
+            _m = ROW_RE.match(_l) if "ROW_RE" in dir() else re.match(
+                r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|", _l)
+            if not _m:
+                continue
+            _hit = _vague.search(_l)
+            # QUOTING the phrase is not asserting it. T177 records the failure by
+            # naming it, and a checker that flags the entry documenting the rule
+            # is a checker nobody will keep. Same principle as citing a withdrawn
+            # entry FOR its withdrawal.
+            if _hit and _l[max(0, _hit.start() - 1)] in "\"'\u201c\u2018":
+                _hit = None
+            if _hit:
+                reminders.append(
+                    f"{_m.group(1)}: vague duration about our own history — "
+                    f"{_hit.group(0)[:40]!r}. This project is DAYS old and does many "
+                    f"rolls per day. Measure it: scripts/qty.py since <ID> (T177).")
+    except Exception as _e:
+        reminders.append(f"DURATION check failed ({_e}) — T177's rule is unenforced.")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "
