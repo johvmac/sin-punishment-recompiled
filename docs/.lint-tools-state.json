@@ -60,6 +60,7 @@
   "shrink_shot.py",
   "snapshot_build.sh",
   "snp-shader-tool.sh",
+  "status_page.py",
   "strip_scratch_hooks.sh",
   "symbol_gaps.py",
   "test_check_ledger.py",
@@ -76,7 +77,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 33,
+ "runs": 34,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

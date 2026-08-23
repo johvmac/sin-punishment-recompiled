@@ -2875,6 +2875,42 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `status_page.py` — the user-facing status page (added 2026-08-24, T183)
+
+**Purpose.** External visibility, so knowing where the project stands does not
+depend on reading back through a chat. The user's framing set the design: make it
+useful *for making them useful to the project*.
+
+**So it is sorted by ACTIONABILITY, not by category.** Top of the page is what they
+can do right now; the bottom is trend data.
+
+**The split that earns its place is SETUP COST, not count.** The user-queue alarm
+counts items, and items are not comparable — some need a real display, a launch and
+three minutes of watching; others are ten minutes at a desk with nothing running.
+**That distinction decides whether they can act right now and it appears nowhere
+else.** It is the first thing on the page.
+
+**Generated, never hand-edited.** Every figure is read from a live file at
+generation time and the page stamps when it was made, so a stale one is obvious
+rather than quietly wrong. A hand-maintained second copy of project state is
+exactly the kind of duplicate this project already has a standing rule against.
+
+**8 controls**, including two that matter beyond correctness: the page must contain
+no external references (the artifact CSP blocks them, and a silent fallback would
+be worse than a visible failure), and ledger text must be **escaped** before it
+reaches the page — entry bodies are full of markup and angle brackets.
+
+**Republish to update:** the URL is stable as long as the same file path is
+republished from a conversation that has the URL.
+
+```bash
+scripts/status_page.py --dry-run
+scripts/status_page.py /tmp/status.html    # then publish that file
+scripts/status_page.py --self-check        # 8/8
+```
+
+---
+
 ## `ideas.py` — ideas raised and not acted on (added 2026-08-23, T182)
 
 **The failure it closes.** Three things from one week reached no file at all: a
