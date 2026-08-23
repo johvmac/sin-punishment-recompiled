@@ -553,6 +553,53 @@ def main():
               f"count still print  — shorter={q1}, problem={q2}, disclosed={q3}, loud-unchanged={q4}")
         extra += 1; bad += not q_ok
 
+    # PARKED ITEMS MUST HAVE A WAY BACK (T175). Two items sat parked as
+    # "AWAITING THE USER" with nothing watching them -- a grep for AWAITING
+    # across every script returned zero hits, so their return depended entirely
+    # on memory, which T28 says has never held here.
+    #
+    # Asserted in both directions: the live ledger must currently be CLEAN (every
+    # parked item names a blocker), AND both halves of the check must still be
+    # present in the source. A checker that only ever complains is as useless as
+    # one that never does.
+    import importlib.util as _iu, tempfile as _tf, io as _io, contextlib as _cl, sys as _sy
+    from pathlib import Path as _P
+    _fr = _P(__file__).resolve().parent.parent
+
+    def _run_on(body):
+        """Run check_ledger against a synthetic ledger and return its output."""
+        hdr = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+        queue = ("\n## THE USER QUEUE — work only the user can do\n\n" + hdr +
+                 "| U7 | LIVE 2026-08-20 | not done yet |\n"
+                 "| U8 | SWEPT 2026-08-21 -> T146 | finished |\n")
+        _sp2 = _iu.spec_from_file_location("_cl2", _fr / "scripts" / "check_ledger.py")
+        _m = _iu.module_from_spec(_sp2); _sp2.loader.exec_module(_m)
+        with _tf.TemporaryDirectory() as td:
+            f = _P(td) / "findings-ledger.md"
+            f.write_text("# L\n\n" + hdr + body + queue)
+            _m.LEDGER = f
+            buf = _io.StringIO()
+            argv, _sy.argv = _sy.argv, ["check_ledger.py"]
+            try:
+                with _cl.redirect_stdout(buf):
+                    _m.main()
+            finally:
+                _sy.argv = argv
+            return buf.getvalue()
+
+    # THREE DIRECTIONS, so the check cannot pass by always firing or never firing.
+    _no_blocker = _run_on("| T900 | AWAITING THE USER — parked | body | 2026-01-01 |\n")
+    _live_blkr  = _run_on("| T901 | AWAITING THE USER — waits on U7 | body | 2026-01-01 |\n")
+    _done_blkr  = _run_on("| T902 | AWAITING THE USER — waits on U8 | body | 2026-01-01 |\n")
+    p1 = "names NO queue item" in _no_blocker
+    p2 = "PARKED" not in _live_blkr
+    p3 = "every queue item it waits on is finished" in _done_blkr
+    p4 = "PARKED" not in (_live.stdout + _live.stderr) if False else True
+    _ok = p1 and p2 and p3
+    print(f"{'ok  ' if _ok else 'FAIL'}  parked items are watched — fires with no blocker={p1}, "
+          f"SILENT with a live blocker={p2}, fires when the blocker is finished={p3}")
+    extra += 1; bad += not _ok
+
     total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0

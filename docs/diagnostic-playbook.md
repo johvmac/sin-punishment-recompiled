@@ -2855,6 +2855,43 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## Parking an item is a ONE-WAY DOOR unless something watches it (added 2026-08-23, T175)
+
+**`AWAITING THE USER` takes an item off the frontier** so the router stops
+selecting work nobody can do. It is the right mechanism and it was used twice.
+
+**Nothing watched either of them.** A grep for `AWAITING` across every script in
+`scripts/` returned **zero hits**. Both parked items depended on someone
+remembering to bring them back — and T28 is the standing finding that every
+discipline left to memory on this project has been forgotten. T122 is the same
+shape: *a queue nothing forces you to empty is a way of feeling like you dealt
+with something.*
+
+**What the check found the moment it existed:**
+
+* Neither parked item **named the queue item it waits on**. One said in prose
+  "re-opens the moment they name tiles" — and the queue item that means was
+  sitting right there, unnamed and unreadable by any tool.
+* One was **not awaiting anything at all**. The user had *decided* it (hold the
+  screenshots) and the status cell still read `AWAITING`, so a closed decision
+  was parked as pending work.
+
+**So the rule is: parking requires a named way back.** `check_ledger.py` now
+flags a parked item that names no queue item, and flags one whose queue items
+are all `SWEPT`/`DROPPED` — that is the moment to reopen it.
+
+**The test asserts three directions, and the first version did not.** It began
+as a check that the right *strings existed in the source*, which passed happily
+with the logic disabled. Rewritten to run the checker against synthetic ledgers:
+fires with no blocker, **silent with a live blocker**, fires when the blocker is
+finished. Verified to FAIL when the check is disabled — the break was applied to
+the real file and the tree restored byte-identical, confirmed with `cmp`.
+
+**A presence check is not a behaviour check.** That is the third time in three
+days something has passed by matching text where the subject was meant.
+
+---
+
 ## `audit_misses.py` — did the audit catch the things that went wrong? (added 2026-08-23, T172)
 
 **Purpose.** `audit.py` has no `--self-check` (T171). Writing it one is the

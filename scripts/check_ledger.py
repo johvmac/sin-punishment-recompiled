@@ -988,6 +988,49 @@ def main():
         reminders.append(f"USER QUEUE could not be read ({_e}) — the nag is BLIND, "
                          f"which is worse than an empty queue. Fix before trusting it.")
 
+    # 4f. PARKED ITEMS MUST HAVE A WAY BACK (T175).
+    #
+    # `AWAITING THE USER` takes an item off the frontier so the router stops
+    # selecting work nobody can do. Two items were parked that way and NOTHING
+    # WATCHED THEM: a grep for "AWAITING" across every script returned zero
+    # hits. Their return depended entirely on my remembering — and T28 is the
+    # standing finding that every discipline left to memory here has been
+    # forgotten. T122 is the same shape: a queue nothing forces you to empty is
+    # a way of feeling like you dealt with something.
+    #
+    # So a parked item must NAME the queue item it waits on, and when that item
+    # is SWEPT or DROPPED the parked item is flagged for reopening. An item
+    # parked with no named blocker is flagged too — that is a one-way door.
+    try:
+        _park = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|\s*\**\s*AWAITING\b", re.I)
+        _ustat = {}
+        for _l in text.split("\n"):
+            _m = re.match(r"^\|\s*(U\d+)\s*\|\s*([^|]*)\|", _l)
+            if _m:
+                _ustat[_m.group(1)] = _m.group(2).strip().upper()
+        for _l in text.split("\n"):
+            _m = _park.match(_l)
+            if not _m:
+                continue
+            _eid = _m.group(1)
+            _named = sorted(set(re.findall(r"\bU\d+\b", _l)))
+            if not _named:
+                reminders.append(
+                    f"{_eid} is PARKED (awaiting the user) but names NO queue item — "
+                    f"nothing can tell when it should come back. Name the U-item it "
+                    f"waits on, or say in the entry that it is DECIDED rather than "
+                    f"awaiting (T175).")
+                continue
+            _done = [u for u in _named
+                     if _ustat.get(u, "").startswith(("SWEPT", "DROPPED"))]
+            if _done and len(_done) == len(_named):
+                reminders.append(
+                    f"{_eid} is PARKED but every queue item it waits on is finished "
+                    f"({', '.join(_done)}) — REOPEN it or say why it stays parked (T175).")
+    except Exception as _e:
+        reminders.append(f"PARKED-ITEM check failed ({_e}) — parked items are "
+                         f"unwatched again, which is the state T175 was written for.")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "
