@@ -35,6 +35,7 @@
   "gdb_trace.sh",
   "gdb_watch.sh",
   "guard_bash.py",
+  "ideas.py",
   "inject_flag_trace.py",
   "ledger.py",
   "lint_hooks.py",
@@ -75,7 +76,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 31,
+ "runs": 33,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

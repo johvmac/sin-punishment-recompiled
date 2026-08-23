@@ -590,6 +590,27 @@ def main():
             _last = json.loads(_sp.read_text()).get("last_date", "") if _sp.exists() else ""
             _due = (_last != _today) if _lvl == "L2" else (
                 not _last or (_dt.date.fromisoformat(_today) - _dt.date.fromisoformat(_last)).days >= 7)
+
+            # L2 ALSO NEEDS SOMETHING TO DIGEST (T182, the user's observation
+            # that daily tasks were piling up). L2 reads only L1's OUTPUT, so if
+            # no L1 audit has run since the last L2 there is nothing there and
+            # the nag is asking for a non-event. `audit_l2.py` already handles
+            # that gracefully -- it prints "nothing to digest" and holds its
+            # streak -- so the SCRIPT was never the problem, only the prompt.
+            #
+            # This is the ladder's own principle applied one level up: L1 is
+            # gated on ROLLS, not days. L2 is now gated on L1 BLOCKS.
+            if _due and _lvl == "L2":
+                try:
+                    _l1 = (LEDGER.parent / "audit-log.md")
+                    _n_l1 = len(re.findall(r"^## Audit #\d+ — since",
+                                           _l1.read_text(), re.M)) if _l1.exists() else 0
+                    _digested = json.loads(_sp.read_text()).get("l1_digested", -1) \
+                        if _sp.exists() else -1
+                    if _digested >= 0 and _n_l1 <= _digested:
+                        _due = False
+                except Exception:
+                    pass                    # fail towards nagging, never towards silence
             if _due:
                 reminders.append(f"{_lvl} ({_period}) audit due — run {_script} "
                                  f"(last: {_last or 'never'}).")
@@ -1123,6 +1144,29 @@ def main():
     except Exception as _e:
         reminders.append(f"CALIBRATION due-check failed ({_e}) — the table will "
                          f"never ask to be read, which is T122's shape (T180).")
+
+    # 4j. IDEAS RAISED AND NEVER ADDRESSED (T182).
+    #
+    # Deliberately NOT a daily task. The user's objection when this was proposed
+    # was that daily items were already piling up and another would add to the
+    # mass -- so it fires on a THRESHOLD and goes quiet once swept, the shape
+    # calib's due flag uses. T118 measured a 6-of-7 noise rate on a nag that
+    # fired regardless of whether it had anything to say.
+    try:
+        import importlib.util as _iu3
+        _spi = _iu3.spec_from_file_location(
+            "_ideas_due", Path(__file__).resolve().parent / "ideas.py")
+        _ki = _iu3.module_from_spec(_spi)
+        _spi.loader.exec_module(_ki)
+        _idue, _in, _iwhy = _ki.due()
+        if _idue:
+            reminders.append(
+                f"IDEAS worth a sweep — {_iwhy}. `scripts/ideas.py`, close each with "
+                f"what was DECIDED (dropping one is a fine outcome), then "
+                f"`--mark-read` (T182).")
+    except Exception as _e:
+        reminders.append(f"IDEAS due-check failed ({_e}) — raised ideas will "
+                         f"silently pile up again, which is T181's failure (T182).")
 
     # 5. duplicate ids
     for eid, n, first in dupes:

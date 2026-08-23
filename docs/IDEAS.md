@@ -1,0 +1,15 @@
+# Ideas raised and not acted on
+
+**Written by `scripts/ideas.py`. Recording is automatic and needs no
+permission; ACTING still goes through the roll or an explicit ask.**
+
+Not the backlog: that holds small OWED jobs and refuses anything that
+cannot say why it is owed. An idea is not owed.
+
+| id | raised | status | idea | why it was not acted on |
+|---|---|---|---|---|
+| IDEA1 | 2026-08-23 | OPEN | Read the two remaining recommended fields: metascience/replication crisis (Ioannidis; Gelman & Loken) and safety engineering/human factors (Reason's Swiss cheese; Perrow) | Recommended to the user in conversation and recorded only in T181; the third field became T179/T180 but these two have no owner and no next step |
+| IDEA2 | 2026-08-23 | OPEN | Decide whether 32% method overhead means the machinery is load-bearing or that the project has substituted method for progress | I raised it when the user asked what the second body of work was, said I could not judge it from inside, and neither of us returned to it |
+| IDEA3 | 2026-08-23 | OPEN | Ask whether the quantity rule generalises past durations — A371's 9:5 was a COUNT stated from memory and no check catches that | Named as T178's own stated limit; the fix would be a habit, and habits are what this project keeps finding do not hold |
+| IDEA4 | 2026-08-23 | OPEN | Reframe T165 or retire it: the sibling-port arm is all that remains and every available comparator ships stock microcode | T176 answered the comparator question without a clone, which changed what T165 could still learn; the item is parked on U10 and its remaining shape was never re-examined |
+| IDEA5 | 2026-08-23 | OPEN | Gate the L2 audit nag on new L1 blocks existing, not on the date changing | Raised by the user noticing daily tasks piling up; L2 already handles an empty window gracefully, so only the NAG is wrong |

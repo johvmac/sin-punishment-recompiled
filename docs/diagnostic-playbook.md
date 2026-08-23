@@ -2875,6 +2875,51 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `ideas.py` — ideas raised and not acted on (added 2026-08-23, T182)
+
+**The failure it closes.** Three things from one week reached no file at all: a
+reading list the user asked for, the calibration idea, and two sub-agent sweeps
+already scoped and cleared. The pattern was exact — **everything unrecorded was
+something I SAID, not something a tool produced.** Tool output reaches the ledger
+because the workflow puts it there. A remark in conversation has no such path.
+
+**The standing permission (user, 2026-08-23):** any idea raised gets written here
+**immediately, without asking**. Recording is cheap and reversible. *Acting* still
+goes through the roll for project work, or an explicit ask for anything expensive
+or irreversible — and keeping that distinction safe is exactly what this file is
+for.
+
+**Not the backlog.** `backlog.py` holds small **owed** jobs and refuses anything
+that cannot say why it is owed, deliberately, so it cannot become a wish-list. An
+idea is not owed. Putting ideas there destroys the one property that makes the
+backlog usable.
+
+**Why it is NOT daily**, and this was the user's objection when it was proposed:
+this project already carries enough recurring work and another daily item would
+add to the mass. So it fires on a **threshold (6 open) and goes quiet once swept**
+until 4 more accumulate — the shape `calib.py --due` uses. T118 measured a 6-of-7
+noise rate on a nag that fired regardless of having anything to say.
+
+**Both fields are mandatory and both refusals matter.** `add` refuses an idea
+that does not say *why it was not acted on* — an idea with no stated reason is one
+that was simply forgotten, which is the failure this exists for. `close` refuses
+without saying what was **decided**; dropping an idea is a fine outcome and still
+needs a reason, because an idea closed silently cannot be told from one never
+considered.
+
+9 controls, including the threshold in four directions: silent below, fires at
+threshold, silent once swept, fires again after real growth.
+
+```bash
+scripts/ideas.py                      # open ideas
+scripts/ideas.py add "<idea>" "<why not acted on>"
+scripts/ideas.py close IDEA3 "<what was decided>"
+scripts/ideas.py --due / --mark-read
+scripts/ideas.py --self-check         # 9/9
+```
+
+---
+
 ## `calib.py` — confidence, recorded and then SCORED (added 2026-08-23, T179)
 
 **The gap.** Every load-bearing entry carries a falsifier — what would prove it
