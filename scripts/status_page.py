@@ -104,6 +104,15 @@ def collect(text=None):
     if dates:
         span = max(1, (date.fromisoformat(dates[-1]) - date.fromisoformat(dates[0])).days)
 
+    ideas = []
+    f = DOCS / "IDEAS.md"
+    if f.exists():
+        for line in f.read_text().split("\n"):
+            m = re.match(r"^\|\s*(IDEA\d+)\s*\|\s*([\d-]+)\s*\|\s*(\S[^|]*?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$", line)
+            if m and m.group(1) != "id" and m.group(3).strip().upper().startswith("OPEN"):
+                ideas.append({"id": m.group(1), "raised": m.group(2),
+                              "idea": m.group(4), "why": m.group(5)})
+
     def _count(p, pat):
         f = DOCS / p
         return len(re.findall(pat, f.read_text(), re.M)) if f.exists() else 0
@@ -121,6 +130,7 @@ def collect(text=None):
         "ideas_open": _count("IDEAS.md", r"^\|\s*IDEA\d+\s*\|[^|]*\|\s*OPEN"),
         "l1_audits": _count("audit-log.md", r"^## Audit #\d+ — since"),
         "method_pct": 100.0 * fams.get("T", 0) / max(1, len(entries)),
+        "ideas": ideas,
     }
 
 
@@ -134,6 +144,27 @@ def _summarise(line, n=190):
     txt = body[3] if len(body) > 3 else line
     txt = re.sub(r"\*\*|`|~~", "", txt).strip()
     return _esc(txt[:n] + ("…" if len(txt) > n else ""))
+
+
+def _fallback(ideas):
+    """Server-rendered ideas, replaced by the runtime once it draws.
+
+    If the runtime never runs, the section still READS -- it simply has no
+    buttons. An empty section would look like "nothing awaits you", which is a
+    silent lie rather than a degraded page.
+    """
+    if not ideas:
+        return '<p class="empty">Nothing awaiting your call.</p>'
+    return "".join(
+        f'<div class="idea"><div class="head"><span class="rid">{_esc(i["id"])}</span>'
+        f'<span class="what">{_esc(i["idea"])}</span></div>'
+        f'<p class="why"><b>Not acted on because:</b> {_esc(i["why"])}</p></div>'
+        for i in ideas)
+
+
+def _json(o):
+    """JSON safe to embed in a <script> tag."""
+    return json.dumps(o).replace("<", "\\u003c").replace("&", "\\u0026")
 
 
 def render(d):
@@ -255,6 +286,30 @@ footer {{
   font-size:.76rem; color:var(--dim);
 }}
 code {{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.92em; }}
+.idea {{ padding:.85rem 0; border-bottom:1px solid var(--faint); }}
+.idea .head {{ display:flex; gap:.7rem; align-items:baseline; flex-wrap:wrap; }}
+.idea .rid {{ flex:0 0 auto; }}
+.idea .what {{ font-size:.92rem; flex:1 1 18rem; }}
+.idea .why {{ font-size:.83rem; color:var(--dim); margin:.35rem 0 0; }}
+.idea .why b {{ color:var(--ink); font-weight:600; }}
+.acts {{ display:flex; gap:.4rem; margin-top:.6rem; flex-wrap:wrap; }}
+button {{
+  font:600 .74rem/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  text-transform:uppercase; letter-spacing:.07em;
+  padding:.44rem .7rem; border:1px solid var(--rule); background:transparent;
+  color:var(--dim); border-radius:2px; cursor:pointer;
+}}
+button:hover {{ border-color:var(--ink); color:var(--ink); }}
+button:focus-visible {{ outline:2px solid var(--need); outline-offset:2px; }}
+button[aria-pressed="true"] {{ border-color:var(--need); color:var(--need); background:var(--needfill); }}
+.verdict {{
+  font:600 .7rem/1 ui-monospace,monospace; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--ok); padding-top:.2rem;
+}}
+.verdict.no {{ color:var(--dim); }}
+.saving {{ font-size:.76rem; color:var(--dim); margin-top:.5rem; min-height:1.1em; }}
+@media (prefers-reduced-motion:reduce) {{ * {{ transition:none !important; }} }}
+
 @media (max-width:34rem) {{
   .row {{ grid-template-columns:4.4rem 1fr; }}
   .rid {{ grid-column:2; }}
@@ -301,6 +356,14 @@ days owe nothing and a working day owes exactly one.</span></div>
 <span class="body">{d['l1_audits']} run, gated on rolls rather than days. The daily
 digest above it now waits for new material instead of for midnight.</span></div>
 
+<h2 class="pull">Your call &mdash; not yet decided</h2>
+<p class="lede">Ideas I raised and you have not answered. Deciding one here is
+recorded on the page itself, so I pick it up next session without you repeating
+it. <b>Declining is a real answer</b> &mdash; it closes the item rather than
+leaving it to rot.</p>
+<div id="ideas">{_fallback(d['ideas'])}</div>
+<p class="saving" id="saving"></p>
+
 <h2>The shape of the work</h2>
 <div class="figures">
   <div class="fig"><div class="v">{d['entries']}</div><div class="l">entries</div></div>
@@ -325,7 +388,81 @@ ideas list, audit log and observed-run record. If the timestamp is old, so is th
 page &mdash; it cannot refresh itself.
 </footer>
 
-</div>"""
+</div>
+
+<script id="state" type="application/json">{_json(d['ideas'])}</script>
+<script id="boot">
+// State lives in its own JSON tag so republishing never rewrites code, and the
+// page is rebuilt from DATA rather than by serialising the live DOM.
+(function () {{
+  var S = JSON.parse(document.getElementById("state").textContent);
+  var box = document.getElementById("ideas");
+  var say = document.getElementById("saving");
+  var VERBS = [["yes", "Approve"], ["no", "Decline"], ["ask", "Explain first"]];
+
+  function esc(t) {{
+    return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }}
+
+  function draw() {{
+    if (!S.length) {{ box.innerHTML = '<p class="empty">Nothing awaiting your call.</p>'; return; }}
+    box.innerHTML = S.map(function (it) {{
+      var v = it.decision || "";
+      var label = v === "yes" ? "approved" : v === "no" ? "declined"
+                : v === "ask" ? "explain first" : "";
+      return '<div class="idea"><div class="head">'
+        + '<span class="rid">' + esc(it.id) + '</span>'
+        + '<span class="what">' + esc(it.idea) + '</span>'
+        + (label ? '<span class="verdict' + (v === "no" ? " no" : "") + '">' + label + '</span>' : '')
+        + '</div><p class="why"><b>Not acted on because:</b> ' + esc(it.why) + '</p>'
+        + '<div class="acts">' + VERBS.map(function (p) {{
+            return '<button data-id="' + esc(it.id) + '" data-v="' + p[0] + '" aria-pressed="'
+              + (v === p[0]) + '">' + p[1] + '</button>';
+          }}).join("") + '</div></div>';
+    }}).join("");
+  }}
+
+  function doc() {{
+    var head = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+      + document.querySelector("title").outerHTML
+      + "<style>" + document.querySelector("style").textContent + "</style>";
+    var body = document.querySelector(".sheet").outerHTML
+      + '<script id="state" type="application/json">' + JSON.stringify(S) + "<" + "/script>"
+      + '<script id="boot">' + document.getElementById("boot").textContent + "<" + "/script>";
+    return "<!doctype html><html><head>" + head + "</head><body>" + body + "</body></html>";
+  }}
+
+  box.addEventListener("click", async function (e) {{
+    var b = e.target.closest("button");
+    if (!b) return;
+    var it = S.filter(function (x) {{ return x.id === b.dataset.id; }})[0];
+    if (!it) return;
+    var was = it.decision;
+    it.decision = (was === b.dataset.v) ? null : b.dataset.v;   // click again to undo
+    draw();
+    var api = await claude.use("artifact");
+    if (!api) {{
+      it.decision = was; draw();
+      say.textContent = "This view can show decisions but not save them.";
+      return;
+    }}
+    say.textContent = "Saving\u2026";
+    try {{
+      await api.publish(doc());
+      say.textContent = "Saved. I will pick this up next session.";
+    }} catch (err) {{
+      var code = err && err.code;
+      if (code === "conflict") return;            // another view won; this one reloads
+      it.decision = was; draw();
+      say.textContent = code === "not_writer" || code === "not_granted"
+        ? "Read-only view \u2014 decisions cannot be saved from here."
+        : "Could not save (" + (code || "unknown") + "). Nothing was changed.";
+    }}
+  }});
+
+  draw();
+}})();
+</script>"""
 
 
 def self_check():
@@ -355,9 +492,25 @@ def self_check():
     chk("computes the method share", abs(d["method_pct"] - 25.0) < 0.01, f"{d['method_pct']}")
 
     html = render(d)
-    chk("renders a self-contained page with no external requests",
-        "http://" not in html and "https://" not in html and "<script" not in html.lower(),
-        "an external reference would be blocked and would leak a request")
+    # NOTHING LOADS FROM THE NETWORK. The first version of this asserted "no
+    # <script at all", which was the right INTENT expressed as the wrong test --
+    # it fired the moment the page grew a deliberate inline runtime. What
+    # actually matters is that no request leaves the page: the artifact CSP
+    # blocks them, and a blocked font or script fails silently.
+    chk("nothing loads from the network",
+        "http://" not in html and "https://" not in html
+        and not re.search(r"<(script|link|img|iframe)[^>]*\s(src|href)=", html, re.I),
+        "an external reference would be blocked, silently")
+    chk("the runtime is INLINE and self-reproducing",
+        '<script id="boot">' in html and '<script id="state"' in html
+        and "claude.use" in html,
+        "the decision runtime is missing or would not survive a republish")
+    chk("the ideas section READS without the runtime",
+        'id="ideas"' in html and "Not acted on because" in html.split('id="ideas"')[1][:4000],
+        "an empty section would look like 'nothing awaits you' — a silent lie")
+    chk("state is embedded as DATA, not read back off the DOM",
+        'type="application/json"' in html and "JSON.parse" in html,
+        "republishing from serialised DOM is what the capability docs forbid")
     chk("stamps when it was generated", d["generated"][:4] == str(date.today().year),
         "a page with no timestamp cannot be told from a fresh one")
     chk("escapes markup from the ledger",
