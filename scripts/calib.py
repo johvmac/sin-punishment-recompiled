@@ -98,15 +98,66 @@ def claims(text=None):
     return out
 
 
-def outcome(eid, rs, cl):
-    """'overturned' if a later entry corrects it, else None (= not yet settled).
+_VERB = r"(WD|WITHDRAWN|CORRECTED|REFUTED|SCOPE-FLAGGED|SUPERSEDED)"
+_BAD_OPENS = re.compile(rf"^\|\s*[A-Z]+\d+[a-z]?\s*\|\s*\**\s*{_VERB}\b", re.I)
+_BAD_BY = re.compile(rf"{_VERB}(\s+IN\s+PART)?,?(\s+same\s+\w+,?)?\s+by\s+[A-Z]+\d+", re.I)
 
-    Uses check_ledger's own definition of supersession so that "corrected" means
-    the same thing here as it does in the audit ladder.
+
+# A LATER entry CONFIRMING an earlier one. The mirror of check_ledger's
+# SUPERSEDES_RE, and it has to exist: a first version of this tool could only
+# ever return "overturned", so every band would have read held=0% and the table
+# would have looked like a devastating result while being pure artefact.
+# Caught by the user asking when the table would become readable.
+CONFIRMS_RE = re.compile(
+    r"(vindicat|corroborat|confirms\b|confirmed\b|survives\b|stands\b|holds\b"
+    r"|replicat|independently agree)", re.I)
+
+
+def confirmed_by_later(eid, rs):
+    """Does a LATER entry name `eid` next to a confirmation word?
+
+    Same shape and same window as check_ledger.superseded_by_later, so the two
+    are symmetric and an entry cannot be judged by different standards in the
+    two directions.
     """
-    packed = {k: (v, v, 0) for k, v in rs.items()}
-    later = cl.superseded_by_later(eid, packed)
-    return "overturned" if later else None
+    m = re.match(r"([A-Z]+)(\d+)", eid)
+    if not m:
+        return None
+    pre, num = m.group(1), int(m.group(2))
+    for other, line in rs.items():
+        om = re.match(r"([A-Z]+)(\d+)", other)
+        if not om or om.group(1) != pre or int(om.group(2)) <= num:
+            continue
+        for hit in re.finditer(re.escape(eid) + r"\b", line):
+            lo = max(0, hit.start() - 220)
+            if CONFIRMS_RE.search(line[lo:hit.end() + 220]):
+                return other
+    return None
+
+
+def outcome(eid, rs, cl):
+    """'overturned' | 'held' | None (not yet settled).
+
+    OVERTURNED WINS A TIE. An entry both corrected and confirmed by later work
+    is one whose claim AS STATED did not fully hold -- "corrected in part, what
+    stands is..." is this project's commonest correction shape, and scoring it
+    as held would flatter the table exactly where it should not.
+    """
+    # OVERTURNED IS JUDGED BY THE ENTRY'S OWN STATUS, not by check_ledger's
+    # superseded_by_later, and that is a deliberate departure from the shared
+    # definition. Measured 2026-08-23: SUPERSEDES_RE does not match "CORRECTED"
+    # or "scope-flagged" -- this project's commonest correction phrasings -- but
+    # ADDING them makes it worse, not better, because its +/-220 character window
+    # then fires on any nearby prose. Three of four newly-found supersessions
+    # were false: a citation in a list, and a sentence correcting a DIFFERENT
+    # entry inside the window. **The vocabulary gap and the loose window have
+    # been masking each other.** Fixing that is its own job (BL11); scoring a
+    # calibration table on a test known to be ~75% wrong is not an option.
+    if _BAD_OPENS.match(rs[eid]) or _BAD_BY.search(rs[eid]):
+        return "overturned"
+    if confirmed_by_later(eid, rs):
+        return "held"
+    return None
 
 
 def report(text=None):
@@ -156,14 +207,6 @@ def cmd_table(text=None):
     return 0
 
 
-# An entry whose OWN status says it went wrong -- the marker must GOVERN the
-# cell, not merely appear in it. Same test A372 arrived at after its first
-# version swept in 30 entries that were doing the CORRECTING.
-_VERB = r"(WD|WITHDRAWN|CORRECTED|REFUTED|SCOPE-FLAGGED|SUPERSEDED)"
-_BAD_OPENS = re.compile(rf"^\|\s*[A-Z]+\d+[a-z]?\s*\|\s*\**\s*{_VERB}\b", re.I)
-_BAD_BY = re.compile(rf"{_VERB}(\s+IN\s+PART)?,?(\s+same\s+\w+,?)?\s+by\s+[A-Z]+\d+", re.I)
-
-
 def cmd_base_rate(text=None):
     cl = _cl()
     rs = rows(text)
@@ -211,7 +254,7 @@ def self_check():
 
     hdr = "| # | s | f | e |\n|---|---|---|---|\n"
     syn = (hdr
-           + "| A1 | MEASURED | claim one. CONFIDENCE: 0.9 — that it holds | 2026-01-01 |\n"
+           + "| A1 | CORRECTED IN PART by A4 | claim one. CONFIDENCE: 0.9 — that it holds | 2026-01-01 |\n"
            + "| A2 | MEASURED | claim two. CONFIDENCE: 0.5 — shaky | 2026-01-01 |\n"
            + "| A3 | MEASURED | no confidence recorded here | 2026-01-01 |\n"
            + "| A4 | MEASURED | CORRECTED: A1 is refuted by this | 2026-01-02 |\n"
@@ -228,8 +271,25 @@ def self_check():
     _, _, scored, unscored = report(syn)
     sids = {e for e, _, _ in scored}
     chk("scores a claim a later entry corrected", "A1" in sids, f"scored={sids}")
-    chk("leaves an uncorrected claim UNSCORED", "A2" in {e for e, _, _ in unscored},
+    chk("leaves an unsettled claim UNSCORED", "A2" in {e for e, _, _ in unscored},
         "an unsettled claim counted as held")
+
+    # THE DIRECTION THE FIRST VERSION COULD NOT EXPRESS. Without this the table
+    # reads held=0% in every band and looks like a catastrophe that is really an
+    # artefact of the scorer.
+    syn2 = (hdr
+            + "| A1 | MEASURED | a claim. CONFIDENCE: 0.9 | 2026-01-01 |\n"
+            + "| A2 | MEASURED | A1 is CONFIRMED by this measurement | 2026-01-02 |\n")
+    _, _, sc2, _ = report(syn2)
+    chk("scores an entry a later one CONFIRMED as held",
+        ("A1", 0.9, "held") in sc2, f"got {sc2}")
+    syn3 = (hdr
+            + "| A1 | CORRECTED IN PART by A2 | a claim. CONFIDENCE: 0.9 | 2026-01-01 |\n"
+            + "| A2 | MEASURED | A1 is CONFIRMED by this measurement | 2026-01-02 |\n")
+    _, _, sc3, _ = report(syn3)
+    chk("OVERTURNED wins a tie against held",
+        ("A1", 0.9, "overturned") in sc3,
+        "a partly-corrected claim scored as held would flatter the table")
 
     # THE HONESTY CONTROLS. Both of these are the point of the tool, not extras.
     import io, contextlib
