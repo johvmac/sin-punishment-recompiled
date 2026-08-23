@@ -1070,6 +1070,36 @@ def main():
     except Exception as _e:
         reminders.append(f"DURATION check failed ({_e}) — T177's rule is unenforced.")
 
+    # 4h. A CHECKABLE CLAIM SHOULD RECORD A CONFIDENCE (T179).
+    #
+    # Every load-bearing entry carries a FALSIFIER, which says how to CHECK a
+    # claim. Nothing said how SURE I was, so a confidently wrong claim survived
+    # until a roll happened to revisit it. Five instances in one session; three
+    # were surfaced by the user asking, not by any check.
+    #
+    # ASKED AT WRITE TIME, like the single-run check, because asked-at-audit-time
+    # has failed 21 times (T99). A NOTE, never a gate: a missing confidence is
+    # worth noticing and is not worth refusing an entry over.
+    #
+    # ONLY on entries that already carry a Falsifier -- that is this ledger's own
+    # marker for "this is a checkable claim", so the check inherits the
+    # definition instead of inventing a second one.
+    try:
+        _newest = None
+        for _l in text.split("\n"):
+            _m = re.match(r"^\|\s*(A\d+)\s*\|", _l)
+            if _m:
+                _newest = (_m.group(1), _l)
+                break
+        if _newest and re.search(r"Falsifier:", _newest[1], re.I) \
+                and not re.search(r"CONFIDENCE:\s*(0?\.\d+|0|1)", _newest[1]):
+            reminders.append(
+                f"{_newest[0]} states a falsifiable claim but records no CONFIDENCE. "
+                f"Add `CONFIDENCE: <0..1> — <what the number is about>` so it can be "
+                f"scored later (T179). A number, not a word: 'likely' cannot be scored.")
+    except Exception as _e:
+        reminders.append(f"CONFIDENCE check failed ({_e}) — T179's field is unenforced.")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "

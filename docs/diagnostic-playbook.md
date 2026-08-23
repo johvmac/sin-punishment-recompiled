@@ -2855,6 +2855,56 @@ scripts/observed_run.sh 180            # the real thing
 
 ---
 
+## `calib.py` — confidence, recorded and then SCORED (added 2026-08-23, T179)
+
+**The gap.** Every load-bearing entry carries a falsifier — what would prove it
+wrong. That says how to *check* a claim. Nothing said how *sure* I was, and
+nothing scored that against what held. So a confidently wrong claim survived
+until a roll happened to revisit it, which is luck. Five instances in one
+session; **three were surfaced by the user asking a question, not by any check.**
+
+**Calibration is not accuracy.** Saying 70% and being right 70% of the time is
+perfect calibration with a mediocre hit rate. The forecasting result that makes
+it worth building is that calibration improves with scoring and drifts silently
+without it — and expertise tends to make it *worse*, because confidence rises
+faster than accuracy.
+
+**The field**, in any entry making a checkable claim:
+
+    CONFIDENCE: 0.8 — that the census interval is the only cause
+
+**Three honesty properties, each with a control verified to fail:**
+
+1. **Forward only, never retrofit.** Assigning a confidence to an entry whose
+   outcome is already known is hindsight and would manufacture perfect
+   calibration from nothing. The table starts empty and says so plainly rather
+   than showing an empty result that looks like a finding.
+2. **The unscored count is reported as loudly as the scores.** Most entries here
+   are never revisited, so the scored set is biased toward claims that turned out
+   interesting or wrong — the wrong sample. A calibration figure without its
+   denominator is worse than none.
+3. **A number, not a word.** "Likely" cannot be scored; the parser refuses it.
+
+**`--base-rate` reports two numbers and tells you which to use.** 32.5% of
+entries are revisited with a correction-flavoured word; **12.6% have a status
+that says they went wrong.** The first is an over-count — the shared
+supersession test matches "closed by" and "vindicat", so an entry that was
+*answered* counts the same as one that was *refuted*. Reporting it as an error
+rate would be the exact failure this tool exists to prevent.
+
+**`check_ledger.py` asks at write time**, on entries that already carry a
+falsifier — inheriting this ledger's own marker for "checkable claim" rather
+than inventing a second one. A note, never a gate.
+
+```bash
+scripts/calib.py                # the table + the unscored count
+scripts/calib.py --base-rate    # the prior, with the over-count named
+scripts/calib.py --unscored
+scripts/calib.py --self-check   # 8/8
+```
+
+---
+
 ## `qty.py` — measure the quantity, do not recall it (added 2026-08-23, T177)
 
 **The failure.** I described something **four days old** as "months of

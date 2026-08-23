@@ -17,6 +17,7 @@
   "bootstrap.sh",
   "build.sh",
   "build_staleness.sh",
+  "calib.py",
   "check_ledger.py",
   "classify_recording.py",
   "crop_recording.py",
@@ -74,7 +75,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 29,
+ "runs": 30,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
