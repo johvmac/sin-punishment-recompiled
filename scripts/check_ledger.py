@@ -1100,6 +1100,30 @@ def main():
     except Exception as _e:
         reminders.append(f"CONFIDENCE check failed ({_e}) — T179's field is unenforced.")
 
+    # 4i. THE CALIBRATION TABLE ASKS TO BE READ (T180).
+    #
+    # A record nobody reads is T122's shape -- a queue that never empties is a
+    # way of feeling like you dealt with something. calib.py decides when it has
+    # enough to say anything (20 scored claims across at least 2 confidence
+    # bands, because calibration is a comparison BETWEEN bands) and goes quiet
+    # again once read, until it grows by another 20.
+    try:
+        import importlib.util as _iu2
+        _sp = _iu2.spec_from_file_location(
+            "_calib_due", Path(__file__).resolve().parent / "calib.py")
+        _k = _iu2.module_from_spec(_sp)
+        _sp.loader.exec_module(_k)
+        _is_due, _n, _b, _why = _k.due()
+        if _is_due:
+            reminders.append(
+                f"CALIBRATION worth reading — {_why}. `scripts/calib.py`, then "
+                f"`--mark-read` to silence it until it grows. NOTE when you read "
+                f"it: the `held` half is over-detected (confirmation vocabulary); "
+                f"trust `overturned` (T179).")
+    except Exception as _e:
+        reminders.append(f"CALIBRATION due-check failed ({_e}) — the table will "
+                         f"never ask to be read, which is T122's shape (T180).")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "

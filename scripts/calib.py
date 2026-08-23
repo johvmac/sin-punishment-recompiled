@@ -56,6 +56,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "findings-ledger.md"
+STATE = ROOT / "docs" / ".calib-state.json"
+
+# WHEN IS THE TABLE WORTH READING? Two conditions, and the second is the one
+# that matters: a pile of scored claims all in ONE confidence band says nothing
+# about calibration -- calibration is precisely the comparison BETWEEN bands.
+#
+# 20 is measured, not chosen: 33 entries/day at a 44% settle rate is ~14 scored
+# per day, so 20 is about a day of ordinary work and 40 about three.
+DUE_SCORED = 20
+DUE_BANDS = 2
+# Re-fire only after this much growth, so reading it once buys real quiet.
+DUE_GROWTH = 20
 
 ROW = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|")
 # A NUMBER, not a word. "high" cannot be scored, so it is not accepted.
@@ -169,6 +181,51 @@ def report(text=None):
         o = outcome(eid, rs, cl)
         (scored if o else unscored).append((eid, conf, o))
     return rs, cs, scored, unscored
+
+
+def _state():
+    import json
+    try:
+        return json.loads(STATE.read_text())
+    except Exception:
+        return {"last_read_at": 0}
+
+
+def due(text=None):
+    """(is_due, scored_count, populated_bands, reason)."""
+    _, _, scored, _ = report(text)
+    n = len(scored)
+    bands = len({name for lo, hi, name in BANDS
+                 if any(lo <= c < hi for _, c, _ in scored)})
+    last = _state().get("last_read_at", 0)
+    if n < DUE_SCORED:
+        return False, n, bands, f"only {n} scored, want {DUE_SCORED}"
+    if bands < DUE_BANDS:
+        return False, n, bands, (f"{n} scored but all in {bands} band(s) — calibration "
+                                 f"is a comparison BETWEEN bands, so one band says nothing")
+    if n < last + DUE_GROWTH:
+        return False, n, bands, f"read at {last}, only {n - last} new since"
+    return True, n, bands, f"{n} scored across {bands} bands"
+
+
+def cmd_due(text=None):
+    is_due, n, bands, why = due(text)
+    print(f"{'DUE' if is_due else 'not due'} — {why}")
+    if is_due:
+        print("  scripts/calib.py            # read it")
+        print("  scripts/calib.py --mark-read   # then silence it until it grows")
+        print("  REMEMBER when you read it: the `held` half is over-detected"
+              " (confirmation vocabulary). Trust `overturned`.")
+    return 0 if is_due else 1
+
+
+def cmd_mark_read():
+    import json
+    _, _, scored, _ = report()
+    STATE.write_text(json.dumps({"last_read_at": len(scored)}, indent=1) + "\n")
+    print(f"[calib] marked read at {len(scored)} scored claims; "
+          f"silent until {len(scored) + DUE_GROWTH}.")
+    return 0
 
 
 def cmd_table(text=None):
@@ -312,6 +369,38 @@ def self_check():
         "NO SCORED CLAIMS YET" in buf2.getvalue(),
         "an empty table that looks like a result")
 
+    # THE DUE FLAG, four directions. A nag that always fires is ignored and one
+    # that never fires is absent; both are failures and both are testable.
+    global STATE
+    import tempfile as _t, json as _j
+    _real = STATE
+    try:
+        with _t.TemporaryDirectory() as td:
+            STATE = Path(td) / "s.json"
+            few = hdr + "".join(
+                f"| A{i} | CORRECTED IN PART by A99 | c. CONFIDENCE: 0.9 | 2026-01-01 |\n"
+                for i in range(1, 5))
+            chk("NOT due below the threshold", not due(few)[0], "nags on a handful")
+
+            one_band = hdr + "".join(
+                f"| A{i} | CORRECTED IN PART by A99 | c. CONFIDENCE: 0.9 | 2026-01-01 |\n"
+                for i in range(1, 26))
+            _d, _n, _b, _why = due(one_band)
+            chk("NOT due when every claim sits in ONE band",
+                not _d and _b == 1, f"due={_d} bands={_b} — one band cannot show calibration")
+
+            two_band = hdr + "".join(
+                f"| A{i} | CORRECTED IN PART by A99 | c. CONFIDENCE: "
+                f"{0.9 if i % 2 else 0.5} | 2026-01-01 |\n" for i in range(1, 26))
+            chk("DUE at threshold across two bands", due(two_band)[0],
+                f"{due(two_band)}")
+
+            STATE.write_text(_j.dumps({"last_read_at": 25}))
+            chk("SILENT again once marked read", not due(two_band)[0],
+                "keeps nagging after being read")
+    finally:
+        STATE = _real
+
     print(f"\n{n - bad}/{n} controls pass")
     return 1 if bad else 0
 
@@ -327,6 +416,10 @@ def main():
         print(f"would read {LEDGER}; writes nothing")
         print("would report confidence bands, the unscored count, and the base rate")
         return 0
+    if "--due" in a:
+        return cmd_due()
+    if "--mark-read" in a:
+        return cmd_mark_read()
     if "--base-rate" in a:
         return cmd_base_rate()
     if "--unscored" in a:

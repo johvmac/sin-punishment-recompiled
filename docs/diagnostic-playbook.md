@@ -2892,6 +2892,16 @@ supersession test matches "closed by" and "vindicat", so an entry that was
 *answered* counts the same as one that was *refuted*. Reporting it as an error
 rate would be the exact failure this tool exists to prevent.
 
+**It asks to be read, and then goes quiet.** `--due` fires only when there are
+**20 scored claims across at least 2 confidence bands** — the second condition
+is the one that matters, because calibration is a comparison *between* bands and
+a pile of claims all at 0.9 says nothing at all. 20 is measured rather than
+chosen: 33 entries/day at a 44% settle rate is ~14 scored per day, so 20 is
+about a day of ordinary work. `--mark-read` silences it until it grows by
+another 20. Four controls: silent below threshold, silent when all one band,
+fires at threshold across two, silent again once read — and verified to fail on
+the middle two.
+
 **`check_ledger.py` asks at write time**, on entries that already carry a
 falsifier — inheriting this ledger's own marker for "checkable claim" rather
 than inventing a second one. A note, never a gate.
