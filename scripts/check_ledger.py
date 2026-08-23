@@ -1168,6 +1168,29 @@ def main():
         reminders.append(f"IDEAS due-check failed ({_e}) — raised ideas will "
                          f"silently pile up again, which is T181's failure (T182).")
 
+    # 4k. THE STATUS PAGE HAS GONE STALE (T185).
+    #
+    # The page cannot refresh itself and nothing prompted a regeneration, so it
+    # would quietly drift from the ledger it claims to describe. A page stamped
+    # with a generation time is only honest if someone notices the stamp.
+    #
+    # Gated on CONTENT, not the clock: it fires when the ledger has moved since
+    # the page was last generated, which is the same principle as L1 on rolls
+    # and L2 on blocks.
+    try:
+        _mark = LEDGER.parent / ".status-page.json"
+        _seen = json.loads(_mark.read_text()).get("entries", -1) if _mark.exists() else -1
+        _now = len([1 for _l in text.split("\n")
+                    if re.match(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", _l)])
+        if _seen >= 0 and _now - _seen >= 10:
+            reminders.append(
+                f"STATUS PAGE stale — {_now - _seen} entries added since it was "
+                f"generated. `scripts/status_page.py <file>` and republish, or the "
+                f"user is reading a page that no longer describes the project (T185).")
+    except Exception as _e:
+        reminders.append(f"STATUS-PAGE staleness check failed ({_e}) — the page can "
+                         f"drift unnoticed (T185).")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "

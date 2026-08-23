@@ -167,7 +167,7 @@ def _json(o):
     return json.dumps(o).replace("<", "\\u003c").replace("&", "\\u0026")
 
 
-def render(d):
+def _render_raw(d):
     """The ledger ROW is the visual unit -- hairline rules, no cards.
 
     Grounded in the subject: this project's whole record is dated rows with a
@@ -361,7 +361,7 @@ digest above it now waits for new material instead of for midnight.</span></div>
 recorded on the page itself, so I pick it up next session without you repeating
 it. <b>Declining is a real answer</b> &mdash; it closes the item rather than
 leaving it to rot.</p>
-<div id="ideas">{_fallback(d['ideas'])}</div>
+<!--IB--><div id="ideas">{_fallback(d['ideas'])}</div><!--IA-->
 <p class="saving" id="saving"></p>
 
 <h2>The shape of the work</h2>
@@ -390,12 +390,14 @@ page &mdash; it cannot refresh itself.
 
 </div>
 
-<script id="state" type="application/json">{_json(d['ideas'])}</script>
+<script id="state" type="application/json">{_json(dict(ideas=d['ideas'], before="%%B%%", after="%%A%%"))}</script>
 <script id="boot">
 // State lives in its own JSON tag so republishing never rewrites code, and the
 // page is rebuilt from DATA rather than by serialising the live DOM.
 (function () {{
   var S = JSON.parse(document.getElementById("state").textContent);
+  if (!S.title) {{ S.title = document.querySelector("title").textContent; }}
+  if (!S.css) {{ S.css = document.querySelector("style").textContent; }}
   var box = document.getElementById("ideas");
   var say = document.getElementById("saving");
   var VERBS = [["yes", "Approve"], ["no", "Decline"], ["ask", "Explain first"]];
@@ -404,9 +406,9 @@ page &mdash; it cannot refresh itself.
     return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }}
 
-  function draw() {{
-    if (!S.length) {{ box.innerHTML = '<p class="empty">Nothing awaiting your call.</p>'; return; }}
-    box.innerHTML = S.map(function (it) {{
+  function ideasHTML() {{
+    if (!S.ideas.length) return '<p class="empty">Nothing awaiting your call.</p>';
+    return S.ideas.map(function (it) {{
       var v = it.decision || "";
       var label = v === "yes" ? "approved" : v === "no" ? "declined"
                 : v === "ask" ? "explain first" : "";
@@ -422,11 +424,18 @@ page &mdash; it cannot refresh itself.
     }}).join("");
   }}
 
+  function draw() {{ box.innerHTML = ideasHTML(); }}
+
   function doc() {{
+    // REBUILT FROM DATA, NEVER FROM THE DOM. A first version took
+    // `.sheet.outerHTML`, which the capability contract forbids and which had a
+    // concrete bug: "Saving..." is set before publish, so it would have been
+    // baked permanently into the published page. The shell either side of the
+    // ideas is frozen in state; only the ideas are regenerated.
     var head = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-      + document.querySelector("title").outerHTML
-      + "<style>" + document.querySelector("style").textContent + "</style>";
-    var body = document.querySelector(".sheet").outerHTML
+      + "<title>" + S.title + "<" + "/title>"
+      + "<style>" + S.css + "<" + "/style>";
+    var body = '<div class="sheet">' + S.before + ideasHTML() + S.after + "</div>"
       + '<script id="state" type="application/json">' + JSON.stringify(S) + "<" + "/script>"
       + '<script id="boot">' + document.getElementById("boot").textContent + "<" + "/script>";
     return "<!doctype html><html><head>" + head + "</head><body>" + body + "</body></html>";
@@ -435,7 +444,7 @@ page &mdash; it cannot refresh itself.
   box.addEventListener("click", async function (e) {{
     var b = e.target.closest("button");
     if (!b) return;
-    var it = S.filter(function (x) {{ return x.id === b.dataset.id; }})[0];
+    var it = S.ideas.filter(function (x) {{ return x.id === b.dataset.id; }})[0];
     if (!it) return;
     var was = it.decision;
     it.decision = (was === b.dataset.v) ? null : b.dataset.v;   // click again to undo
@@ -463,6 +472,34 @@ page &mdash; it cannot refresh itself.
   draw();
 }})();
 </script>"""
+
+
+def render(d):
+    """Render, then freeze the shell either side of the ideas into the state.
+
+    TWO PASSES, ONE TEMPLATE. The runtime needs the surrounding page as DATA so
+    it can rebuild the document without touching the DOM -- but that shell is
+    produced by the template itself. Rendering once and splitting on sentinels
+    keeps a single source; writing the shell out twice would let the served page
+    and the republished one drift apart silently.
+    """
+    html = _render_raw(d)
+    head, rest = html.split("<!--IB-->", 1)
+    mid, tail = rest.split("<!--IA-->", 1)
+
+    sheet_open = '<div class="sheet">'
+    before = head.split(sheet_open, 1)[1] + '<div id="ideas">'
+    # THE SHELL MUST STOP AT THE SHEET. `after` originally ran to the end of the
+    # document, which swallowed the state script -- so the frozen shell contained
+    # the very placeholders being written into it and they replaced themselves.
+    body_tail = tail.split('<script id="state"', 1)[0]
+    after = "</div>" + body_tail.rstrip().rsplit("</div>", 1)[0]
+
+    def enc(x):
+        return json.dumps(x)[1:-1].replace("<", "\\u003c").replace("&", "\\u0026")
+
+    return (html.replace("<!--IB-->", "").replace("<!--IA-->", "")
+                .replace("%%B%%", enc(before)).replace("%%A%%", enc(after)))
 
 
 def self_check():
@@ -508,6 +545,18 @@ def self_check():
     chk("the ideas section READS without the runtime",
         'id="ideas"' in html and "Not acted on because" in html.split('id="ideas"')[1][:4000],
         "an empty section would look like 'nothing awaits you' — a silent lie")
+    # THE DEFECT THIS CONTROL EXISTS FOR, and it shipped once: doc() took
+    # `.sheet.outerHTML`, which the capability contract forbids AND which had a
+    # concrete bug -- "Saving..." is written before publish, so it would have
+    # been baked permanently into the page.
+    chk("the republished document is rebuilt from DATA, not the DOM",
+        not re.search(r"querySelector\([^)]*\)\.outerHTML", html)
+        and "S.before" in html and "S.after" in html,
+        "serialising the live DOM bakes in transient UI and is forbidden by the contract")
+    chk("the frozen shell round-trips into the state",
+        '"before": "' in html and '"after": "' in html
+        and "%%B%%" not in html and "%%A%%" not in html,
+        "the shell placeholders were not filled — a republish would lose the page")
     chk("state is embedded as DATA, not read back off the DOM",
         'type="application/json"' in html and "JSON.parse" in html,
         "republishing from serialised DOM is what the capability docs forbid")
