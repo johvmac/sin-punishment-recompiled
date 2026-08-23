@@ -59,6 +59,26 @@ G5 is the gate for that. `Zelda64Recomp` also ships
 it **through its README over the web**, not its source — every claim in T143
 about their implementation is theirs-as-described. Its ROM *is* on disk.
 
+> **DO NOT CLONE IT HOPING FOR A CUSTOM-MICROCODE COMPARATOR (T176).** Its RSP
+> config says outright: *"The game ships the standard Nintendo `aspMain` audio
+> RSP ucode"* — `output_function_name = "aspMain"`, `text_offset = 0xBCAB0`,
+> `text_size = 0xE20`, `text_address = 0x04001080`. **It is STOCK, like Majora's
+> Mask and Banjo-Kazooie. Sin & Punishment is the only one of the four with a
+> custom audio microcode, and that holds even against its own developer's
+> earlier game.** Two web fetches established this; 1.5 GB would have bought
+> nothing.
+>
+> **Two things it DID give us free:** its range `0x1080..0x1EA0` contains our DP
+> sites and its build ships, so stock `aspMain` there writes no DP registers —
+> a second stock arm where Banjo's range could not reach. And it states
+> `text_address` must be `0x04001080` **not** `0x04001000`, which is exactly
+> A179's correction for our own config, asserted by a project that has never
+> heard of us.
+
+**AND READ PAST THE TABLE.** T176 is the entry for scoping comparators by what
+was checked out rather than by what could discriminate — I read the two-row
+table above and stopped, one line short of the game by the same developer.
+
 ### Emulator, and the trap
 
 **`ares` is a FLATPAK.** `command -v ares` returns NOTHING and the app is
