@@ -159,6 +159,30 @@ assuming the flag took.
   decide the script's shape. A wrapper written before that is a guess, and it
   would owe T71's gates itself.
 
+### ELAN annotation — the loop is closed in both directions now
+
+* **`scripts/eaf_read.py`** reads the user's annotations back as data. It
+  REFUSES a file with no annotations rather than reporting an empty read as an
+  empty file — so a `rc=2` on a freshly built file is correct, not a fault.
+* **`scripts/eaf_make.py`** (added 2026-08-25, A413/U16) writes the file they
+  annotate INTO. `--dry-run` prints tiers and media and exits; `--self-check`
+  is 6/6 with one arm **verified to discriminate**.
+
+  ```sh
+  scripts/eaf_make.py CLIP.mp4 -o OUT.eaf --tier a --tier b --question "..."
+  ```
+
+  **IT PRE-FILLS NOTHING, AND THAT IS THE POINT, NOT AN OMISSION.** Tiers arrive
+  empty and named after the question. A383 found the user's labels disagreed
+  with unanimous machine consensus on 3 of 5 entries — an annotation file
+  carrying my marker saying "the interesting moment is here" spends exactly the
+  independent reading it was built to collect. Same rule as the status page's
+  "NO answer key reaches the page" control.
+* Media is linked **absolutely and relatively**, because the archive drive's
+  mount point has changed before.
+* The question is written INTO the file as a PROPERTY — A266's `.eaf` outlived
+  the conversation that produced it by days.
+
 ### Decompilation and analysis tooling — `/home/joh/Documents/sin_and_punishment/tools/`
 
 * **Ghidra 12.1.2** (`ghidra_12.1.2_PUBLIC`), with `ghidra-projects/` and
