@@ -23,10 +23,50 @@ set -uo pipefail
 # --- help (T37) ------------------------------------------------------------
 # Prints this script's own header block. Added after `route.py --help` was
 # silently ignored and fell through to a state-mutating default.
+# THE EXCLUSION PATTERN, DEFINED ONCE. It was previously written inline inside
+# refusal 3, and the self-check tried to recover it by grepping this file --
+# which matched the grep in the CONTROL ITSELF and extracted `[^']*`, an invalid
+# regex. T100: a control that greps its own file is the usual way one stops
+# discriminating. One variable, two readers, nothing to recover.
+EXCLUDE_RE='\.(z64|n64|v64|rom|bin)$|^rom/|HANDOFF-|boot-debugging-'
+
 case "${1:-}" in
     -h|--help)
         sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'
         exit 0 ;;
+    --self-check)
+        # THE CONTROL THAT WOULD HAVE CAUGHT THE THREE-DAY OUTAGE.
+        #
+        # The exclusion list and git's tracked-file set are two halves that must
+        # agree. On 2026-08-24 they did not: `route-state` was excluded while
+        # `docs/.route-state.json` was tracked, so every roll staged a file the
+        # push refused, silently, for 182 commits.
+        #
+        # A TRACKED FILE MATCHING THE EXCLUSION LIST IS ALWAYS A CONTRADICTION:
+        # either it should not be tracked, or it should not be excluded. This
+        # does not guess which -- it refuses and names the file.
+        cd "$(dirname "$0")/.." || exit 1
+        n=0; bad=0
+        chk() { n=$((n+1)); if [[ "$2" == 1 ]]; then echo "ok    $1"; else
+                echo "FAIL  $1 -- $3"; bad=$((bad+1)); fi; }
+        HITS=$(git ls-files | grep -Ei "$EXCLUDE_RE" || true)
+        chk "no TRACKED file matches the exclusion list" \
+            "$([[ -z "$HITS" ]] && echo 1 || echo 0)" \
+            "these are tracked AND excluded, so the push refuses forever: $HITS"
+        # VERIFIED TO FAIL: the pattern must actually match something when it
+        # should. If this passes, the extraction above is broken and the control
+        # above is vacuous -- which is how a green check hides a dead gate.
+        chk "CONTROL: the pattern really does match a ROM path" \
+            "$(printf 'rom/x.z64\n' | grep -qEi "$EXCLUDE_RE" && echo 1 || echo 0)" \
+            "the pattern matches nothing; the check above proves nothing"
+        chk "CONTROL: and really does NOT match an ordinary source file" \
+            "$(printf 'scripts/route.py\n' | grep -qEi "$EXCLUDE_RE" && echo 0 || echo 1)" \
+            "the pattern matches everything; the check above proves nothing"
+        chk "the push refuses when the ledger check fails" \
+            "$(grep -qc 'check_ledger.py --strict' "$0" && echo 1 || echo 0)" \
+            "the ledger gate is gone"
+        echo; echo "$((n-bad))/$n controls pass"
+        [[ $bad -eq 0 ]]; exit $? ;;
 esac
 cd "$(dirname "$0")/.." || exit 1
 
@@ -63,7 +103,23 @@ for p in "${ALLOW[@]}"; do
 done
 
 # --- refusal 3: nothing proprietary or local may be staged -------------------
-BAD=$(git diff --cached --name-only | grep -Ei '\.(z64|n64|v64|rom|bin)$|^rom/|HANDOFF-|boot-debugging-|route-state' || true)
+#
+# `route-state` WAS IN THIS LIST AND IT DISABLED THE PUSH ENTIRELY (2026-08-24).
+# `docs/.route-state.json` became a TRACKED file on 2026-08-22 09:08; the last
+# successful push was 2026-08-21 18:30, the evening before. Every roll rewrites
+# that file, so `git add -A` staged it and this rule refused -- **every single
+# night, for three days and 182 commits**, into a log nobody reads.
+#
+# It is not proprietary and never was: 584 bytes of roll counter and per-entry
+# last-seen indices, no paths, no credentials. Losing it breaks roll continuity
+# and the fairness weighting, so it is exactly the kind of state that SHOULD be
+# backed up. The exclusion predates the file being tracked and was never
+# revisited when that changed.
+#
+# THE GENERAL SHAPE, WHICH IS WHY THIS COMMENT IS LONG: an exclusion list and a
+# tracked-file set are two places that must agree, and nothing checked that they
+# did. The same pair-of-halves failure as T185, T187 and T193.
+BAD=$(git diff --cached --name-only | grep -Ei "$EXCLUDE_RE" || true)
 [[ -n "$BAD" ]] && die "proprietary/local paths staged:"$'\n'"$BAD"
 
 if git diff --cached --quiet; then

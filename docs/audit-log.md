@@ -318,3 +318,11 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
      this, and the run pushed the quiet streak 3 -> 4. The streak drives the audit
      frequency, so a self-inflicted increment is exactly what that guard exists to
      prevent. State restored to #21 / streak 3. -->
+## Audit #22 — since 62ec9422
+- ledger: 580 entries (+57 this window), 39 withdrawn
+- rolls: 11 this window; runs: 1 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - A366: created and withdrawn within one audit window. What made it look right?
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (6): A363 (single-run, justified in the entry); A361 (single-run, justified in the entry); A356 (single-run, justified in the entry); A353 (single-run, justified in the entry); A366 (single-run, justified in the entry); T186 (single-run, justified in the entry)
+
