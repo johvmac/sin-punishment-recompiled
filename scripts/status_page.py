@@ -38,6 +38,12 @@ from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+# ONE PARSER, TWO CALLERS (T192). The ledger reader sections entries too; a
+# second copy here would drift and the two views would disagree about what an
+# entry says.
+from sections import sections as _sections, roundtrip as _sections_roundtrip
+
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 LEDGER = DOCS / "findings-ledger.md"
@@ -79,72 +85,6 @@ def ledger_rows(text=None):
 
 ARCHIVE = Path(os.environ.get("SNP_ARCHIVE", "/media/joh/extra/sin-punishment-archive"))
 LABEL_LIST = ARCHIVE / "evidence" / "2026-08-23" / "label-these-16.txt"
-
-# A CAPS lead-in acting as a section heading: "THE RECOUNT:", "ONE RUN IS
-# ENOUGH:", "NOT ESTABLISHED,". Matched by LOOKAHEAD so the separator is not
-# consumed and heading+remainder reconstructs the source exactly -- which is
-# what makes the round-trip control below possible.
-# A heading must START A SENTENCE and END AT A COLON OR DASH. Both halves were
-# learned by trying the loose version: allowing a bare comma as the terminator
-# turned "7 GAME, 5 STACK, 2 METHOD" into a heading, and allowing a mid-sentence
-# start turned the citation "(A358, A369)" into one. The tight form keeps the
-# real headings and drops those.
-#
-# THE PROJECT'S OWN CLOSING VOCABULARY IS NAMED EXPLICITLY, because the generic
-# pattern misses every one of them and they are the sections that matter most.
-# "SO WHAT" is too short for the length rule; "Falsifier" is not upper case;
-# "NOT ESTABLISHED, and unchanged:" breaks the caps run at its own comma. These
-# are the standing section names this ledger uses -- the plain-language outcome,
-# the scope limit, the single-run justification -- so a reader who only opens one
-# section should be able to find them.
-KNOWN = r"SO WHAT|Falsifier|NOT ESTABLISHED|ONE RUN IS ENOUGH|NO COMPOSING STEP|CONFIDENCE"
-HEAD_RE = re.compile(
-    r"(?:^|(?<=[.!?;] )|(?<=— )|(?<=\) ))"
-    r"((?:" + KNOWN + r")(?=[:,])"
-    r"|[A-Z][A-Z0-9 ,'’/()-]{9,}?(?=:| —))")
-
-
-def _sections(body):
-    """Split an entry body on the CAPS lead-ins that already act as headings.
-
-    WHY A VIEW AND NOT A REWRITE (user, 2026-08-24: "they're kind of just walls
-    of text"). Measured over all 579 rows: **69% carry at least one CAPS lead-in,
-    median 3.** The structure is already in the file -- it is simply rendered as
-    one paragraph. So nothing here edits the ledger; it re-presents it.
-
-    THE FIRST ATTEMPT AT THIS SPLIT WAS WRONG AND IS WORTH RECORDING: splitting on
-    **bold runs** looked obvious, because there are ~10 per entry. But bold in
-    these entries is mid-sentence EMPHASIS, not structure -- the split cut clauses
-    in half and produced one fragment that was literally two asterisks. Ten
-    segments is not ten sections. Measuring the right thing changed the answer.
-
-    NOTHING MAY BE LOST. A splitter that silently drops a clause would be worse
-    than the wall it replaces, because the reader cannot see the gap. The pieces
-    are pure index slices and a control asserts they reconstruct the input.
-    """
-    ms = list(HEAD_RE.finditer(body))
-    if not ms:
-        return [{"h": "", "t": body.strip()}]
-    out = []
-    if ms[0].start() > 0:
-        out.append({"h": "", "t": body[:ms[0].start()].strip()})
-    for i, m in enumerate(ms):
-        end = ms[i + 1].start() if i + 1 < len(ms) else len(body)
-        out.append({"h": m.group(1).strip(), "t": body[m.end():end].strip()})
-    return [s for s in out if s["h"] or s["t"]]
-
-
-def _sections_roundtrip(body):
-    """Reassembly of _sections output, WHITESPACE-INSENSITIVE.
-
-    Compared with all whitespace removed rather than normalised, because a
-    heading that ends before a " —" separator loses the leading space to the
-    lookahead boundary. That is a spacing artefact of where the cut falls; the
-    property worth asserting is that **no characters are lost**, and comparing
-    without whitespace says exactly that and nothing weaker.
-    """
-    return "".join("".join(s["h"] + s["t"] for s in _sections(body)).split())
-
 
 def _labels(entries, text=None):
     """The U10 labelling task, as data the page can render as buttons.

@@ -32,7 +32,8 @@ entries went wrong in a single session, all of them citing real evidence.
 
 Usage:
     scripts/ledger.py --index              # replaces "read it in full"
-    scripts/ledger.py --show A99 A122      # full entries, verbatim
+    scripts/ledger.py --show A99 A122      # sectioned at the entry's own headings
+    scripts/ledger.py --show A99 --raw     # the literal row, unwrapped
     scripts/ledger.py --grep overlay       # full entries matching a term
     scripts/ledger.py --open               # the frontier, cost-ranked by route.py
     scripts/ledger.py --wd                 # withdrawn entries (index form)
@@ -43,8 +44,13 @@ Usage:
 """
 import functools
 import re
+import textwrap
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+# ONE PARSER, TWO CALLERS (T192) -- the status page sections entries too.
+from sections import sections, gist, roundtrip
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "findings-ledger.md"
@@ -248,7 +254,52 @@ def cmd_index(rows, width=118):
     return 0
 
 
-def cmd_show(rows, ids):
+def _sectioned(raw, width=88):
+    """The entry, broken at the headings it is already written with (T192).
+
+    The user's words, 2026-08-24: "they're kind of just walls of text - could
+    that be solved somehow? ... if it's difficult for me to follow the train of
+    thought it could be difficult for you as well". **69% of entries carry
+    all-caps lead-ins that act as headings, median 3**, and until now every one
+    was printed run together into a single paragraph.
+
+    NOTHING IS SUMMARISED AND NOTHING IS DROPPED. This is a VIEW: the pieces are
+    index slices of the row and `sections.roundtrip` asserts they reconstruct it
+    character for character. The raw row is still one grep away, and `--raw`
+    prints it unchanged for anything that needs the literal line.
+    """
+    cells = raw.split("|")
+    if len(cells) < 4:
+        return raw
+    eid, status = cells[1].strip(), re.sub(r"\*\*|`", "", cells[2]).strip()
+    evidence = re.sub(r"\*\*|`", "", cells[-2]).strip() if len(cells) > 5 else ""
+    # The status cell carries the TAG and then the entry's headline claim, and it
+    # is routinely 300+ characters. Printed as one line it reintroduces exactly
+    # the wall this view exists to remove -- so it is split at the first em-dash
+    # and both halves are wrapped.
+    tag, _, headline = status.partition(" — ")
+    out = [f"{eid}  {tag}", "=" * width]
+    if headline:
+        out.extend(textwrap.wrap(headline, width, initial_indent="  ",
+                                 subsequent_indent="  "))
+        out.append("")
+    for s in sections(gist(raw)):
+        if s["h"]:
+            out.append("")
+            out.append(f"  {s['h']}")
+        body = s["t"].lstrip(":,").strip()
+        if body:
+            out.extend(textwrap.wrap(body, width, initial_indent="    ",
+                                     subsequent_indent="    "))
+    if evidence:
+        out.append("")
+        out.append("  EVIDENCE")
+        out.extend(textwrap.wrap(evidence, width, initial_indent="    ",
+                                 subsequent_indent="    "))
+    return "\n".join(out)
+
+
+def cmd_show(rows, ids, raw_mode=False):
     want = {i.upper() for i in ids}
     seen, shown = set(), []
     allids = {r[0].upper() for r in rows}
@@ -256,7 +307,7 @@ def cmd_show(rows, ids):
         if eid.upper() in want:
             seen.add(eid.upper())
             shown.append(raw)
-            print(raw + "\n")
+            print((raw if raw_mode else _sectioned(raw)) + "\n")
     missing = want - seen
     if missing:
         print(f"[ledger] no such entry: {', '.join(sorted(missing))}", file=sys.stderr)
@@ -707,7 +758,7 @@ def main():
     if cmd == "--index":
         return cmd_index(rows)
     if cmd == "--show":
-        return cmd_show(rows, a[1:]) if len(a) > 1 else (
+        return cmd_show(rows, a[1:], raw_mode="--raw" in sys.argv[1:]) if len(a) > 1 else (
             print("[ledger] --show needs at least one ID", file=sys.stderr) or 2)
     if cmd == "--grep":
         return cmd_grep(rows, a[1]) if len(a) > 1 else (
