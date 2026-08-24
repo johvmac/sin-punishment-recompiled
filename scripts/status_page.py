@@ -80,6 +80,71 @@ def ledger_rows(text=None):
 ARCHIVE = Path(os.environ.get("SNP_ARCHIVE", "/media/joh/extra/sin-punishment-archive"))
 LABEL_LIST = ARCHIVE / "evidence" / "2026-08-23" / "label-these-16.txt"
 
+# A CAPS lead-in acting as a section heading: "THE RECOUNT:", "ONE RUN IS
+# ENOUGH:", "NOT ESTABLISHED,". Matched by LOOKAHEAD so the separator is not
+# consumed and heading+remainder reconstructs the source exactly -- which is
+# what makes the round-trip control below possible.
+# A heading must START A SENTENCE and END AT A COLON OR DASH. Both halves were
+# learned by trying the loose version: allowing a bare comma as the terminator
+# turned "7 GAME, 5 STACK, 2 METHOD" into a heading, and allowing a mid-sentence
+# start turned the citation "(A358, A369)" into one. The tight form keeps the
+# real headings and drops those.
+#
+# THE PROJECT'S OWN CLOSING VOCABULARY IS NAMED EXPLICITLY, because the generic
+# pattern misses every one of them and they are the sections that matter most.
+# "SO WHAT" is too short for the length rule; "Falsifier" is not upper case;
+# "NOT ESTABLISHED, and unchanged:" breaks the caps run at its own comma. These
+# are the standing section names this ledger uses -- the plain-language outcome,
+# the scope limit, the single-run justification -- so a reader who only opens one
+# section should be able to find them.
+KNOWN = r"SO WHAT|Falsifier|NOT ESTABLISHED|ONE RUN IS ENOUGH|NO COMPOSING STEP|CONFIDENCE"
+HEAD_RE = re.compile(
+    r"(?:^|(?<=[.!?;] )|(?<=— )|(?<=\) ))"
+    r"((?:" + KNOWN + r")(?=[:,])"
+    r"|[A-Z][A-Z0-9 ,'’/()-]{9,}?(?=:| —))")
+
+
+def _sections(body):
+    """Split an entry body on the CAPS lead-ins that already act as headings.
+
+    WHY A VIEW AND NOT A REWRITE (user, 2026-08-24: "they're kind of just walls
+    of text"). Measured over all 579 rows: **69% carry at least one CAPS lead-in,
+    median 3.** The structure is already in the file -- it is simply rendered as
+    one paragraph. So nothing here edits the ledger; it re-presents it.
+
+    THE FIRST ATTEMPT AT THIS SPLIT WAS WRONG AND IS WORTH RECORDING: splitting on
+    **bold runs** looked obvious, because there are ~10 per entry. But bold in
+    these entries is mid-sentence EMPHASIS, not structure -- the split cut clauses
+    in half and produced one fragment that was literally two asterisks. Ten
+    segments is not ten sections. Measuring the right thing changed the answer.
+
+    NOTHING MAY BE LOST. A splitter that silently drops a clause would be worse
+    than the wall it replaces, because the reader cannot see the gap. The pieces
+    are pure index slices and a control asserts they reconstruct the input.
+    """
+    ms = list(HEAD_RE.finditer(body))
+    if not ms:
+        return [{"h": "", "t": body.strip()}]
+    out = []
+    if ms[0].start() > 0:
+        out.append({"h": "", "t": body[:ms[0].start()].strip()})
+    for i, m in enumerate(ms):
+        end = ms[i + 1].start() if i + 1 < len(ms) else len(body)
+        out.append({"h": m.group(1).strip(), "t": body[m.end():end].strip()})
+    return [s for s in out if s["h"] or s["t"]]
+
+
+def _sections_roundtrip(body):
+    """Reassembly of _sections output, WHITESPACE-INSENSITIVE.
+
+    Compared with all whitespace removed rather than normalised, because a
+    heading that ends before a " —" separator loses the leading space to the
+    lookahead boundary. That is a spacing artefact of where the cut falls; the
+    property worth asserting is that **no characters are lost**, and comparing
+    without whitespace says exactly that and nothing weaker.
+    """
+    return "".join("".join(s["h"] + s["t"] for s in _sections(body)).split())
+
 
 def _labels(entries, text=None):
     """The U10 labelling task, as data the page can render as buttons.
@@ -108,8 +173,12 @@ def _labels(entries, text=None):
         if not row:
             continue
         full = _gist(row[1])
+        secs = _sections(full)
+        # The collapsed line is the entry's OPENING, not a summary. Summarising
+        # would put my compression between the reader and the evidence, which is
+        # the one thing this task cannot afford.
         out.append({"id": i, "claim": full[:190] + ("…" if len(full) > 190 else ""),
-                    "full": full if len(full) > 190 else ""})
+                    "secs": secs if len(full) > 190 else []})
     return out
 
 
@@ -461,6 +530,16 @@ button[aria-pressed="true"] {{ border-color:var(--need); color:var(--need); back
 .row.open .t, .idea.open .t {{ display:none; }}
 .row.open .f, .idea.open .f {{ display:block; }}
 .idea.open .f {{ margin-top:.3rem; }}
+
+/* SECTIONS. The wall-of-text fix: the structure is already in the entry as
+   all-caps lead-ins, and this renders it instead of running it together. */
+.sec {{ display:block; margin:.7rem 0 0; font-size:.88rem; }}
+.sec:first-child {{ margin-top:.2rem; }}
+.sh {{
+  display:block; margin-bottom:.15rem;
+  font:600 .64rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  text-transform:uppercase; letter-spacing:.09em; color:var(--need);
+}}
 button.more {{
   display:inline-block; margin-left:.4rem; padding:.12rem .38rem;
   font:600 .62rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -696,10 +775,15 @@ page &mdash; it cannot refresh itself.
       return '<div class="idea"><div class="head">'
         + '<span class="rid">' + esc(it.id) + '</span>'
         + '<span class="what">'
-        + (it.full ? '<span class="t">' + esc(it.claim) + '</span>'
-                   + '<span class="f">' + esc(it.full) + '</span>'
-                   + '<button class="more" type="button" aria-expanded="false">more</button>'
-                   : esc(it.claim))
+        + (it.secs && it.secs.length
+             ? '<span class="t">' + esc(it.claim) + '</span>'
+               + '<span class="f">' + it.secs.map(function (s) {{
+                   return '<span class="sec">'
+                     + (s.h ? '<b class="sh">' + esc(s.h) + '</b>' : '')
+                     + esc(s.t) + '</span>';
+                 }}).join("") + '</span>'
+               + '<button class="more" type="button" aria-expanded="false">more</button>'
+             : esc(it.claim))
         + '</span>'
         + (v ? '<span class="verdict">' + esc(v.toLowerCase()) + '</span>' : '')
         + '</div><div class="acts">' + CATS.map(function (p) {{
@@ -1029,6 +1113,66 @@ def self_check():
     chk("the shell between the two live regions is frozen separately",
         'id="labels"' in st.get("mid", "") and "Label these" in st.get("mid", ""),
         "one save would rebuild the labels and paste a stale copy under them")
+    # ---- SECTIONING (user: "they're kind of just walls of text") -----------
+    # THE CONTROL THAT MATTERS IS LOSSLESSNESS. A splitter that silently drops a
+    # clause is worse than the wall it replaces, because the reader cannot see
+    # the gap. Run over EVERY entry in the real ledger, not the fixture -- the
+    # fixture cannot contain the shapes that break it.
+    # An EMBEDDED corpus carries the shapes that break it, so this control works
+    # wherever the script is run from. The real ledger is added when reachable --
+    # but relying on it alone made the control fail for the WRONG reason in every
+    # break run from a scratch directory, which is BL14's defect reproduced.
+    PROBES = [
+        "Roll #1. WHY THIS: because. SO WHAT: it reads. Falsifier: it does not.",
+        "NO GAME RUN, NO DISPLAY — the only item needing neither. THE RECOUNT: of sixteen.",
+        "no headings here at all, just a plain sentence with nothing shouted",
+        "TRAILING HEADING WITH NOTHING AFTER IT:",
+        "of sixteen, fourteen agree — 7 GAME, 5 STACK, 2 METHOD at both scopes (A358, A369).",
+    ]
+    real = ([l for l in LEDGER.read_text().split("\n")
+             if re.match(r"^\|\s*[A-Z]+\d+\s*\|", l)] if LEDGER.exists() else [])
+    corpus = PROBES + [_gist(l) for l in real]
+    lost = [c[:40] for c in corpus
+            if _sections_roundtrip(c) != "".join(c.split())]
+    chk(f"sectioning loses NO text ({len(corpus)} bodies, {len(real)} from the ledger)",
+        not lost, f"{len(lost)} lose text: {lost[:3]}")
+    # The project's own closing vocabulary is the part a reader most needs to
+    # find, and every one of them is missed by the generic caps pattern.
+    probe = ("Roll #1. WHY THIS AND NOT SOMETHING ELSE: because. "
+             "NOT ESTABLISHED, and unchanged: the other thing. "
+             "ONE RUN IS ENOUGH: there is no run. SO WHAT: it reads better. "
+             "Falsifier: it does not.")
+    heads = [s["h"] for s in _sections(probe)]
+    chk("the standing section names are found, not just shouty ones",
+        all(h in heads for h in ("SO WHAT", "Falsifier", "NOT ESTABLISHED",
+                                 "ONE RUN IS ENOUGH")), f"{heads}")
+    # THE LOOSE VERSION OF THIS SPLIT SHIPPED FIRST AND WAS WRONG TWICE: a bare
+    # comma terminator made "7 GAME, 5 STACK" a heading, and a mid-sentence start
+    # made the citation "(A358, A369)" one. Both are asserted directly.
+    noise = _sections("of sixteen, fourteen agree — 7 GAME, 5 STACK, 2 METHOD "
+                      "at both scopes (A358, A369), and reading works.")
+    chk("mid-sentence capitals are NOT mistaken for headings",
+        [s["h"] for s in noise] == [""], f"{[s['h'] for s in noise]}")
+    # A HEADING MAY CONTAIN A COMMA, and allowing one to TERMINATE the heading
+    # cuts real ones in half. Measured on the live ledger before this control was
+    # written: the loose form changes 318 of 579 entries, turning "NO GAME RUN,
+    # NO DISPLAY — ..." into a heading that stops at "NO GAME RUN". The earlier
+    # probe missed this entirely and a break of exactly that shape went unnoticed.
+    comma = _sections("NO GAME RUN, NO DISPLAY — the only item needing neither.")
+    chk("a heading is not cut at its own internal comma",
+        [s["h"] for s in comma] == ["NO GAME RUN, NO DISPLAY"],
+        f"{[s['h'] for s in comma]}")
+    # A HEADING MUST START A SENTENCE. Measured on the live ledger: dropping that
+    # requirement changes 137 of 579 entries and promotes mid-clause emphasis to
+    # headings -- "ONCE UNCONDITIONALLY", "DRAIN-WAIT". The probe below is that
+    # exact shape, because the first two probes did not contain it and a break of
+    # precisely this went unnoticed.
+    mid = _sections("The name of 0x02 IS RECALLED, NOT CITED: the count is the finding.")
+    chk("emphasis mid-sentence is not promoted to a heading",
+        [s["h"] for s in mid] == [""], f"{[s['h'] for s in mid]}")
+    chk("the labelling rows carry sections, not one blob",
+        all("secs" in x for x in st.get("labels", [])),
+        "the wall-of-text fix did not reach the data")
     chk("the labelling section READS without the runtime",
         'id="labels"' in html and ">A1<" in html.split('id="labels"')[1][:2000],
         "an empty section would look like a finished task")
