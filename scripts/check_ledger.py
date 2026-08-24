@@ -1180,8 +1180,19 @@ def main():
     try:
         _mark = LEDGER.parent / ".status-page.json"
         _seen = json.loads(_mark.read_text()).get("entries", -1) if _mark.exists() else -1
-        _now = len([1 for _l in text.split("\n")
-                    if re.match(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", _l)])
+        # COUNT THE SAME THING THE PAGE COUNTS, OR THE COMPARISON IS MEANINGLESS.
+        # The marker holds the count printed ON the page, and `status_page.py`
+        # excludes the USER QUEUE section from it. This counted every row in the
+        # file, so the two differed by the size of the queue -- twelve — and the
+        # nag could never go quiet no matter how recently the page was published.
+        # Third instance today of two halves that must agree and did not
+        # (T193, T194, this).
+        _now, _skip = 0, False
+        for _l in text.split("\n"):
+            if _l.startswith("## "):
+                _skip = is_non_entry_section(_l)
+            if not _skip and re.match(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", _l):
+                _now += 1
         if _seen >= 0 and _now - _seen >= 10:
             reminders.append(
                 f"STATUS PAGE stale — {_now - _seen} entries added since it was "
