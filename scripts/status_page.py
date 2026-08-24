@@ -30,6 +30,7 @@ Usage:
     scripts/status_page.py --self-check
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -74,6 +75,42 @@ def ledger_rows(text=None):
             continue
         (queue if in_queue else entries).setdefault(m.group(1), (m.group(2).strip(), line))
     return entries, queue
+
+
+ARCHIVE = Path(os.environ.get("SNP_ARCHIVE", "/media/joh/extra/sin-punishment-archive"))
+LABEL_LIST = ARCHIVE / "evidence" / "2026-08-23" / "label-these-16.txt"
+
+
+def _labels(entries, text=None):
+    """The U10 labelling task, as data the page can render as buttons.
+
+    WHY THE LIST IS READ AND NOT HARD-CODED: `label-these-16.txt` is the single
+    source -- it names the sixteen and states the categories. A copy here would
+    be a second copy of an evidence file, and this project has watched those go
+    stale. The generator REFUSES rather than emitting an empty section if the
+    file is unreachable (see main): a page that silently drops the task looks
+    exactly like a page where the task is finished.
+
+    WHAT IS DELIBERATELY NOT SENT TO THE PAGE: my labels, and the two sub-agent
+    runs. **The whole value of U10 is a key that is not mine** (A371), and a page
+    that showed my answer beside the question would collect agreement rather than
+    a judgement. `hand_labels.json` is never opened here.
+    """
+    if text is not None:                      # self-check fixture path
+        ids = [k for k in entries if k in ("A1", "A4")]
+    else:
+        if not LABEL_LIST.exists():
+            return None
+        ids = re.findall(r"\bA\d+\b", LABEL_LIST.read_text().split("Label each one:")[0])
+    out = []
+    for i in ids:
+        row = entries.get(i)
+        if not row:
+            continue
+        full = _gist(row[1])
+        out.append({"id": i, "claim": full[:190] + ("…" if len(full) > 190 else ""),
+                    "full": full if len(full) > 190 else ""})
+    return out
 
 
 def collect(text=None):
@@ -126,6 +163,7 @@ def collect(text=None):
         "away": away, "obs_today": obs_today,
         "span_days": span, "per_day": len(entries) / span,
         "commits": _git("rev-list", "--count", "HEAD"),
+        "labels": _labels(entries, text),
         "backlog_open": _count("BACKLOG.md", r"^\|\s*BL\d+\s*\|[^|]*\|\s*OPEN"),
         "ideas_open": _count("IDEAS.md", r"^\|\s*IDEA\d+\s*\|[^|]*\|\s*OPEN"),
         "l1_audits": _count("audit-log.md", r"^## Audit #\d+ — since"),
@@ -230,6 +268,20 @@ def _mins_chip(line):
         return (f'<span class="cost mins" title="my estimate of your time, '
                 f'in minutes">{m.group(1)}m</span>')
     return '<span class="cost none" title="not estimated — I had no grounds">?</span>'
+
+
+def _fallback_labels(labels):
+    """Server-rendered labelling rows, replaced by the runtime once it draws.
+
+    Same reason as the ideas fallback: with no runtime the section must still
+    READ, because an empty one looks like a finished task rather than a broken
+    page. Without the runtime there are no buttons and the answer goes in chat.
+    """
+    if not labels:
+        return '<p class="empty">Nothing to label.</p>'
+    return "".join(
+        f'<div class="idea"><div class="head"><span class="rid">{_esc(x["id"])}</span>'
+        f'<span class="what">{_esc(x["claim"])}</span></div></div>' for x in labels)
 
 
 def _fallback(ideas):
@@ -405,9 +457,10 @@ button[aria-pressed="true"] {{ border-color:var(--need); color:var(--need); back
 
 /* EXPAND / COLLAPSE. The full text is always in the document; only its
    visibility changes, so nothing is fetched and nothing can fail to load. */
-.body .f {{ display:none; }}
-.row.open .body .t {{ display:none; }}
-.row.open .body .f {{ display:block; }}
+.f {{ display:none; }}
+.row.open .t, .idea.open .t {{ display:none; }}
+.row.open .f, .idea.open .f {{ display:block; }}
+.idea.open .f {{ margin-top:.3rem; }}
 button.more {{
   display:inline-block; margin-left:.4rem; padding:.12rem .38rem;
   font:600 .62rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -491,6 +544,25 @@ leaving it to rot.</p>
 <!--IB--><div id="ideas">{_fallback(d['ideas'])}</div><!--IA-->
 <p class="saving" id="saving"></p>
 
+<h2 class="pull">Label these &mdash; the one thing only you can do</h2>
+<p class="lede">Each of these is a finding from the ledger. Is it a fact about
+<b>the game</b> (Sin &amp; Punishment&rsquo;s own code, data or behaviour), about
+<b>the stack</b> (the tools that recompile and run it), or about <b>method</b>
+(how this project works)? It answers your own question &mdash; is this game
+unusually awkward, or are we just being slow.</p>
+<p class="lede"><b>Why it has to be you.</b> I already have an answer key, but it
+is my reading. Two independent runs scored 88% and 100% against it, which measures
+<em>agreement with me</em>, not correctness. Yours is the first that would be a
+real key. <b>A99 is the one that matters</b> &mdash; it is the crash that dominated
+this project, and it is the entry no two readers have labelled the same way.
+Partial is genuinely fine; one label is worth more than none.</p>
+<p class="lede">My labels are deliberately <b>not shown</b>, and neither are the
+two machine runs &mdash; a page that showed you my answer would collect agreement
+rather than a judgement. Go with your gut; there is no penalty for a wrong one,
+and a disagreement is a more useful result than a match.</p>
+<!--LB--><div id="labels">{_fallback_labels(d['labels'])}</div><!--LA-->
+<p class="saving" id="lsaving"></p>
+
 <h2>The shape of the work</h2>
 <div class="figures">
   <div class="fig"><div class="v">{d['entries']}</div><div class="l">entries</div></div>
@@ -517,7 +589,7 @@ page &mdash; it cannot refresh itself.
 
 </div>
 
-<script id="state" type="application/json">{_json(dict(ideas=d['ideas'], before="%%B%%", after="%%A%%", title="%%T%%", css="%%C%%"))}</script>
+<script id="state" type="application/json">{_json(dict(ideas=d['ideas'], labels=d['labels'] or [], before="%%B%%", mid="%%M%%", after="%%A%%", title="%%T%%", css="%%C%%"))}</script>
 <script id="boot">
 // State lives in its own JSON tag so republishing never rewrites code, and the
 // page is rebuilt from DATA rather than by serialising the live DOM.
@@ -550,7 +622,8 @@ page &mdash; it cannot refresh itself.
   document.addEventListener("click", function (e) {{
     var b = e.target.closest("button.more");
     if (!b) return;
-    var row = b.closest(".row");
+    var row = b.closest(".row") || b.closest(".idea");
+    if (!row) return;
     var open = row.classList.toggle("open");
     b.setAttribute("aria-expanded", open ? "true" : "false");
     b.textContent = open ? "less" : "more";
@@ -605,6 +678,39 @@ page &mdash; it cannot refresh itself.
 
   function draw() {{ box.innerHTML = ideasHTML(); }}
 
+  // ---- THE U10 LABELLING TASK -------------------------------------------
+  var lbox = document.getElementById("labels");
+  var lsay = document.getElementById("lsaving");
+  var CATS = [["GAME", "the game"], ["STACK", "the stack"], ["METHOD", "method"]];
+
+  function labelsHTML() {{
+    if (!S.labels || !S.labels.length) return '<p class="empty">Nothing to label.</p>';
+    var done = S.labels.filter(function (x) {{ return x.label; }}).length;
+    // PROGRESS IS STATED, because "partial is fine" is only credible if the
+    // page shows partial as a real state rather than an unfinished one.
+    var head = '<p class="lede"><b>' + done + " of " + S.labels.length
+      + " labelled.</b> " + (done ? "Saved as you go; stop whenever you like."
+                                  : "Nothing yet &mdash; A99 is the one to do first.") + "</p>";
+    return head + S.labels.map(function (it) {{
+      var v = it.label || "";
+      return '<div class="idea"><div class="head">'
+        + '<span class="rid">' + esc(it.id) + '</span>'
+        + '<span class="what">'
+        + (it.full ? '<span class="t">' + esc(it.claim) + '</span>'
+                   + '<span class="f">' + esc(it.full) + '</span>'
+                   + '<button class="more" type="button" aria-expanded="false">more</button>'
+                   : esc(it.claim))
+        + '</span>'
+        + (v ? '<span class="verdict">' + esc(v.toLowerCase()) + '</span>' : '')
+        + '</div><div class="acts">' + CATS.map(function (p) {{
+            return '<button data-id="' + esc(it.id) + '" data-v="' + p[0] + '" aria-pressed="'
+              + (v === p[0]) + '">' + p[1] + '</button>';
+          }}).join("") + '</div></div>';
+    }}).join("");
+  }}
+
+  function ldraw() {{ lbox.innerHTML = labelsHTML(); }}
+
   function doc() {{
     // REBUILT FROM DATA, NEVER FROM THE DOM. A first version took
     // `.sheet.outerHTML`, which the capability contract forbids and which had a
@@ -614,7 +720,8 @@ page &mdash; it cannot refresh itself.
     var head = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
       + "<title>" + S.title + "<" + "/title>"
       + "<style>" + S.css + "<" + "/style>";
-    var body = '<div class="sheet">' + S.before + ideasHTML() + S.after + "</div>"
+    var body = '<div class="sheet">' + S.before + ideasHTML() + S.mid + labelsHTML()
+      + S.after + "</div>"
       + '<script id="state" type="application/json">' + JSON.stringify(S) + "<" + "/script>"
       + '<script id="boot">' + document.getElementById("boot").textContent + "<" + "/script>";
     return "<!doctype html><html><head>" + head + "</head><body>" + body + "</body></html>";
@@ -653,7 +760,59 @@ page &mdash; it cannot refresh itself.
     }}
   }});
 
+  lbox.addEventListener("click", async function (e) {{
+    var b = e.target.closest("button[data-v]");   // NOT the expand button
+    if (!b) return;
+    var it = S.labels.filter(function (x) {{ return x.id === b.dataset.id; }})[0];
+    if (!it) return;
+    if (!READY) {{
+      lsay.textContent = "This page is missing its own stylesheet in state, so "
+        + "saving would publish an unstyled copy. Regenerate it; nothing was changed.";
+      return;
+    }}
+    // WHICH ROWS ARE OPEN IS REBUILT AWAY BY ldraw(), so it is captured and
+    // restored. Losing your place mid-task every time you press a button is the
+    // kind of friction that turns "partial is fine" into "I'll do it later".
+    var open_now = [];
+    lbox.querySelectorAll(".idea.open .rid").forEach(function (r) {{
+      open_now.push(r.textContent);
+    }});
+    var was = it.label;
+    it.label = (was === b.dataset.v) ? null : b.dataset.v;      // click again to undo
+    ldraw(); reopen(open_now);
+    var api = await claude.use("artifact");
+    if (!api) {{
+      it.label = was; ldraw(); reopen(open_now);
+      lsay.textContent = "This view can show labels but not save them.";
+      return;
+    }}
+    lsay.textContent = "Saving…";
+    try {{
+      await api.publish(doc());
+      lsay.textContent = "Saved. Stop whenever you like — partial is fine.";
+    }} catch (err) {{
+      var code = err && err.code;
+      if (code === "conflict") return;            // another view won; this one reloads
+      it.label = was; ldraw(); reopen(open_now);
+      lsay.textContent = code === "not_writer" || code === "not_granted"
+        ? "Read-only view — labels cannot be saved from here."
+        : "Could not save (" + (code || "unknown") + "). Nothing was changed.";
+    }}
+  }});
+
+  function reopen(ids) {{
+    lbox.querySelectorAll(".idea").forEach(function (row) {{
+      var rid = row.querySelector(".rid"), mb = row.querySelector("button.more");
+      if (rid && mb && ids.indexOf(rid.textContent) >= 0) {{
+        row.classList.add("open");
+        mb.setAttribute("aria-expanded", "true");
+        mb.textContent = "less";
+      }}
+    }});
+  }}
+
   draw();
+  ldraw();
 }})();
 </script>"""
 
@@ -668,11 +827,19 @@ def render(d):
     and the republished one drift apart silently.
     """
     html = _render_raw(d)
+    # THREE FROZEN SLICES NOW, NOT TWO. There are two regenerated regions -- the
+    # ideas and the labelling rows -- so the shell is before / MID / after, where
+    # `mid` is everything between them. Adding the second region as a suffix of
+    # `after` would have worked until the first save, which would then have
+    # rebuilt the labels from data and pasted the stale copy back underneath.
     head, rest = html.split("<!--IB-->", 1)
-    mid, tail = rest.split("<!--IA-->", 1)
+    _ideas, rest = rest.split("<!--IA-->", 1)
+    between, rest = rest.split("<!--LB-->", 1)
+    _labs, tail = rest.split("<!--LA-->", 1)
 
     sheet_open = '<div class="sheet">'
     before = head.split(sheet_open, 1)[1] + '<div id="ideas">'
+    mid = "</div>" + between + '<div id="labels">'
     # THE SHELL MUST STOP AT THE SHEET. `after` originally ran to the end of the
     # document, which swallowed the state script -- so the frozen shell contained
     # the very placeholders being written into it and they replaced themselves.
@@ -691,8 +858,10 @@ def render(d):
     def enc(x):
         return json.dumps(x)[1:-1].replace("<", "\\u003c").replace("&", "\\u0026")
 
-    return (html.replace("<!--IB-->", "").replace("<!--IA-->", "")
-                .replace("%%B%%", enc(before)).replace("%%A%%", enc(after))
+    for s in ("<!--IB-->", "<!--IA-->", "<!--LB-->", "<!--LA-->"):
+        html = html.replace(s, "")
+    return (html.replace("%%B%%", enc(before)).replace("%%M%%", enc(mid))
+                .replace("%%A%%", enc(after))
                 .replace("%%T%%", enc(title)).replace("%%C%%", enc(css)))
 
 
@@ -801,7 +970,12 @@ def self_check():
     # PASSED against a deliberate break that put a button on every row, because
     # the full-text span holds that same string whether the row is clipped or
     # not. It matched text that exists either way, which is no test at all.
-    a4 = [r for r in html.split('<div class="row') if ">A4<" in r]
+    # BOUNDED AT THE ROW'S OWN CLOSING TAG. Splitting on the opening tag left the
+    # LAST slice running to end of document, so it swallowed the labelling
+    # section -- which also names A4 -- and the control reported two rows. A row
+    # contains spans but never a nested div, so a non-greedy match is exact.
+    a4 = [r for r in re.findall(r'<div class="row[^>]*>(.*?)</div>', html, re.S)
+          if ">A4<" in r]
     chk("a SHORT row gets no expand button",
         len(a4) == 1 and "more" not in a4[0] and 'class="f"' not in a4[0],
         f"A4 fits in the clip and must render bare; found {len(a4)} matching rows")
@@ -824,6 +998,40 @@ def self_check():
     chk("a cost quoted in an entry's BODY is not read as its price",
         _cost_chip("| A9 | OPEN | we set [cost=2] on that one | x |") == _cost_chip("| A9 | OPEN | x | y |"),
         "matching the line instead of the field would price it from prose")
+    # ---- THE U10 LABELLING SECTION (user's request, 2026-08-24) -------------
+    st = json.loads(re.search(
+        r'<script id="state" type="application/json">(.*?)</script>', html, re.S).group(1))
+    chk("the labelling task reaches the page as DATA",
+        [x["id"] for x in st.get("labels", [])] == ["A1", "A4"],
+        f"got {[x.get('id') for x in st.get('labels', [])]}")
+    chk("every labelling row offers all three categories",
+        all(c in html for c in ("GAME", "STACK", "METHOD")) and 'id="labels"' in html,
+        "a missing category silently forces the answer into the other two")
+    # THE CONTROL THIS SECTION EXISTS FOR. U10's entire value is a key that is
+    # NOT mine (A371) -- so if my label, or either sub-agent's, ever reached the
+    # page it would collect agreement instead of a judgement and the item would
+    # be worth nothing while still looking done.
+    chk("NO answer key reaches the page",
+        "hand_labels" not in html
+        and not any(k in st for k in ("key", "answers", "hand_labels"))
+        and not any(k in x for x in st.get("labels", []) for k in ("answer", "mine", "key")),
+        "showing my answer beside the question destroys the only thing U10 buys")
+    chk("labels are UNSET until the user sets one",
+        all(not x.get("label") for x in st.get("labels", [])),
+        "a pre-filled label is an answer key by another name")
+    # SECOND REGENERATED REGION, SAME TRAP AS THE FIRST. If `mid` were folded
+    # into `after`, the first save would rebuild the labels from data and then
+    # paste the frozen copy underneath them.
+    # ASSERT WHAT `mid` CONTAINS, NOT THAT THE KEY EXISTS. The first version of
+    # this asked `"mid" in st`, which stays true when mid is emptied -- and it
+    # PASSED against a break that set it to "". Presence is not content; ninth
+    # instance of that mistake on this project.
+    chk("the shell between the two live regions is frozen separately",
+        'id="labels"' in st.get("mid", "") and "Label these" in st.get("mid", ""),
+        "one save would rebuild the labels and paste a stale copy under them")
+    chk("the labelling section READS without the runtime",
+        'id="labels"' in html and ">A1<" in html.split('id="labels"')[1][:2000],
+        "an empty section would look like a finished task")
     chk("the frozen shell round-trips into the state",
         '"before": "' in html and '"after": "' in html
         and "%%B%%" not in html and "%%A%%" not in html,
@@ -856,7 +1064,20 @@ def main():
         print("[status] need an output path, or --dry-run / --self-check", file=sys.stderr)
         return 2
     out = Path(a[0])
-    out.write_text(render(collect()))
+    d = collect()
+    # REFUSE RATHER THAN SHIP A PAGE WITH THE TASK MISSING. If the archive drive
+    # is not mounted the label list cannot be read, and an empty section on the
+    # page is indistinguishable from a finished one. Worse, publishing it would
+    # overwrite whatever labels the user had already saved there.
+    if d["labels"] is None:
+        print(f"[status] REFUSING: the U10 label list is unreachable at\n"
+              f"  {LABEL_LIST}\n"
+              f"Mount the archive drive, or set SNP_ARCHIVE. Publishing without it "
+              f"would show an empty labelling section — which looks like a finished "
+              f"task — and a save would discard any labels already recorded.",
+              file=sys.stderr)
+        return 2
+    out.write_text(render(d))
     print(f"[status] wrote {out} ({out.stat().st_size} bytes)")
     return 0
 
