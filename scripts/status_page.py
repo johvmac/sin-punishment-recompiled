@@ -85,6 +85,31 @@ def ledger_rows(text=None):
 
 ARCHIVE = Path(os.environ.get("SNP_ARCHIVE", "/media/joh/extra/sin-punishment-archive"))
 LABEL_LIST = ARCHIVE / "evidence" / "2026-08-23" / "label-these-16.txt"
+USER_LABELS = ARCHIVE / "evidence" / "2026-08-24" / "user_labels.json"
+
+
+def _given_labels():
+    """Labels the USER has already given, so regenerating cannot discard them.
+
+    THE DEFECT THIS FIXES, FOUND THE HARD WAY (T193). The page saves a label by
+    republishing itself. The generator builds the page from PROJECT FILES, which
+    know nothing about a click. So any regeneration silently produced a page with
+    every label blank, and publishing it would have destroyed them.
+
+    **It was caught by a publish CONFLICT, which is luck rather than a check** --
+    the conflict only fires when their save is newer than my last read. Had I
+    regenerated a minute earlier the label would have gone without a trace.
+
+    So the loop is closed the other way: their clicks are read back off the
+    published page and written HERE, into the project record, and the generator
+    reads this file. The archive file is the source of truth; the page is an
+    input device. Nothing is lost by regenerating, and the labels survive the
+    page being deleted entirely.
+    """
+    try:
+        return json.loads(USER_LABELS.read_text()).get("labels", {})
+    except Exception:
+        return {}
 
 def _labels(entries, text=None):
     """The U10 labelling task, as data the page can render as buttons.
@@ -101,6 +126,7 @@ def _labels(entries, text=None):
     that showed my answer beside the question would collect agreement rather than
     a judgement. `hand_labels.json` is never opened here.
     """
+    given = {} if text is not None else _given_labels()
     if text is not None:                      # self-check fixture path
         ids = [k for k in entries if k in ("A1", "A4")]
     else:
@@ -117,8 +143,11 @@ def _labels(entries, text=None):
         # The collapsed line is the entry's OPENING, not a summary. Summarising
         # would put my compression between the reader and the evidence, which is
         # the one thing this task cannot afford.
-        out.append({"id": i, "claim": full[:190] + ("…" if len(full) > 190 else ""),
-                    "secs": secs if len(full) > 190 else []})
+        row_out = {"id": i, "claim": full[:190] + ("…" if len(full) > 190 else ""),
+                   "secs": secs if len(full) > 190 else []}
+        if given.get(i):
+            row_out["label"] = given[i]
+        out.append(row_out)
     return out
 
 
@@ -1071,7 +1100,25 @@ def self_check():
         "showing my answer beside the question destroys the only thing U10 buys")
     chk("labels are UNSET until the user sets one",
         all(not x.get("label") for x in st.get("labels", [])),
-        "a pre-filled label is an answer key by another name")
+        "a pre-filled label is an answer key by another name (fixture has no given file)")
+    # THE DEFECT T193 RECORDS: regenerating used to blank every label the user had
+    # given, because the generator reads project files and a click lives on the
+    # page. Their labels are now written back to the archive and read from there.
+    # Asserted on the LOADER, since the fixture path deliberately supplies none.
+    import tempfile as _tf
+    global USER_LABELS
+    _u = USER_LABELS
+    try:
+        with _tf.TemporaryDirectory() as _td:
+            USER_LABELS = Path(_td) / "user_labels.json"
+            chk("a missing given-labels file is survivable, not fatal",
+                _given_labels() == {}, "must degrade to empty, never raise")
+            USER_LABELS.write_text('{"labels": {"A9": "GAME"}}')
+            chk("labels the user already gave are read back from the project record",
+                _given_labels() == {"A9": "GAME"},
+                "without this, every regeneration silently discards their work")
+    finally:
+        USER_LABELS = _u
     # SECOND REGENERATED REGION, SAME TRAP AS THE FIRST. If `mid` were folded
     # into `after`, the first save would rebuild the labels from data and then
     # paste the frozen copy underneath them.
