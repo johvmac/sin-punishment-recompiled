@@ -65,3 +65,6 @@ correction.
 ## DEFERRED 2026-08-23 — user away (away from PC until Monday)
 - no observed run today; deferred deliberately, not skipped.
 
+## DEFERRED 2026-08-24 — late in the session; a full day of user-directed work already done and the next step is a roll, not a watched run
+- no observed run today; deferred deliberately, not skipped.
+
