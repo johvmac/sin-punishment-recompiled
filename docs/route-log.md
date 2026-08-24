@@ -250,3 +250,4 @@ A gap in the numbering means a roll was skipped.
 - roll #231: **EXPLORE** (drew 0.263 vs eps 0.3) -> `T150` [witness `0025a7`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
 - roll #232: **EXPLOIT** (drew 0.871 vs eps 0.3) -> `A225` [witness `8e7ec9`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #233: **EXPLOIT** (drew 0.895 vs eps 0.3) -> `A218` [witness `844323`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #234: **EXPLOIT** (drew 0.324 vs eps 0.3) -> `A219` [witness `09422c`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
