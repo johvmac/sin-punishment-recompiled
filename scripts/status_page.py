@@ -1117,6 +1117,49 @@ def self_check():
             chk("labels the user already gave are read back from the project record",
                 _given_labels() == {"A9": "GAME"},
                 "without this, every regeneration silently discards their work")
+        # --mark-published MUST REFUSE A PAGE WHOSE LABELS DISAGREE WITH THE
+        # RECORD (T193). BOTH DIRECTIONS ARE ASSERTED, because a refusal that
+        # always fires is as useless as one that never does -- and "always
+        # refuses" is the easier bug to ship, since the happy path is the one
+        # nobody exercises after the fix.
+        with _tf.TemporaryDirectory() as _td2:
+            USER_LABELS = Path(_td2) / "user_labels.json"
+            USER_LABELS.write_text('{"labels": {"A9": "GAME", "A8": "STACK"}}')
+
+            # DISTINCT FILENAMES. The first version wrote both fixtures to one
+            # path, so the second overwrote the first and the ACCEPT case was
+            # silently handed the REJECT fixture -- it failed, which is the only
+            # reason the bug was visible. A control that shares state between
+            # its two arms is testing one arm twice.
+            def _page_with(labels, name):
+                p = Path(_td2) / name
+                st = {"labels": [{"id": k, "label": v} for k, v in labels.items()]}
+                p.write_text('&nbsp;&middot;&nbsp; 42 entries'
+                             '<script id="state" type="application/json">'
+                             + json.dumps(st) + '</script>')
+                return p
+
+            _agree = _page_with({"A9": "GAME", "A8": "STACK"}, "agree.html")
+            _short = _page_with({"A9": "GAME"}, "short.html")   # user's A8 click missing
+
+            # main() reads sys.argv, and the REAL marker must not be touched by
+            # a self-check -- point DOCS at the temp dir for the duration.
+            global DOCS
+            _docs, _argv = DOCS, sys.argv
+            def _run(p):
+                sys.argv = ["status_page.py", "--mark-published", str(p)]
+                try:    return main()
+                finally: sys.argv = _argv
+            try:
+                DOCS = Path(_td2)
+                _rc_ok  = _run(_agree)
+                _rc_bad = _run(_short)
+            finally:
+                DOCS = _docs
+            chk("--mark-published ACCEPTS a page whose labels match the record",
+                _rc_ok == 0, f"rc={_rc_ok}; a refusal that always fires blocks all publishing")
+            chk("--mark-published REFUSES a page missing a label the user gave",
+                _rc_bad == 2, f"rc={_rc_bad}; this is T193 shipping again, silently")
     finally:
         USER_LABELS = _u
     # SECOND REGENERATED REGION, SAME TRAP AS THE FIRST. If `mid` were folded
@@ -1271,6 +1314,48 @@ def main():
                   f"Marking a page whose contents I cannot read would assert "
                   f"freshness I have not checked.", file=sys.stderr)
             return 2
+        # REFUSE TO MARK A PAGE THAT WOULD HAVE EATEN THE USER'S CLICKS (T193).
+        #
+        # T193 is the near-miss: every regeneration silently blanked every label
+        # the user had given, and it was caught by LUCK -- a publish conflict --
+        # not by any check. The fix made `user_labels.json` the source of truth
+        # and the generator read it. **But nothing ever asserted that the file
+        # actually published agrees with that record.** Two halves that must
+        # agree, with no check that they do, which is the shape this project has
+        # now hit five times (T185, T187, T193, T194, T195).
+        #
+        # Marking is the right place for the refusal, not generation: it is the
+        # LAST step, so it is the last moment the mistake is still cheap, and it
+        # is the step that records "this page is current" -- an assertion that
+        # must not be made about a page missing the user's work.
+        _pub_text = pub.read_text()
+        _mm = re.search(r'<script id="state" type="application/json">(.*?)</script>',
+                        _pub_text, re.S)
+        if _mm:
+            try:
+                _page = {k: v for k, v in
+                         ((r.get("id"), r.get("label"))
+                          for r in json.loads(_mm.group(1)).get("labels", []))
+                         if v}
+            except Exception:
+                _page = None
+            _rec = _given_labels()
+            if _page is not None and _page != _rec:
+                _lost = {k: v for k, v in _rec.items() if _page.get(k) != v}
+                print(f"[status] REFUSING to mark {pub.name} as published.",
+                      file=sys.stderr)
+                print(f"[status] Its label state does NOT match the project "
+                      f"record ({USER_LABELS}).", file=sys.stderr)
+                print(f"[status]   page says : {_page}", file=sys.stderr)
+                print(f"[status]   record has: {_rec}", file=sys.stderr)
+                if _lost:
+                    print(f"[status]   MISSING FROM THE PAGE: {_lost} — publishing "
+                          f"this WIPES the user's clicks (T193).", file=sys.stderr)
+                print(f"[status] Fix: WebFetch the live page, merge clicks into "
+                      f"the record, regenerate, republish, then mark.",
+                      file=sys.stderr)
+                return 2
+
         mark = DOCS / ".status-page.json"
         old = _load(".status-page.json", {})
         old["entries"] = int(m.group(1))

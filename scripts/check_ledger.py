@@ -444,6 +444,12 @@ def main():
     # block a push -- that conflates "you owe a routing roll" with "the ledger
     # is malformed", and the fix for the former is not to edit the ledger.
     reminders = []
+    # ESCALATION IS AN EXPLICIT LIST, NOT A GREP OVER PROSE (T100).
+    # The existing escalation matches the words "due"/"rolls since audit" in the
+    # reminder TEXT, so whether a check can interrupt depends on how its message
+    # happens to be worded -- rewording it silently disarms it. Anything appended
+    # here escalates because it was PUT here.
+    escalating = []
 
     # 3c-bis. MERGED rows must point somewhere real.
     #
@@ -1193,6 +1199,25 @@ def main():
                 _skip = is_non_entry_section(_l)
             if not _skip and re.match(r"^\|\s*[A-Z]+\d+[a-z]?\s*\|", _l):
                 _now += 1
+        # TWO TIERS, AND THE GAP BETWEEN THEM IS THE POINT. Noting at 10 and
+        # BLOCKING at 10 would be the same check, and it would fire on every
+        # ledger edit for the rest of a working session -- which is exactly the
+        # "train me to ignore the guard channel" failure T29 warns about, and
+        # how the audit nag came to be skipped 13 times. The note gets a wide
+        # run at being acted on before anything blocks.
+        #
+        # BLOCKING IS LEGITIMATE HERE ONLY BECAUSE I CAN CLEAR IT MYSELF (T127).
+        # The observed-run gate is deliberately NOT this shape: a block only the
+        # user can lift halts all work while they are away. Publishing is one
+        # call I make, so a gate costs nothing but the publish.
+        #
+        # ENTRY-COUNT, NEVER CALENDAR (T151, the user's rule): drift only grows
+        # when work happens, so an idle day accrues nothing and no debt piles up.
+        if _seen >= 0 and _now - _seen >= 25:
+            escalating.append(
+                f"STATUS PAGE {_now - _seen} entries stale — past the point where "
+                f"the user is reading a page that describes a different project. "
+                f"Regenerate and republish (merge their clicks FIRST — T193).")
         if _seen >= 0 and _now - _seen >= 10:
             reminders.append(
                 f"STATUS PAGE stale — {_now - _seen} entries added since it was "
@@ -1275,7 +1300,7 @@ def main():
     # facts about a long file; escalating those would fire on every ledger edit
     # and train me to ignore the guard channel, which is the failure T29 warns
     # about. Only reminders that name something OVERDUE escalate.
-    overdue = [r for r in reminders if re.search(r"\b(due|rolls since audit)\b", r, re.I)]
+    overdue = [r for r in reminders if re.search(r"\b(due|rolls since audit)\b", r, re.I)] + escalating
     if not problems:
         print(f"[ledger] OK — {len(rows)} entries, {len(lb)} load-bearing, "
               f"{len(withdrawn)} withdrawn.{note}", file=out)
