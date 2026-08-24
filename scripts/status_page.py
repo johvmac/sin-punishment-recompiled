@@ -564,11 +564,16 @@ leaving it to rot.</p>
 <p class="saving" id="saving"></p>
 
 <h2 class="pull">Label these &mdash; the one thing only you can do</h2>
-<p class="lede">Each of these is a finding from the ledger. Is it a fact about
-<b>the game</b> (Sin &amp; Punishment&rsquo;s own code, data or behaviour), about
-<b>the stack</b> (the tools that recompile and run it), or about <b>method</b>
-(how this project works)? It answers your own question &mdash; is this game
+<p class="lede">Each of these is a finding from the ledger. The question is whether
+it is a fact about <b>the game</b> &mdash; Sin &amp; Punishment&rsquo;s own code,
+data or behaviour &mdash; or not. That is your own question: is this game
 unusually awkward, or are we just being slow.</p>
+<p class="lede"><b>&ldquo;Not the game&rdquo; is a complete answer</b>, not a
+shrug. The two faint buttons after it &mdash; stack, method &mdash; are optional
+detail if you happen to know which; the tools that run it, or the way this
+project works. <b>They are genuinely hard to separate and you should not force
+it:</b> when I configure a tool, the tool&rsquo;s capability is stack and my
+choice of setting is method, and they arrive as one fact in one sentence.</p>
 <p class="lede"><b>Why it has to be you.</b> I already have an answer key, but it
 is my reading. Two independent runs scored 88% and 100% against it, which measures
 <em>agreement with me</em>, not correctness. Yours is the first that would be a
@@ -700,7 +705,18 @@ page &mdash; it cannot refresh itself.
   // ---- THE U10 LABELLING TASK -------------------------------------------
   var lbox = document.getElementById("labels");
   var lsay = document.getElementById("lsaving");
-  var CATS = [["GAME", "the game"], ["STACK", "the stack"], ["METHOD", "method"]];
+  // FOUR OPTIONS, NOT THREE, AND THE COARSE ONE IS NOT A COP-OUT (user, 2026-08-24).
+  // T165 -- the item this task serves -- asks its question in BINARY terms: its own
+  // text says classify the entries into about-the-game versus about-the-toolchain-or-
+  // renderer. The three-way split was added afterwards, by me, and the extra
+  // distinction is the one costing the labeller time. "not the game" is a COMPLETE
+  // answer to the question actually being asked; stack and method are optional detail.
+  //
+  // NOT per-entry options, which was the other thing considered: choosing which
+  // entries get which buttons would mean deciding in advance where each one sits,
+  // and that is the labelling, done by me, in the UI.
+  var CATS = [["GAME", "the game"], ["NOT-GAME", "not the game"],
+              ["STACK", "· stack"], ["METHOD", "· method"]];
 
   function labelsHTML() {{
     if (!S.labels || !S.labels.length) return '<p class="empty">Nothing to label.</p>';
@@ -1028,9 +1044,22 @@ def self_check():
     chk("the labelling task reaches the page as DATA",
         [x["id"] for x in st.get("labels", [])] == ["A1", "A4"],
         f"got {[x.get('id') for x in st.get('labels', [])]}")
-    chk("every labelling row offers all three categories",
-        all(c in html for c in ("GAME", "STACK", "METHOD")) and 'id="labels"' in html,
-        "a missing category silently forces the answer into the other two")
+    # THE BUTTONS ARE GENERATED AT RUNTIME from an options table, so `data-v="..."`
+    # never appears literally in the shipped page -- a first version of these three
+    # asserted exactly that and failed against working code. The table IS the
+    # contract; it is extracted and read rather than string-matched.
+    cats = re.search(r"var CATS = (\[.*?\]);", html, re.S).group(1)
+    cats = re.findall(r'\["([A-Z-]+)",\s*"([^"]+)"\]', cats)
+    vals = [c[0] for c in cats]
+    chk("the labelling row leads with the BINARY question",
+        vals[:2] == ["GAME", "NOT-GAME"] and 'id="labels"' in html,
+        f"T165 asks about-the-game vs not; got {vals}")
+    chk("the optional refinements are still offered, after it",
+        vals[2:] == ["STACK", "METHOD"],
+        f"a labeller who DOES know which should not have to discard it; got {vals}")
+    chk("the coarse answer is its own option, not implied by the other two",
+        dict(cats).get("NOT-GAME", "").strip().lower() == "not the game",
+        f"{dict(cats).get('NOT-GAME')!r}")
     # THE CONTROL THIS SECTION EXISTS FOR. U10's entire value is a key that is
     # NOT mine (A371) -- so if my label, or either sub-agent's, ever reached the
     # page it would collect agreement instead of a judgement and the item would
