@@ -204,9 +204,29 @@ if polls and control_changes * 4 >= polls:
     print("[ares] CONTROL OK -- ares was executing; the __VRAM__ result is meaningful.",
           flush=True)
 else:
-    print("[ares] CONTROL FAILED -- RDRAM was static, so ares was NOT running the",
+    # THE REFUSAL IS RIGHT; THE OLD CAUSE WAS WRONG (A403, 2026-08-25).
+    # This branch used to say "ares was NOT running the game", which is a
+    # MECHANISM the control cannot distinguish -- and on 2026-08-25 it was
+    # measurably false: the recording of the same run shows the game playing
+    # its attract at 60 VPS with "GDB connected" in ares's own status bar,
+    # while every one of 38 polls read a frozen control block and PC=-1.
+    # A control that refuses correctly but names the wrong cause sends the
+    # next reader to debug the emulator instead of the debug server.
+    print("[ares] CONTROL FAILED -- the RDRAM reads were STATIC across the run,",
           flush=True)
-    print("[ares] game. This run proves NOTHING about __VRAM__. Do not use it.",
+    print("[ares] so this run proves NOTHING about __VRAM__. Do not use it.",
+          flush=True)
+    print("[ares] TWO CAUSES LOOK IDENTICAL HERE and this control cannot tell",
+          flush=True)
+    print("[ares]   them apart -- (a) ares was not executing, or (b) ares WAS",
+          flush=True)
+    print("[ares]   executing and the debug server's reads do not reflect it.",
+          flush=True)
+    print("[ares] MEASURED 2026-08-25: it was (b). PC=-1 every poll is the tell.",
+          flush=True)
+    print("[ares] TO TELL THEM APART, LOOK AT THE RECORDING of this run -- the",
+          flush=True)
+    print("[ares]   emulator's own window is the independent instrument.",
           flush=True)
 end
 quit
