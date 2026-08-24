@@ -3102,6 +3102,51 @@ days something has passed by matching text where the subject was meant.
 
 ---
 
+## `ares_register.py` — find the game inside an ares capture (added 2026-08-24, A377/A378)
+
+**PURPOSE.** An ares recording made by `ares_capture.sh` contains the whole
+isolated display — **menu bar, viewport, status bar**. Anything that measures
+"the content area" of such a frame measures the WINDOW. This finds the viewport
+and emits a crop that registers it to our 640x480.
+
+**THE INCIDENT THAT MOTIVATED IT (A376).** I measured the content region of an
+ares frame, got 768x622 at aspect 1.2347, could not explain why it was not 4:3,
+and **asked the user to re-capture with different settings.** The answer was
+that I had measured the window. **Two statistical passes ran before I looked at
+the image, and the image explained it in one second.** Look at the frame first.
+
+**THE METHOD.** The viewport is what MOVES between frames; chrome is static. It
+takes the **largest CONTIGUOUS band** of motion — not the outer bounds — because
+the status bar carries a live VPS counter that moves too. That one distinction
+is the whole tool.
+
+**THE GEOMETRY IS MEASURED, NEVER HARD-CODED, AND THIS IS NOT FUSSINESS.**
+A377 derived `crop=711:535:264:76` for one recording. It depends on ares' output
+mode, window size and Overscan setting — the user changed two of those the same
+day. A tool carrying that constant would keep running and register the wrong
+region in silence.
+
+**CONTROLS (`--self-check`, 4).** Synthetic frames with a KNOWN viewport, so the
+answer does not come from the code agreeing with itself. One is a control
+**verified to fail**: it runs the naive "any row that moved" rule on the same
+fixture and asserts that it really does swallow the status bar. If that ever
+passes, the fixture has stopped proving anything. A fifth check on real data:
+run `--dry-run` on the 2026-08-20 reference and it must return x=264 y=76
+711x535, which was derived independently by hand.
+
+**A DRY RUN THAT TOUCHES NOTHING** — `--dry-run <video>` measures and prints,
+and **warns on stderr if the band it found is not within 5% of 4:3**, because a
+non-4:3 answer means it has found something that is not the game and the crop
+must not be trusted.
+
+**WHAT IT DOES NOT DO.** Registration makes the two images the same SHAPE, not
+the same PICTURE. A377's floor stands: two genuinely different scenes from our
+own build are 14 bits apart under dHash, so any cross-emulator distance at or
+above that is noise. A378 names four ares settings that add deliberate
+differences and can be switched off; the incidental ones cannot.
+
+---
+
 ## `audit_misses.py` — did the audit catch the things that went wrong? (added 2026-08-23, T172)
 
 **Purpose.** `audit.py` has no `--self-check` (T171). Writing it one is the
