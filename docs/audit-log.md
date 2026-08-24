@@ -326,3 +326,10 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
 - suppressed as superseded (6): A363 (single-run, justified in the entry); A361 (single-run, justified in the entry); A356 (single-run, justified in the entry); A353 (single-run, justified in the entry); A366 (single-run, justified in the entry); T186 (single-run, justified in the entry)
 
+## Audit #23 — since ef67c0a1
+- ledger: 594 entries (+14 this window), 39 withdrawn
+- rolls: 11 this window; runs: 0 (0 exited early, 0 contaminated)
+- **1 thing(s) to look at:**
+  - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
+- suppressed as superseded (4): A394 (single-run, justified in the entry); A390 (single-run, justified in the entry); A385 (single-run, justified in the entry); T194 (single-run, justified in the entry)
+

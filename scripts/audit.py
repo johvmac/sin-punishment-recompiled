@@ -410,8 +410,46 @@ def main():
         stale_limit = 0 if _now_dt.hour > 18 or (_now_dt.hour == 18 and _now_dt.minute >= 35) else 1
         if age_days > stale_limit:
             findings.append(f"cron: daily_push.log is {age_days}d old — the 18:30 push may not be running.")
-        if "REFUSING" in last or "error" in last.lower() or "fatal" in last.lower():
-            findings.append(f"cron: last push ended in a refusal/error — {last[:90]}")
+        # MEASURE THE STATE, NOT THE LOG'S LAST LINE (T196).
+        #
+        # This used to fire on "REFUSING" in the last line alone. That line
+        # reflects the last CRON run, and the cron is the only writer -- so a
+        # refusal FIXED BY HAND kept alarming until 18:30 the next day, and an
+        # alarm that cannot clear cannot distinguish "fixed" from "still
+        # broken". It is the same cry-wolf shape as the status-page marker
+        # (T195) and the exclusion list (T194): a signal derived from a record
+        # rather than from the thing itself.
+        #
+        # The thing itself is: are there commits the remote does not have?
+        try:
+            _unpushed = int(subprocess.run(
+                ["git", "rev-list", "--count", "fork/main..HEAD"], cwd=ROOT,
+                capture_output=True, text=True, check=True).stdout.strip())
+        except Exception:
+            _unpushed = -1          # unknown; fall back to the log-only signal
+        _refused = ("REFUSING" in last or "error" in last.lower()
+                    or "fatal" in last.lower())
+        # REPORT THE FACTS; DO NOT DIAGNOSE FROM A STALE LOG.
+        #
+        # A first version of this said "push is STUCK" whenever the last line
+        # refused and anything was unpushed. That over-claims in exactly the way
+        # this fix exists to stop: the refusal may have been repaired by hand
+        # hours ago, and unpushed commits are NORMAL between nightly runs. The
+        # audit cannot tell a live failure from a repaired one without running
+        # the gate, and running the gate stages files -- a side effect an audit
+        # must not have. So it states both facts and names the command that
+        # settles it.
+        if _refused:
+            if _unpushed == 0:
+                findings.append(
+                    "cron: the push log's last line is a refusal, but NOTHING is "
+                    "unpushed — repaired since; the log clears at the next 18:30 run.")
+            else:
+                findings.append(
+                    f"cron: last logged run refused ({last[:60]}) and {_unpushed} "
+                    f"commit(s) are unpushed. **This may be history** — commits "
+                    f"accumulate normally between nightly runs. Settle it with "
+                    f"`scripts/daily_push.sh --dry-run`.")
 
     # THE SECOND CRON JOB, added 2026-08-21 when the Drive backup was scheduled
     # at 18:45. Same reasoning as the block above and it must not be left out:
