@@ -37,6 +37,17 @@
 # those call for completely different work on A97. Reported explicitly rather
 # than as an empty file.
 #
+# SCOPE — THIS ONLY WORKS FOR PROGRAMS THAT HONOUR $PULSE_SINK (A411).
+# The routing sets PULSE_SINK for the child. OUR binary honours it (T104, and
+# A401 rests on that). `ares-64` DOES NOT: on 2026-08-25 a capture armed this
+# way read a flat -91.0 dB over 14.5 s WHILE THE USER WAS LISTENING TO THE
+# SOUND. The capture was recording an empty sink; ares had gone to the default
+# output. **A flat file from this tool means "nothing entered the sink", which
+# is only the same as "the program was silent" for programs known to honour the
+# variable.** --self-check cannot catch this: its control tone is played by a
+# process that DOES honour it. Before trusting a zero from a NEW program, prove
+# that program's stream actually lands in the sink.
+#
 # Usage:
 #   scripts/audio_capture.sh prepare <out.wav>    # BEFORE launch; prints the
 #                                                 # sink name for PULSE_SINK
