@@ -71,3 +71,11 @@ Before writing a condition, ask the three questions this file exists to answer:
 If a contradiction appears later, come back here **first** — the impossible-result
 rule says the premises get audited before another experiment runs, and this is
 the premise list.
+
+**For the display-list census specifically, `display-list-primer.md` is the
+ground-up version** — written for the user under U11, so it assumes no prior
+knowledge. It carries the one semantic trap in that instrument that is easiest
+to fall into: **on a `[dlrect]` line, `color=` is meaningless unless `cycle=`
+says `FILL`** (A356, and A342 doubted a correct finding on exactly this). It
+also states, claim by claim, which parts of a census reading are measured and
+which are convention I am quoting.
