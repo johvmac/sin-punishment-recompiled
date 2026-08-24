@@ -390,14 +390,27 @@ page &mdash; it cannot refresh itself.
 
 </div>
 
-<script id="state" type="application/json">{_json(dict(ideas=d['ideas'], before="%%B%%", after="%%A%%"))}</script>
+<script id="state" type="application/json">{_json(dict(ideas=d['ideas'], before="%%B%%", after="%%A%%", title="%%T%%", css="%%C%%"))}</script>
 <script id="boot">
 // State lives in its own JSON tag so republishing never rewrites code, and the
 // page is rebuilt from DATA rather than by serialising the live DOM.
 (function () {{
   var S = JSON.parse(document.getElementById("state").textContent);
-  if (!S.title) {{ S.title = document.querySelector("title").textContent; }}
-  if (!S.css) {{ S.css = document.querySelector("style").textContent; }}
+  // NO DOM FALLBACK FOR title/css, AND THAT IS THE WHOLE FIX (2026-08-24).
+  // This used to select the first stylesheet element out of the document when
+  // the state lacked css -- and the state ALWAYS lacked css, so the "fallback"
+  // was the only path. That selection returns the FIRST such element, and the
+  // artifact runtime injects its own reset into the head ahead of ours. So a
+  // single click froze the PLATFORM'S reset into state as if it were the page's
+  // stylesheet, republished an unstyled document, and -- because S.css was then
+  // set -- would have kept doing so for every save thereafter.
+  //
+  // `doc()` below was already rebuilt-from-data and had a control on it. The DOM
+  // read had simply moved one line UP, into the bootstrap, where nothing looked.
+  // The generator now embeds both, so if either is missing something is wrong
+  // with the page itself and the honest move is to refuse rather than to guess.
+  var READY = typeof S.css === "string" && S.css.length > 0
+           && typeof S.title === "string" && S.title.length > 0;
   var box = document.getElementById("ideas");
   var say = document.getElementById("saving");
   var VERBS = [["yes", "Approve"], ["no", "Decline"], ["ask", "Explain first"]];
@@ -446,6 +459,11 @@ page &mdash; it cannot refresh itself.
     if (!b) return;
     var it = S.ideas.filter(function (x) {{ return x.id === b.dataset.id; }})[0];
     if (!it) return;
+    if (!READY) {{
+      say.textContent = "This page is missing its own stylesheet in state, so "
+        + "saving would publish an unstyled copy. Regenerate it; nothing was changed.";
+      return;
+    }}
     var was = it.decision;
     it.decision = (was === b.dataset.v) ? null : b.dataset.v;   // click again to undo
     draw();
@@ -495,11 +513,21 @@ def render(d):
     body_tail = tail.split('<script id="state"', 1)[0]
     after = "</div>" + body_tail.rstrip().rsplit("</div>", 1)[0]
 
+    # TITLE AND STYLESHEET ARE FROZEN HERE TOO, and they are taken from `head` --
+    # the slice BEFORE the ideas sentinel -- not from the whole document. That
+    # matters: the boot script further down contains the string literals
+    # "<title>" and "<style>", and a regex over the whole page would happily
+    # match one of those instead of a real tag. Same trap as T185; the fix is to
+    # search a region that provably contains no script, not a cleverer pattern.
+    title = re.search(r"<title>(.*?)</title>", head, re.S).group(1)
+    css = re.search(r"<style>(.*?)</style>", head, re.S).group(1)
+
     def enc(x):
         return json.dumps(x)[1:-1].replace("<", "\\u003c").replace("&", "\\u0026")
 
     return (html.replace("<!--IB-->", "").replace("<!--IA-->", "")
-                .replace("%%B%%", enc(before)).replace("%%A%%", enc(after)))
+                .replace("%%B%%", enc(before)).replace("%%A%%", enc(after))
+                .replace("%%T%%", enc(title)).replace("%%C%%", enc(css)))
 
 
 def self_check():
@@ -553,6 +581,35 @@ def self_check():
         not re.search(r"querySelector\([^)]*\)\.outerHTML", html)
         and "S.before" in html and "S.after" in html,
         "serialising the live DOM bakes in transient UI and is forbidden by the contract")
+    # THE DEFECT THAT ACTUALLY REACHED THE USER (2026-08-24). The control above
+    # guarded doc(); the DOM read had moved one line up into the BOOTSTRAP, where
+    # `if (!S.css) S.css = document.querySelector("style").textContent` ran on
+    # every load because the state never carried css. querySelector returns the
+    # document's FIRST <style>, and the artifact runtime injects its own reset
+    # into <head> ahead of ours -- so one click froze the platform's reset into
+    # state and republished an unstyled page.
+    #
+    # ASSERTING THE ABSENCE OF THE READ IS NOT ENOUGH: that is a text test, and
+    # the recurring failure on this project is testing the text where the SUBJECT
+    # was meant (T185). So this asserts the POSITIVE -- that what lands in state
+    # is OUR stylesheet -- by looking for a selector only our sheet defines, and
+    # separately that it is not the platform reset it was replaced by.
+    state = json.loads(re.search(
+        r'<script id="state" type="application/json">(.*?)</script>', html, re.S).group(1))
+    chk("the state carries the PAGE'S OWN stylesheet",
+        "--needfill" in state.get("css", "") and ".masthead" in state.get("css", ""),
+        "css missing or not ours — a republish would ship an unstyled page")
+    chk("the frozen stylesheet is NOT the platform's injected reset",
+        "color-scheme:light}body{margin:0;padding:0" not in state.get("css", ""),
+        "this exact string is what got captured on 2026-08-24")
+    chk("the state carries the title, so nothing sniffs it either",
+        "where things stand" in state.get("title", ""), f"{state.get('title')!r}")
+    chk("the runtime NEVER reads a stylesheet off the DOM",
+        not re.search(r'querySelector\(\s*["\']style["\']\s*\)', html),
+        "the read that caused it; absence is necessary but not sufficient — see above")
+    chk("a page missing its stylesheet REFUSES to republish",
+        "READY" in html and "would publish an unstyled copy" in html,
+        "silently shipping an unstyled page is how this went unnoticed for a save")
     chk("the frozen shell round-trips into the state",
         '"before": "' in html and '"after": "' in html
         and "%%B%%" not in html and "%%A%%" not in html,
