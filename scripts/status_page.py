@@ -138,12 +138,98 @@ def _esc(s):
     return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
-def _summarise(line, n=190):
-    """The human-readable gist of a ledger row, without the markup."""
+def _gist(line):
+    """The human-readable text of a ledger row, without the markup."""
     body = line.split("|")
     txt = body[3] if len(body) > 3 else line
-    txt = re.sub(r"\*\*|`|~~", "", txt).strip()
+    return re.sub(r"\*\*|`|~~", "", txt).strip()
+
+
+def _summarise(line, n=190):
+    """Backwards-compatible one-line gist. Kept for callers that want no toggle."""
+    txt = _gist(line)
     return _esc(txt[:n] + ("…" if len(txt) > n else ""))
+
+
+def _body(line, n=190, pre=""):
+    """The row body: a clipped gist, the WHOLE text, and a toggle between them.
+
+    WHY THE FULL TEXT IS EMBEDDED RATHER THAN FETCHED (user's request, 2026-08-24)
+    -----------------------------------------------------------------------------
+    "it gets cut off and trails with ... - is it possible I could have a button
+    which would expand/collapse the full context". Measured before building: all
+    14 rows together are 15,350 characters, so carrying every one in full costs
+    ~15 KB in the page and ~15 KB again in the frozen shell. That is nothing, and
+    it means expansion works with **no network access at all** -- which is not a
+    nicety here, because the artifact CSP blocks external requests outright and a
+    blocked fetch fails silently.
+
+    NO BUTTON WHEN THERE IS NOTHING BEHIND IT. A control that expands to the same
+    text it was already showing teaches the reader that the control is decorative,
+    and then they stop pressing it on the rows where it matters.
+    """
+    txt = _gist(line)
+    if len(txt) <= n:
+        return f'<span class="body">{pre}{_esc(txt)}</span>'
+    return (f'<span class="body">{pre}'
+            f'<span class="t">{_esc(txt[:n])}&hellip;</span>'
+            f'<span class="f">{_esc(txt)}</span>'
+            f'<button class="more" type="button" aria-expanded="false">more</button>'
+            f'</span>')
+
+
+def _status_cell(line):
+    """Field 2 of a ledger row. Badges read THIS, never the whole line.
+
+    An entry body can quote `[cost=2]` while discussing the router -- several
+    do -- and a whole-line regex would read the quotation as the row's own
+    price. Same class of mistake as matching text where structure was meant.
+    """
+    parts = line.split("|")
+    return parts[2] if len(parts) > 2 else ""
+
+
+def _cost_chip(line):
+    status = _status_cell(line)
+    """The `[cost=N]` route.py ranks the frontier by, shown to the user.
+
+    THE SCALE IS RELATIVE AND SAYS SO. route.py's own words: "a rough relative
+    price (build cycles, run minutes, tokens; the scale only has to be
+    consistent)". Printing a bare number invites reading it as hours, so the
+    page labels it and the section lede states what it is.
+
+    UNPRICED IS SHOWN, NOT HIDDEN. Rows without a cost sort LAST in the router,
+    which means an unpriced item can sit at the back of the frontier
+    indefinitely without anyone deciding it should. A blank cell would look like
+    a formatting gap; `?` looks like the omission it is.
+    """
+    m = re.search(r"\[cost=(\d+)\]", status or "")
+    if m:
+        return f'<span class="cost" title="relative price — see the note above">{m.group(1)}</span>'
+    return '<span class="cost none" title="unpriced — sorts last in the router">?</span>'
+
+
+def _mins_chip(line):
+    """`[mins=N]` off a user-queue row -- MY ESTIMATE, and marked as one.
+
+    THE HONEST DIFFERENCE FROM COST, WHICH THE PAGE STATES RATHER THAN BURIES:
+    `[cost=N]` already exists in the ledger because the router needs it to rank
+    the frontier. **Nothing anywhere estimates how long a user task takes.** So
+    these were written by hand, and only where there were grounds -- a row that
+    already said "~10 minutes", or a task whose whole content is one keypress.
+    Where there were no grounds the chip says `?` instead of a number I made up.
+
+    The user asked for "a task time estimate" and inventing five plausible
+    numbers would have answered the request while making the page worse: an
+    estimate with no basis is indistinguishable on the page from one with a
+    basis, and this project has already been caught stating quantities from
+    memory (T178).
+    """
+    m = re.search(r"\[mins=(\d+)\]", _status_cell(line))
+    if m:
+        return (f'<span class="cost mins" title="my estimate of your time, '
+                f'in minutes">{m.group(1)}m</span>')
+    return '<span class="cost none" title="not estimated — I had no grounds">?</span>'
 
 
 def _fallback(ideas):
@@ -174,13 +260,21 @@ def _render_raw(d):
     status column, so the page reads as one. Rounded cards with an accent rail
     are the generic dashboard look and say nothing about what this is.
     """
-    def rows(items, empty, tag, tone=""):
+    def rows(items, empty, tag, tone="", chip=None):
+        """chip: a callable turning the row's source text into a leading badge.
+
+        Passed in rather than switched on inside, because the two badges read
+        DIFFERENT fields for different reasons -- cost comes off the entry's
+        status cell where the router put it, minutes come off a queue row where
+        I put it by hand. Conflating them would hide that one is data and the
+        other is my estimate.
+        """
         if not items:
             return f'<p class="empty">{empty}</p>'
         return "".join(
             f'<div class="row {tone}"><span class="tag">{tag}</span>'
             f'<span class="rid">{_esc(k)}</span>'
-            f'<span class="body">{_summarise(v)}</span></div>' for k, v in items)
+            f'{_body(v, pre=chip(v) if chip else "")}</div>' for k, v in items)
 
     away = d["away"]
     away_html = ""
@@ -308,6 +402,30 @@ button[aria-pressed="true"] {{ border-color:var(--need); color:var(--need); back
 }}
 .verdict.no {{ color:var(--dim); }}
 .saving {{ font-size:.76rem; color:var(--dim); margin-top:.5rem; min-height:1.1em; }}
+
+/* EXPAND / COLLAPSE. The full text is always in the document; only its
+   visibility changes, so nothing is fetched and nothing can fail to load. */
+.body .f {{ display:none; }}
+.row.open .body .t {{ display:none; }}
+.row.open .body .f {{ display:block; }}
+button.more {{
+  display:inline-block; margin-left:.4rem; padding:.12rem .38rem;
+  font:600 .62rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  vertical-align:baseline;
+}}
+.row.open button.more {{ margin-left:0; margin-top:.5rem; display:block; }}
+
+/* The badges. `.cost` is data off the ledger; `.mins` is my estimate, so it
+   is deliberately styled DIFFERENTLY rather than matching -- a reader should
+   not have to remember which column is which. */
+.cost {{
+  display:inline-block; min-width:1.6rem; margin-right:.5rem; padding:.1rem .3rem;
+  font:600 .66rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  text-align:center; border:1px solid var(--rule); border-radius:2px;
+  color:var(--dim); font-variant-numeric:tabular-nums;
+}}
+.cost.mins {{ border-style:dashed; }}
+.cost.none {{ opacity:.55; }}
 @media (prefers-reduced-motion:reduce) {{ * {{ transition:none !important; }} }}
 
 @media (max-width:34rem) {{
@@ -327,19 +445,28 @@ button[aria-pressed="true"] {{ border-color:var(--need); color:var(--need); back
 </header>
 
 <h2 class="pull">Needs you &mdash; at a desk</h2>
-<p class="lede">No launch, no display, nothing running. Ten minutes and the ledger.</p>
-{rows(d['desk'], 'Nothing needs you at a desk.', 'desk', 'need')}
+<p class="lede">No launch, no display, nothing running. The dashed badge is
+<b>my estimate of your time, in minutes</b> &mdash; a guess, not a measurement,
+and <code>?</code> means I had no grounds to guess rather than that it is quick.</p>
+{rows(d['desk'], 'Nothing needs you at a desk.', 'desk', 'need', _mins_chip)}
 {away_html}
 
 <h2 class="pull">Needs you &mdash; at the machine</h2>
 <p class="lede">A real display and a launch. The setup cost is the whole reason these
-are batched: one sitting clears several, one at a time pays it over and over.</p>
-{rows(d['machine'], 'Nothing needs the machine.', 'setup', 'need')}
+are batched: one sitting clears several, one at a time pays it over and over &mdash;
+so <b>these minutes do not add up to the sitting</b>. They are time at the keyboard
+once the game is already at the right place, and getting there is the shared cost
+they all sit behind.</p>
+{rows(d['machine'], 'Nothing needs the machine.', 'setup', 'need', _mins_chip)}
 
 <h2>Waiting on nobody</h2>
 <p class="lede">Open questions being worked without you. A long list here means
-progress is not blocked on your time.</p>
-{rows(d['open'], 'Nothing open &mdash; which would be unusual.', 'open')}
+progress is not blocked on your time. The solid badge is the entry&rsquo;s
+<b><code>cost</code></b> &mdash; this is real data off the ledger, the number the
+router ranks the frontier by. It is a <em>relative</em> price (build cycles, run
+minutes, tokens), consistent only against itself, and <code>?</code> means unpriced,
+which sends a question to the back of the queue without anyone deciding it should.</p>
+{rows(d['open'], 'Nothing open &mdash; which would be unusual.', 'open', '', _cost_chip)}
 
 <h2>Parked</h2>
 <p class="lede">Off the rotation deliberately. Each names what would bring it back,
@@ -413,6 +540,45 @@ page &mdash; it cannot refresh itself.
            && typeof S.title === "string" && S.title.length > 0;
   var box = document.getElementById("ideas");
   var say = document.getElementById("saving");
+
+  // EXPAND / COLLAPSE (user's request, 2026-08-24). Delegated from the document
+  // so it keeps working across a republish: the rows live in the FROZEN SHELL,
+  // which this script does not regenerate, and this script is re-embedded from
+  // its own text. Nothing here touches state -- which row you have open is a
+  // view preference, not a decision, and publishing it would impose your
+  // reading position on every other viewer and grow the document for nobody.
+  document.addEventListener("click", function (e) {{
+    var b = e.target.closest("button.more");
+    if (!b) return;
+    var row = b.closest(".row");
+    var open = row.classList.toggle("open");
+    b.setAttribute("aria-expanded", open ? "true" : "false");
+    b.textContent = open ? "less" : "more";
+    // Remembered for THIS TAB only, so approving an idea -- which reloads the
+    // page from the published copy -- does not silently collapse everything
+    // you had opened. sessionStorage can throw in a sandboxed frame; a lost
+    // reading position is not worth a broken handler.
+    try {{
+      var open_ids = [];
+      document.querySelectorAll(".row.open .rid").forEach(function (r) {{
+        open_ids.push(r.textContent);
+      }});
+      sessionStorage.setItem("snp_open", JSON.stringify(open_ids));
+    }} catch (_) {{}}
+  }});
+
+  try {{
+    JSON.parse(sessionStorage.getItem("snp_open") || "[]").forEach(function (id) {{
+      document.querySelectorAll(".row").forEach(function (row) {{
+        var rid = row.querySelector(".rid"), b = row.querySelector("button.more");
+        if (rid && b && rid.textContent === id) {{
+          row.classList.add("open");
+          b.setAttribute("aria-expanded", "true");
+          b.textContent = "less";
+        }}
+      }});
+    }});
+  }} catch (_) {{}}
   var VERBS = [["yes", "Approve"], ["no", "Decline"], ["ask", "Explain first"]];
 
   function esc(t) {{
@@ -540,21 +706,28 @@ def self_check():
         print(f"{'ok  ' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -- {why}"))
 
     syn = ("| # | s | f | e |\n|---|---|---|---|\n"
-           "| A1 | OPEN [cost=2] | an open question | 2026-01-01 |\n"
+           # A1's body is deliberately LONGER than the clip, so the expand
+           # control has something to expand. TAIL is a needle that exists ONLY
+           # past the cut -- if the page ever clips instead of hiding, the
+           # control below stops finding it.
+           "| A1 | OPEN [cost=2] | an open question " + ("padding " * 40)
+           + "TAIL-ONLY-PAST-THE-CUT | 2026-01-01 |\n"
+           # A4 is SHORT and unpriced: it must get a `?` badge and NO button.
+           "| A4 | OPEN | a short open question | 2026-01-03 |\n"
            "| A2 | MEASURED | a settled thing | 2026-01-02 |\n"
            "| A3 | AWAITING THE USER — waits on U7 | parked | 2026-01-02 |\n"
            "| T1 | INTERVENED | method work | 2026-01-02 |\n"
            "## THE USER QUEUE\n"
-           "| U1 | LIVE 2026-01-01 | NO GAME RUN, NO DISPLAY — label some entries |\n"
+           "| U1 | LIVE 2026-01-01 [mins=7] | NO GAME RUN, NO DISPLAY — label some entries |\n"
            "| U2 | LIVE 2026-01-01 | Open the inspector and read the panel |\n")
     d = collect(syn)
     chk("splits the queue by SETUP COST", [k for k, _ in d["desk"]] == ["U1"]
         and [k for k, _ in d["machine"]] == ["U2"],
         f"desk={[k for k,_ in d['desk']]} machine={[k for k,_ in d['machine']]}")
-    chk("queue rows are NOT counted as entries", d["entries"] == 4, f"got {d['entries']}")
-    chk("finds the open item", [k for k, _ in d["open"]] == ["A1"], f"{d['open']}")
+    chk("queue rows are NOT counted as entries", d["entries"] == 5, f"got {d['entries']}")
+    chk("finds the open item", [k for k, _ in d["open"]] == ["A1", "A4"], f"{d['open']}")
     chk("finds the parked item", [k for k, _ in d["parked"]] == ["A3"], f"{d['parked']}")
-    chk("computes the method share", abs(d["method_pct"] - 25.0) < 0.01, f"{d['method_pct']}")
+    chk("computes the method share", abs(d["method_pct"] - 20.0) < 0.01, f"{d['method_pct']}")
 
     html = render(d)
     # NOTHING LOADS FROM THE NETWORK. The first version of this asserted "no
@@ -610,6 +783,47 @@ def self_check():
     chk("a page missing its stylesheet REFUSES to republish",
         "READY" in html and "would publish an unstyled copy" in html,
         "silently shipping an unstyled page is how this went unnoticed for a save")
+    # EXPAND/COLLAPSE AND THE BADGES (user's requests, 2026-08-24).
+    # The first control asserts the WHOLE text is present, not that a button
+    # exists: a toggle over text that was already clipped away would look
+    # identical on the page and expand to nothing.
+    chk("the full text is IN the page, past the clip",
+        "TAIL-ONLY-PAST-THE-CUT" in html,
+        "expansion would reveal nothing — the text never reached the document")
+    chk("a clipped row offers a way to see the rest",
+        re.search(r'class="f">[^<]*TAIL-ONLY-PAST-THE-CUT', html)
+        and 'button class="more"' in html,
+        "the text is there but nothing reveals it")
+    # A button that expands to what you can already read teaches the reader that
+    # the control is decorative, and then it gets ignored where it matters.
+    # ISOLATE A4'S ROW AND ASK WHETHER IT HAS A BUTTON. The first version of
+    # this control asserted that the bare text appeared in the page -- and it
+    # PASSED against a deliberate break that put a button on every row, because
+    # the full-text span holds that same string whether the row is clipped or
+    # not. It matched text that exists either way, which is no test at all.
+    a4 = [r for r in html.split('<div class="row') if ">A4<" in r]
+    chk("a SHORT row gets no expand button",
+        len(a4) == 1 and "more" not in a4[0] and 'class="f"' not in a4[0],
+        f"A4 fits in the clip and must render bare; found {len(a4)} matching rows")
+    chk("expansion survives a republish",
+        "TAIL-ONLY-PAST-THE-CUT" in json.loads(re.search(
+            r'<script id="state" type="application/json">(.*?)</script>',
+            html, re.S).group(1)).get("before", ""),
+        "the frozen shell must carry the full text or a save collapses it forever")
+    chk("open rows show the ledger's own cost, and mark the unpriced",
+        '<span class="cost" title="relative price' in html
+        and '>2</span>' in html and 'class="cost none"' in html,
+        "A1 is cost=2 and A4 is unpriced; both must be visible")
+    chk("user tasks show MY estimate, visibly distinct from cost",
+        'class="cost mins"' in html and ">7m<" in html,
+        "an estimate that looks like data is worse than no estimate")
+    # THE READ THAT WOULD MAKE BOTH BADGES WRONG. An entry body can quote
+    # `[cost=2]` while discussing the router; the badge must read the STATUS
+    # CELL, not the line. A2 is not open so it cannot be seen on the page --
+    # this tests the parser directly.
+    chk("a cost quoted in an entry's BODY is not read as its price",
+        _cost_chip("| A9 | OPEN | we set [cost=2] on that one | x |") == _cost_chip("| A9 | OPEN | x | y |"),
+        "matching the line instead of the field would price it from prose")
     chk("the frozen shell round-trips into the state",
         '"before": "' in html and '"after": "' in html
         and "%%B%%" not in html and "%%A%%" not in html,
