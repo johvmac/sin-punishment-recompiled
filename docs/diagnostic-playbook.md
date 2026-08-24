@@ -3102,6 +3102,48 @@ days something has passed by matching text where the subject was meant.
 
 ---
 
+## `scene_timeline.py` — what happens WHEN, without comparing pictures (added 2026-08-24, A380)
+
+**PURPOSE.** Turn a recording into a list of scene segments, so our run and the
+reference can be compared as SEQUENCES rather than as images. A379 established
+why that matters: cross-emulator frame matching works only for still,
+distinctive screens, because two runs are at different MOMENTS of the same
+motion. A boundary is an event inside ONE recording, so the renderer difference
+never enters.
+
+**THE OBVIOUS SIGNAL WAS TRIED AND FAILED — MEASURED, NOT ASSUMED.** Distance
+between consecutive frames is the natural cut detector. On the reference its
+histogram over 601 frames runs **smoothly from 0 to 43 with no valley**: the game
+is always moving, so there is no quiet baseline. Any threshold off that
+distribution is the operator choosing the answer. `--dry-run` still prints it so
+the absence of a valley is visible.
+
+**WHAT WORKS IS FADES TO BLACK**, which A164 had already measured at the
+title-to-tutorial transition. Six well-separated black runs against a brightness
+range of 0-244. **A black frame is black — there is no parameter to tune.**
+
+**THE BLACK IS A BOUNDARY, NOT A SCENE.** A four-second fade is not four seconds
+of content, so segments are the LIT stretches between runs.
+
+**CONTROLS (`--self-check`, 7).** A synthetic three-scene video with 1-second
+fades, so the answer is known independently. Two are controls in the strict
+sense: one asserts the DISTANCE method finds every transition on that easy
+fixture — which is what makes "it failed on the reference" a claim about the
+CONTENT rather than about a broken implementation — and one asserts a badly
+chosen threshold gives a WRONG answer, so the fixture is known to discriminate.
+
+**KNOWN LIMITATION, PRINTED ON STDERR RATHER THAN BURIED.** `--compare` aligns
+index against index. **If one run is missing a segment, everything after it
+shifts and every later row reads as a mismatch that is not one** — which is
+exactly what happened on its first real use. It says so loudly when the segment
+counts differ. An insert/delete-aware diff is not implemented.
+
+**WHAT A BOUNDARY IS NOT.** A fade is where the game pauses, not necessarily
+where a scene ends — a death, a wipe or a loading pause look identical. A
+transition with no fade is invisible to this entirely.
+
+---
+
 ## `ares_register.py` — find the game inside an ares capture (added 2026-08-24, A377/A378)
 
 **PURPOSE.** An ares recording made by `ares_capture.sh` contains the whole
