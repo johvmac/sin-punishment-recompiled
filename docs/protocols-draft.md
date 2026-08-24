@@ -206,7 +206,9 @@ protocol written wrong, and that is worth more than compliance.
 
 | date | protocol | what was done differently | was it better? |
 |---|---|---|---|
-| 2026-08-25 | — | *(file opened; first entries go here)* | — |
+| 2026-08-25 | P3 pre-flight | `ares_watch.sh` has no `--dry-run`, so the gate was met by **reading the script end to end** instead. That surfaced two things a dry run would have shown — it launches a window with no isolation (it is the one launcher that does not source `display_isolate.sh`, the exact T59 divergence), and its verdict text asserts a cause it cannot distinguish. | **Yes, for a ~230-line script.** Reading found a defect a dry run would only have hinted at. Does not generalise: a longer tool, or one that generates commands, still wants the flag. |
+| 2026-08-25 | P3 pre-flight | Ran the tool **twice under different display isolation** (xvfb, then xephyr) rather than once, because the first result was a null and headlessness was an unexcluded confound. | **Yes, and it was decisive.** The second run matched the configuration our working ares captures actually use. A single headless null would have been discarded as "probably the display". |
+| 2026-08-25 | P1 observed run | The **emulator's own recording was used as an independent instrument** to check a control's verdict, which is not a step P1 lists. It overturned the verdict. | **Yes — consider promoting.** "When an instrument reports a null, check whether another instrument watched the same run" may belong in P1 proper. |
 
 **WHEN TO SET ONE IN STONE.** When it has run the same way across several
 sessions and its `CHECKER WOULD ASSERT` line still describes something worth
