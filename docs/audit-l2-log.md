@@ -83,3 +83,13 @@ Daily digests. Each reads ONLY the L1 blocks in `audit-log.md`. The weekly L3 re
 - quiet: no (streak 0; at 2, drop L2 to weekly)
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #10 — covering L1 audits 22..22
+- L1 blocks digested: 1
+- **defects by class (raised this window / all prior / FIXED this window / still open):**
+  - `single-run` (T22): 0 / 37 / 0 / 0 — **quiet**
+  - `no-control` (I1/I13): 0 / 50 / 0 / 0 — **quiet**
+  - `churn` (I14): 1 / 39 / 0 / 0 — **recurs**
+  - `no-evidence` (A24/B35): 0 / 25 / 0 / 0 — **quiet**
+- quiet: no (streak 0; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+

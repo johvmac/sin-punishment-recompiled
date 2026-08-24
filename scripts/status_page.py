@@ -1199,6 +1199,25 @@ def self_check():
     chk("state is embedded as DATA, not read back off the DOM",
         'type="application/json"' in html and "JSON.parse" in html,
         "republishing from serialised DOM is what the capability docs forbid")
+    # --- THE STALENESS MARKER (T195) ----------------------------------------
+    # The nag had been permanently on because NOTHING wrote the marker — it was
+    # a remembered hand-edit. These assert the two properties that matter, and
+    # the second is the one that makes it safe: the count is read from the PAGE,
+    # so publishing a stale file records the stale count instead of laundering it.
+    import tempfile as _tf2
+    with _tf2.TemporaryDirectory() as _td2:
+        _pg = Path(_td2) / "p.html"
+        _pg.write_text(html)
+        _m = re.search(r"&nbsp;&middot;&nbsp;\s*(\d+)\s+entries", html)
+        chk("the generated page states its own entry count, machine-readably",
+            _m is not None and int(_m.group(1)) == d["entries"],
+            "without this the marker cannot be derived from the page at all")
+        # A page from a DIFFERENT (older) state must mark at ITS count, not today's.
+        _stale = html.replace(f"{d['entries']} entries", "3 entries", 1)
+        _sm = re.search(r"&nbsp;&middot;&nbsp;\s*(\d+)\s+entries", _stale)
+        chk("marking reads the PAGE's count, so a stale publish stays stale",
+            _sm is not None and int(_sm.group(1)) == 3,
+            "if this read the ledger instead, marking would hide a stale page")
     chk("stamps when it was generated", d["generated"][:4] == str(date.today().year),
         "a page with no timestamp cannot be told from a fresh one")
     chk("escapes markup from the ledger",
@@ -1223,6 +1242,43 @@ def main():
     if not a:
         print("[status] need an output path, or --dry-run / --self-check", file=sys.stderr)
         return 2
+    # --- mark a PUBLISHED page, deriving the count from the PAGE ------------
+    #
+    # WHY THIS IS NOT DONE AT GENERATION TIME, WHICH WAS THE OBVIOUS FIX (T195).
+    # The marker exists so check_ledger can say "the user is reading a page that
+    # no longer describes the project". That is about the PUBLISHED page, and
+    # this script does not publish. Writing the marker when the file is WRITTEN
+    # would go quiet on a page that was generated and never sent — silence in
+    # the dangerous direction, which is worse than the false alarm it replaces.
+    #
+    # THE COUNT COMES OUT OF THE PAGE, NOT THE LEDGER. If a stale file is
+    # published, the marker records the STALE count and the nag stays on, which
+    # is correct. Reading the live ledger here would let marking launder a stale
+    # publish into a clean bill of health.
+    if "--mark-published" in a:
+        i = a.index("--mark-published")
+        if len(a) < i + 2:
+            print("[status] --mark-published needs the file that was published",
+                  file=sys.stderr)
+            return 2
+        pub = Path(a[i + 1])
+        if not pub.exists():
+            print(f"[status] no such file: {pub}", file=sys.stderr)
+            return 2
+        m = re.search(r"&nbsp;&middot;&nbsp;\s*(\d+)\s+entries", pub.read_text())
+        if not m:
+            print(f"[status] REFUSING: cannot find the entry count in {pub}. "
+                  f"Marking a page whose contents I cannot read would assert "
+                  f"freshness I have not checked.", file=sys.stderr)
+            return 2
+        mark = DOCS / ".status-page.json"
+        old = _load(".status-page.json", {})
+        old["entries"] = int(m.group(1))
+        mark.write_text(json.dumps(old, indent=1) + "\n")
+        print(f"[status] marked published at {m.group(1)} entries "
+              f"(read from the page, not the ledger)")
+        return 0
+
     out = Path(a[0])
     d = collect()
     # REFUSE RATHER THAN SHIP A PAGE WITH THE TASK MISSING. If the archive drive
