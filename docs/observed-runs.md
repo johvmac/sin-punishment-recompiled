@@ -68,3 +68,14 @@ correction.
 ## DEFERRED 2026-08-24 — late in the session; a full day of user-directed work already done and the next step is a roll, not a watched run
 - no observed run today; deferred deliberately, not skipped.
 
+## 2026-08-25T08:05:00+10:00 — build `1429f14cf89c756b`, 180s requested, rc=0 (CLEAN)
+- run log: `observed-080500.log`
+- **video:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-25/run_game-080504.mp4
+- **sound:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-25/observed-080502.flac
+- **audio:** none - ran some music in a different window halfway through to make sure my audio was working otherwise and it was - but no audio from the game
+- **last 10s / scene:** tutorial, same graphical defects
+- **title screen:** correct
+- **how it died:** vanish
+- **feel:** NA
+- **CONTRADICTS MY CLAIMS:** no
+

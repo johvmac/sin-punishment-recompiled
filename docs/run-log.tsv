@@ -186,3 +186,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-22T14:05:20+10:00	25	25	0	0	0	695	30	CLEAN	mtxhash-selftest.log	SNP_DL_CENSUS=selftest
 2026-08-22T14:08:44+10:00	175	175	0	0	0	5194	30	CLEAN	mtxhash-tutorial.log	SNP_DL_CENSUS=1
 2026-08-23T09:22:47+10:00	14	14	0	0	0	368	30	CLEAN	census-selftest-a367.log	SNP_DL_CENSUS=selftest
+2026-08-25T08:08:07+10:00	180	180	0	0	0	5377	30	CLEAN	observed-080500.log	none
