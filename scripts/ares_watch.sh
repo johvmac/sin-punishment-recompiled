@@ -71,6 +71,18 @@ for p in $(pgrep -f 'ares --setting' 2>/dev/null); do kill -9 "$p" 2>/dev/null; 
 sleep 1
 
 echo "launching ares (window opens for up to ${DEADLINE}s)..."
+# TWO SETTINGS WERE TRIED HERE AND ARE DELIBERATELY NOT SET (A405, 2026-08-25).
+# ares's documented gdb workflow enables "Homebrew mode" and "GDB debugging" on
+# top of the debug server, so both were measured:
+#   General/HomebrewMode=true -- NO EFFECT. Identical failure, 28 polls, control
+#     0/28, $pc=-1. Do not re-add it hoping; it was tried.
+#   Boot/Debugger=true -- ares HALTS AT BOOT and never resumes: the watched word
+#     stayed 0x00000000 and the first `continue` blocked until the deadline
+#     killed gdb. That is informative rather than useless -- it shows the stub
+#     DOES have execution control -- but it makes this poll loop hang.
+# The remaining diagnosis is in A405: this loop's `continue`-then-read model is
+# wrong for a stub that is genuinely attached. Fixing it means an interrupt-
+# based loop, which is real work and is NOT a settings change.
 nohup timeout -s KILL "$((DEADLINE + 20))" flatpak run dev.ares.ares \
     --setting DebugServer/Enabled=true \
     --setting DebugServer/Port="$PORT" \
