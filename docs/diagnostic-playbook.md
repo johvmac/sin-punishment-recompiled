@@ -112,13 +112,52 @@ our ROM: frame 120 gave 192 RDP commands, F3DEX2 detected and dispatch hooked.
 
 * **`0 RSP` commands is EXPECTED, not a fault** — RSPQ/F3DEX2 capture needs a
   libdragon ELF and ours is a commercial ROM. That half stays closed this way.
-* **DO NOT TRUST THE COORDINATES YET (A408).** The scissor reads
-  `lr=(1232.0, 924.0)`, which is no hardware rectangle. Presence and order of
-  commands are evidence; numbers are not, until the same frame is run through
-  `angrylion` as a control.
+
+**THE THREE THINGS THAT WILL BITE YOU. All three cost a mistake already.**
+
+**1. `<after-frames>` COUNTS PRESENTED FRAMES, NOT VI TICKS — so ~30/s, NOT 60
+(A410).** The capture commits on a framebuffer swap, "not on every VI"
+(`desktop-ui/program/program.cpp` ~line 132). **`frame N ≈ N/30 seconds.`**
+A409 assumed 60 and aimed a control at 8–16 s believing it was 4–8 s.
+
+**2. COORDINATES ARE 10.2 FIXED POINT — DIVIDE BY 4 (A408).** The tool prints
+the raw value as a float. `lr=(1232.0, 924.0)` is really `(308, 231)`; the
+scissor `ul=(48,32) lr=(1232,924)` is a 296×223 area in a 320×240 frame — i.e.
+ordinary hardware. Nothing is upscaled and nothing is wrong.
+
+**3. THE COMMAND NAMES CONTAIN SPACES. ENUMERATE THEM BEFORE COUNTING (A409).**
+Grepping `Texture|LoadBlock|SetTile` returned **zero on every frame** and read
+exactly like "the real game submits no textures". The real vocabulary:
+
+> `Sync Pipe` · `Set Tile` · `Tex Image` · `Sync Load` · `Tile Size` ·
+> `Load Block` · `Tex-Rect` · `Sync Tile` · `Load Tex LUT` · `Other Modes` ·
+> `Color Combiner` · `Triangle (Shade Tex Z)` · `Triangle (Tex Z)` ·
+> `Triangle (Shade Z)` · `Prim Color` · `Scissor` · `Fill-Rect` · `Env Color` ·
+> `Color Image` · `Fill Color` · `Sync Full` · `Fog Color` · `Depth Image`
+
+Get the list from the data, never from memory:
+`awk -F'\t' 'NR>1 && NF>=5 {print $5}' dump.txt | sort | uniq -c | sort -rn`
+
+**HOW IT WAS VALIDATED — three controls, all passed (A409/A410).** Do not
+re-derive these; do re-run control 3 if the ares-64 build is ever updated.
+
+| control | result |
+|---|---|
+| **Renderer invariance** — same frame under `parallel` and `angrylion` | **byte-identical**, md5 `3bb990a1fcb770c2`, `diff` empty. **This is what licenses comparing the stream against our RT64 census: the commands are the GAME's, not the renderer's.** |
+| **Frame-index discrimination** | 72 / 871 / 1563 / 2133 commands at frames 60/240/360/480 — `--after-frames` really selects |
+| **Known positive** (A224's logo window, measured from VIDEO) | frames 120 & 150 (4.0 s, 5.0 s): 18 `Tex-Rect`, 20 `Tex Image`, **0 triangles** — flat blits, no geometry. Frame 60 near-blank; frames 200/250 carry ~130 triangles as the 3D attract starts |
+
+Select the renderer with `--setting Video/Renderer=angrylion` (or `parallel`,
+`none`); the banner line confirms which was used, so check it rather than
+assuming the flag took.
+
 * Headless JS runner (`README_JS.md`, `cmake --preset linux-headless`, target
   `ares-test`) needs no window, GPU or audio, uses EMULATED time so runs are
   reproducible, and exposes `setRenderer("angrylion")`. **Not yet built.**
+* **No wrapper script yet, deliberately** — every invocation so far has been
+  hand-typed, and the first real query (A396's scene boundary) is what should
+  decide the script's shape. A wrapper written before that is a guess, and it
+  would owe T71's gates itself.
 
 ### Decompilation and analysis tooling — `/home/joh/Documents/sin_and_punishment/tools/`
 
