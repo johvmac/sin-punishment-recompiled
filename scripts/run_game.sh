@@ -200,7 +200,30 @@ snp_start_audio run_game
 # Line buffering, not full flushing: the game writes little to stdout after
 # startup, so the cost is a flush per line on a cold path. The probes all use
 # stderr and are unaffected.
-env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" stdbuf -oL "$BIN" > "$OUT" 2>&1 &
+# RECORD THE GRAPHICS CONFIG THE RUN ACTUALLY USED (A404, 2026-08-25). The
+# config lives in ~/.config/sinpunishment/graphics.json and NOTHING in the run
+# log named it, so a run at native resolution and a run at Auto were
+# indistinguishable after the fact. A404 changed four settings, measured a
+# render difference, and then could not say WHICH setting caused it -- the
+# entry had to be written with the axis unisolated. Same shape as the GPU
+# identity above: state that decides how a frame looks, written and thrown
+# away. Copied in BEFORE launch so it describes the run that is starting, not
+# whatever the file says whenever someone reads it later.
+# TRUNCATE EXPLICITLY. The game's redirect below is now `>>` so the config
+# block survives it, which means NOTHING truncates $OUT any more -- re-using a
+# log path would silently append this run onto the last one's output. That is
+# the "two runs in one file" trap, and every verdict below greps $OUT.
+: > "$OUT"
+
+GFX_CFG="${XDG_CONFIG_HOME:-$HOME/.config}/sinpunishment/graphics.json"
+if [[ -r "$GFX_CFG" ]]; then
+    { echo "[cfg] graphics.json at launch:"
+      sed 's/^/[cfg]   /' "$GFX_CFG"; } >> "$OUT"
+else
+    echo "[cfg] graphics.json NOT READABLE at $GFX_CFG -- render settings unknown" >> "$OUT"
+fi
+
+env SP_AUTOSTART=1 SNP_HEARTBEAT=1 "$@" stdbuf -oL "$BIN" >> "$OUT" 2>&1 &
 PID=$!
 
 # --- Detached hard-deadline watchdog ---------------------------------------
