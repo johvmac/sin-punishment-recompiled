@@ -2900,6 +2900,59 @@ frame that was solid black.
 
 ---
 
+## `dl_render.py` — draw the frame from the game's own list, with no game (added 2026-08-25, the user's question)
+
+**Purpose.** Replay the ordered trace `SNP_DL_GEOM` emits — matrix loads, pops,
+vertex loads, triangles, **in list order** — maintain the matrix stack and the
+32-entry vertex cache as the RSP would, transform, project, write a PNG.
+**An independent path from the display list to a picture**, owing nothing to
+RT64. Every geometry claim on this project has come through RT64 or through
+counts; A421's value came precisely from an instrument that agreed from the
+other side.
+
+**Arming the dump:** `SNP_DL_GEOM=2400,5400` — named tasks only. 1,136
+triangles is nothing; 6,169 frames of them is 135 MB, and
+`rdp-boundary-4600-4899.txt` is the standing reminder of what that costs.
+The trace is emitted for the **F3DEX2 walk only** — both tables are tried on
+every task, and a doubled trace replays as a doubled vertex cache, which looks
+like geometry rather than like a bug.
+
+**NO TEXTURES, AND THAT IS AN IMPROVEMENT HERE.** Triangles are coloured **by
+sub-list**. A422 found 739 depth-writing triangles in a tutorial frame with no
+sub-list larger than 36 — is that a character and three enemies, or ninety
+fragments of something else? Real colours would hide exactly that.
+
+**RUN THE ATTRACT FIRST. THIS IS NOT OPTIONAL.** Reconstruct a scene that
+demonstrably renders and compare it against the recording of the same run. If
+the pipeline reproduces a working scene it can be trusted on a broken one.
+Pointing it at the tutorial first means believing whatever comes out — and
+matrix-stack emulation fails *silently and plausibly*, which is this project's
+signature failure.
+
+**Four controls, all verified to FAIL** (`--self-check` 6/6, breaks 4/4):
+
+| break | what it would do to a picture |
+|---|---|
+| fixed-point read as interleaved pairs | plausible frame, every transform wrong |
+| unloaded vertex slot filled with `(0,0,0)` | a spike to the origin that reads as geometry |
+| PUSH bit read non-inverted | stack never grows; every child inherits its sibling's transform |
+| behind-eye geometry divided anyway | geometry mirrored into frame as convincing shapes |
+
+**The F3DEX2 trap worth knowing:** `gsSPMatrix` **XORs the param with
+`G_MTX_PUSH`**, so in the raw byte **0 means PUSH**. Read it the `gbi.h` way
+and the stack never grows. The probe emits the byte **raw** and decodes it in
+one place only — inverting it at both ends is how one end ends up wrong.
+
+**And the Mtx layout:** the 16 **integer** halves come first in 32 bytes, then
+the 16 **fractional** halves — they are *not* interleaved per element.
+
+**SCOPE.** This shows what was **submitted**. No clipping, no z-buffer, no
+combiner — it cannot show what the RDP then did with it. For "is the geometry
+there at all" (A422's live question) that is exactly right. For "why does this
+pixel look wrong", it is the wrong instrument.
+
+---
+
 ## `gap_classify.py` — where a symbol really ends, read off the ROM (added 2026-08-25, A419)
 
 **Purpose.** T11 step 2: decide, for each unclaimed gap between two function
