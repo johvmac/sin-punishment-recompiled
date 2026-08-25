@@ -125,10 +125,12 @@ as a different page, because that is how a browser tab is found.
   own files.*
 * title comes from the page's own `<title>`; do not pass one.
 
-**CHECKER WOULD ASSERT** *(designed, not built)*: `--mark-published` refuses
-unless the file's label state matches `user_labels.json` — which converts step
-3 from a habit into a gate, at the exact moment the damage would otherwise be
-permanent.
+**CHECKER — BUILT 2026-08-25 (T198), no longer a proposal.** `--mark-published`
+REFUSES a page whose label state disagrees with `user_labels.json`, naming the
+missing clicks. Step 3 is now a gate rather than a habit. `status_page.py
+--self-check` covers both arms: accept-when-matching AND refuse-when-missing.
+**Staleness dates the rest of this file too — every other CHECKER line here
+still says designed-not-built, and P2's said so for hours after it was built.**
 
 ## P3 — Pre-flight before work the user will watch
 
@@ -282,6 +284,7 @@ protocol written wrong, and that is worth more than compliance.
 | 2026-08-25 | P3 pre-flight | Ran the tool **twice under different display isolation** (xvfb, then xephyr) rather than once, because the first result was a null and headlessness was an unexcluded confound. | **Yes, and it was decisive.** The second run matched the configuration our working ares captures actually use. A single headless null would have been discarded as "probably the display". |
 | 2026-08-25 | P1 observed run | The **emulator's own recording was used as an independent instrument** to check a control's verdict, which is not a step P1 lists. It overturned the verdict. | **Yes — consider promoting.** "When an instrument reports a null, check whether another instrument watched the same run" may belong in P1 proper. |
 | 2026-08-25 | *(none — a gap)* | **T71's third gate (playbook write-up in the same checkpoint) was nearly missed on `ares-64`.** Five dumps were taken and two entries written while the tool was still ungated; the write-up happened only because the USER asked whether to step back and document. | **No — the process failed and a person caught it.** None of the five protocols covers "a new tool entered use". T71 lives in `CLAUDE.md` and nothing in the checkpoint loop asks whether this checkpoint introduced a tool. **Strong candidate for P6.** |
+| 2026-08-25 | P2 publish | **The draft misreported its own state**: P2's CHECKER line still read *designed, not built* after T198 built it. Caught on a read-through while preparing for the compact. | **No — and it is this file's own failure mode.** A draft that describes protocols is state, and state in two places drifts. **Candidate: make each CHECKER line say BUILT/NOT BUILT and have the relevant `--self-check` assert its own presence in this file.** |
 | 2026-08-25 | P6 compact | **Ran P6 against this session and its own check 6 gave a FALSE POSITIVE**: `pgrep -c -f "ares-test\|Xvfb"` returned 1 with nothing running — matching the shell running it, the third self-match today. `pgrep -c -x <name>` returns 0 correctly. | **Fix the check, not the finding.** P6.6 should specify `-x` (exact process name) rather than `-f`. Also check 3 was too literal: it grepped for the user's decision verbatim and missed it in the ledger, where A404 records it in different words. **A checker matching remembered phrasing is the A409 needle error again.** |
 | 2026-08-25 | P4 user-directed | **Wrote an entry the user then asked me to write.** They said "write that all up"; A416 was already committed. Checking rather than asserting is what found T199. | **Both, and the order mattered.** Saying "already done" would have been true and would have missed a 54-row defect. **"It is already written" is a claim like any other.** |
 | 2026-08-25 | *(none — a gap)* | **A wait-loop ran forever and I reported the work complete while it was still listed as running; the USER spotted it, not me.** `until [ -f X.mp4 ] \|\| ! pgrep -f "desktop-ui/ares"` — `pgrep -f` matched **the background shell's own command line**, which contains that string, so the process check could never go false; and the `.mp4` never appeared because the recording finalised as `.mkv`. Both exits closed. | **No — and it is a known family.** `guard_bash.py` already warns that `pkill -f` matches its own shell, but only for `pkill`, where the failure is loud. As a **condition** the same self-match fails SILENTLY, which is worse. Second instance today (the stray-process check matched itself too). **Candidate: extend the guard to `pgrep -f` inside a loop condition, or use `pgrep -c` against a pattern that cannot match the wrapper.** |
