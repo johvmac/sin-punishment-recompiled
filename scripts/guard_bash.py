@@ -27,6 +27,7 @@ blocks the call and returns the message to the model.
 import json
 import re
 import sys
+from pathlib import Path
 
 # (pattern, why it is refused, what to do instead)
 RULES = [
@@ -34,7 +35,14 @@ RULES = [
      "`pkill -f` matches the command line of the shell running it -- it can kill "
      "its own shell, silently and misleadingly.",
      "Kill by PID (`kill -9 <pid>`), or let scripts/run_game.sh own the lifetime. "
-     "To match the game by name use `comm` = 'SinPunishmentRe' (15-char truncation)."),
+     "To match the game by name use `comm` = 'SinPunishmentRe' (15-char truncation). "
+     "THE SAME TRAP HAS A READ-ONLY FORM, AND IT IS DELIBERATELY NOT A RULE "
+     "(2026-08-25): a wait-loop like `until ... ! pgrep -f X` self-matches the "
+     "shell running it, so it never exits -- and unlike the kill case it fails "
+     "SILENTLY, which is worse. It is not guarded because pgrep is a legitimate "
+     "read used constantly and blocking it would fire on correct uses; T118 "
+     "measured that class of noise at 6-of-7 and T29 is why that matters. Use "
+     "`comm`, or a pattern that cannot appear in your own command line."),
 
     (re.compile(r"cmake\s+--build\s+build(?![\w-])"),
      "Building directly skips scripts/build.sh, which lints the probes BEFORE "
@@ -130,6 +138,42 @@ def statements(cmd):
     return [s for s in SPLIT.split(cmd) if s and s.strip()]
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def exempt_build(full_cmd):
+    """True when a direct build targets something OUTSIDE this repository.
+
+    WHY THIS EXISTS (2026-08-25). The build rule is pure text with no notion of
+    WHERE it is building, so it fired on a third-party tree -- `ares-64`, whose
+    build directory is also called `build` -- where nothing of ours was at
+    stake. **That is worse than a nuisance: it taught me to route around a
+    guard, and a guard that trains evasion is worse than no guard.** The rule's
+    whole purpose is protecting OUR binary and OUR probe lint (T25/T26), and
+    neither is involved in someone else's tree.
+
+    The guard is handed only the command text -- never a cwd -- and rules match
+    per STATEMENT, so `cd /elsewhere` and the build land in different segments
+    and the rule never saw the cd. Hence: read the cd out of the FULL command.
+
+    DELIBERATELY CONSERVATIVE. No cd at all means the project's own tree, so the
+    rule still fires -- the common case is unchanged. Only an explicit cd to a
+    path outside the repo exempts, and a relative cd resolves against the repo.
+    """
+    for m in re.finditer(r"(?:^|[;&|]|\bthen\b|\bdo\b)\s*cd\s+([^\s;&|]+)", full_cmd):
+        raw = m.group(1).strip().strip('"').strip("'")
+        try:
+            target = Path(raw).expanduser()
+            if not target.is_absolute():
+                target = PROJECT_ROOT / target
+            target = target.resolve()
+        except Exception:
+            continue
+        if target != PROJECT_ROOT and PROJECT_ROOT not in target.parents:
+            return True
+    return False
+
+
 def main():
     if "--help" in sys.argv or "-h" in sys.argv:
         print(__doc__)
@@ -161,6 +205,11 @@ def main():
 
     segments = statements(cmd)
     for pat, why, instead in RULES:
+        # Scope the build rule to this repo (see exempt_build). Keyed on the
+        # rule's own pattern text rather than its index, so reordering RULES
+        # cannot silently attach the exemption to the wrong rule.
+        if "--build" in pat.pattern and exempt_build(cmd):
+            continue
         for seg in segments:
             if not pat.search(seg):
                 continue
