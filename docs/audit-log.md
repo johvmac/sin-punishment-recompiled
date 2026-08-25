@@ -341,3 +341,33 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 66 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
 - suppressed as superseded (6): A432 (single-run, justified in the entry); A430 (single-run, justified in the entry); A428 (single-run, justified in the entry); A426 (single-run, justified in the entry); T204 (single-run, justified in the entry); A401 (single-run, justified in the entry)
 
+## Audit #25 — since dfc27c7c
+- ledger: 666 entries (+26 this window), 41 withdrawn
+- rolls: 10 this window; runs: 6 (0 exited early, 0 contaminated)
+- **1 thing(s) to look at:**
+  - T207: created and withdrawn within one audit window. What made it look right?
+- suppressed as superseded (7): A455 (single-run, justified in the entry); A445 (single-run, justified in the entry); A442 (single-run, justified in the entry); A443 (single-run, justified in the entry); A441 (single-run, justified in the entry); A434 (single-run, justified in the entry); A432 (single-run, justified in the entry)
+
+
+**ANSWER to #25's question — what made T207 look right.** Three things, and the
+third is the one that should have stopped it.
+
+1. **Two readings from one blind instrument felt like two witnesses.** The
+   buttons were absent from the *published* page AND from a *freshly generated*
+   one. That agreement read as corroboration. It was the same grep, incapable of
+   seeing a client-side-rendered button, applied twice.
+2. **A guard that anticipates a failure makes that failure feel likely.** The
+   source carries a refusal whose own comment says "an empty section on the page
+   is indistinguishable from a finished one". Finding what looked like an empty
+   section next to a comment describing it was read as confirmation. It is not
+   evidence; it is the author having been careful.
+3. **The check that would have killed it was run AFTER the entry, and its
+   contradiction did not stop me.** `entries.get()` resolves all sixteen ids. I
+   measured that, saw it contradict the mechanism I had just written down,
+   and went looking for a different mechanism instead of asking whether the
+   phenomenon was real. **A contradiction is a premise audit (T107) — including
+   when the premise is my own five minutes old.**
+
+The cheap discriminator existed the whole time and cost one grep: does the
+*generator's source* build these buttons in Python or in JavaScript? Asking
+what the instrument can see, before reading its zero.
