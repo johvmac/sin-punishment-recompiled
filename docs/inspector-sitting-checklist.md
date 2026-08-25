@@ -41,7 +41,7 @@ cannot be affected.
 | 1 | build is the clamped one, snapshot label `FBCLAMP` | v2's sheet named a build three days stale |
 | 2 | `developer_mode: true` in `graphics.json` | no panel without it. **Currently true** |
 | 3 | **restore `graphics.json` from `.bak-2026-08-25`** | this session set it to 240p `Original` for an unrelated experiment and you said it is *"stretched as all heck"*. **A stretched image is a confound in a sitting whose entire output is your description.** Say if you would rather keep it |
-| 4 | no stray `Xvfb` / `Xephyr` / game processes | **currently 0/0/0** |
+| 4 | no stray `Xvfb` / `Xephyr` / game processes — **`ps -eo comm= \| grep -c '^SinPunishmentRe'`** | **NOT `pgrep -x`**: the binary name is 23 chars against `comm`'s 15-char cap, so `-x` reports 0 unconditionally (T13, 2026-08-18; re-learned T204) |
 | 5 | headless non-perturbation run reaches the canonical stall (6169 tasks) | proves the clamp did not change ordinary rendering |
 
 ---

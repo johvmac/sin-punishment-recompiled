@@ -237,11 +237,21 @@ summary's, is what a later turn will find.**
 5. **Artefacts are named for what they ARE**, not when they were made.
    `REFERENCE-tutorial-real-game.png` is findable after a compact;
    `seq/xc01-after-Z.png` is not.
-6. **Background tasks stopped, stray processes checked** — with `pgrep -x`,
-   NOT `pgrep -f`. `-f` matches the command line of the shell running the
-   check and reports a phantom process; that happened three times in one day,
-   once leaving a wait-loop that never exited. A task still running through a
-   compact has no one watching it. The user caught that one, not the check.
+6. **Background tasks stopped, stray processes checked** — with
+   **`ps -eo comm= | grep -c '^SinPunishmentRe'`**, and NOT with either `pgrep`
+   form. Both fail, in opposite directions:
+   * `pgrep -f` matches the command line of the shell running the check and
+     reports a phantom; three times in one day, once leaving a wait-loop that
+     never exited. The user caught that one, not the check.
+   * **`pgrep -x` CANNOT MATCH THIS BINARY AT ALL.** The name is 23 characters
+     and the kernel's `comm` is capped at 15, so it silently reports 0 forever.
+     **T13 established this on 2026-08-18** and this step was written on
+     2026-08-25 prescribing `-x` anyway, with a deviations row asserting it
+     "returns 0 correctly" — **it returns 0 unconditionally, which is a check
+     that cannot fail (T65), and the visited set had said so for seven days.**
+   `comm` is truncated to `SinPunishmentRe`, so anchoring on that prefix is
+   what actually discriminates. **Verify any replacement while the game is
+   RUNNING**, or you have only shown it returns 0.
 7. **The newest entries are verified to RENDER** (`--show`). T199 is why: an
    entry that exists but truncates is worse than no entry once the
    conversational memory of it is gone.
@@ -412,7 +422,7 @@ protocol written wrong, and that is worth more than compliance.
 | 2026-08-25 | P1 observed run | The **emulator's own recording was used as an independent instrument** to check a control's verdict, which is not a step P1 lists. It overturned the verdict. | **Yes — consider promoting.** "When an instrument reports a null, check whether another instrument watched the same run" may belong in P1 proper. |
 | 2026-08-25 | *(none — a gap)* | **T71's third gate (playbook write-up in the same checkpoint) was nearly missed on `ares-64`.** Five dumps were taken and two entries written while the tool was still ungated; the write-up happened only because the USER asked whether to step back and document. | **No — the process failed and a person caught it.** None of the five protocols covers "a new tool entered use". T71 lives in `CLAUDE.md` and nothing in the checkpoint loop asks whether this checkpoint introduced a tool. **Strong candidate for P6.** |
 | 2026-08-25 | P2 publish | **The draft misreported its own state**: P2's CHECKER line still read *designed, not built* after T198 built it. Caught on a read-through while preparing for the compact. | **No — and it is this file's own failure mode.** A draft that describes protocols is state, and state in two places drifts. **Candidate: make each CHECKER line say BUILT/NOT BUILT and have the relevant `--self-check` assert its own presence in this file.** |
-| 2026-08-25 | P6 compact | **Ran P6 against this session and its own check 6 gave a FALSE POSITIVE**: `pgrep -c -f "ares-test\|Xvfb"` returned 1 with nothing running — matching the shell running it, the third self-match today. `pgrep -c -x <name>` returns 0 correctly. | **Fix the check, not the finding.** P6.6 should specify `-x` (exact process name) rather than `-f`. Also check 3 was too literal: it grepped for the user's decision verbatim and missed it in the ledger, where A404 records it in different words. **A checker matching remembered phrasing is the A409 needle error again.** |
+| 2026-08-25 | P6 compact | **Ran P6 against this session and its own check 6 gave a FALSE POSITIVE**: `pgrep -c -f "ares-test\|Xvfb"` returned 1 with nothing running — matching the shell running it, the third self-match today. `pgrep -c -x <name>` returns 0 correctly. **← THAT CLAUSE IS FALSE, corrected 2026-08-25 later the same day (T204): `-x` returns 0 UNCONDITIONALLY for this binary because the name is 23 chars against `comm`'s 15-char cap. T13 recorded exactly this on 2026-08-18. I replaced a check that over-fires with one that CANNOT fire, and called it a fix.** | **Fix the check, not the finding.** ~~P6.6 should specify `-x` (exact process name) rather than `-f`~~ — **WRONG, see above; P6.6 now uses `ps -eo comm=` anchored on the 15-char truncation.** Also check 3 was too literal: it grepped for the user's decision verbatim and missed it in the ledger, where A404 records it in different words. **A checker matching remembered phrasing is the A409 needle error again.** |
 | 2026-08-25 | P4 user-directed | **Wrote an entry the user then asked me to write.** They said "write that all up"; A416 was already committed. Checking rather than asserting is what found T199. | **Both, and the order mattered.** Saying "already done" would have been true and would have missed a 54-row defect. **"It is already written" is a claim like any other.** |
 | 2026-08-25 | *(none — a gap)* | **A wait-loop ran forever and I reported the work complete while it was still listed as running; the USER spotted it, not me.** `until [ -f X.mp4 ] \|\| ! pgrep -f "desktop-ui/ares"` — `pgrep -f` matched **the background shell's own command line**, which contains that string, so the process check could never go false; and the `.mp4` never appeared because the recording finalised as `.mkv`. Both exits closed. | **No — and it is a known family.** `guard_bash.py` already warns that `pkill -f` matches its own shell, but only for `pkill`, where the failure is loud. As a **condition** the same self-match fails SILENTLY, which is worse. Second instance today (the stray-process check matched itself too). **Candidate: extend the guard to `pgrep -f` inside a loop condition, or use `pgrep -c` against a pattern that cannot match the wrapper.** |
 | 2026-08-25 | P8 timed stretch | **Ran only half the protocol, because it was not written down.** Set the timer and rolled two checkpoints correctly, then **STOPPED on the user queue** — which is explicitly "a REMINDER, not a gate" — and sat idle instead of shelving it and taking roll #248. The protocol's condition 2 says *shelve* and continue; I treated it as *stop*. Also reported "I can't find any record of that discussion" after searching only this session and `docs/`; **the instruction was in the 2026-08-19 transcript all along.** | **No, twice over.** The stop cost a checkpoint of routable work. And the search was too narrow to support the negative it was used for — **a negative must name its scope inside the claim, and "I searched the docs" is not "there is no record".** The USER's disbelief is what widened the search. **Fixed: P8 now exists, recovered verbatim from the transcript rather than from memory.** |
