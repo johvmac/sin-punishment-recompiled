@@ -194,3 +194,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-25T12:11:43+10:00	12	12	0	0	0	306	30	CLEAN	zupd-broken.log	SNP_DL_CENSUS=selftest
 2026-08-25T12:16:17+10:00	240	240	0	0	0	6169	0	STALLED	zupd-tutorial.log	SNP_DL_CENSUS=10
 2026-08-25T12:58:36+10:00	240	240	0	0	0	6169	0	STALLED	geom-dump.log	SNP_DL_CENSUS=3000 SNP_DL_GEOM=2400,5400
+2026-08-25T13:17:07+10:00	240	240	0	0	0	6169	0	STALLED	guardbyte-watch.log	SNP_WATCH=0x80068A94
