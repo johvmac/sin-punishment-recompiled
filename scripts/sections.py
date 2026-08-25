@@ -24,9 +24,31 @@ LEDGER = Path(__file__).resolve().parent.parent / "docs" / "findings-ledger.md"
 
 
 def gist(line):
-    """The human-readable body of a ledger row, without the markup."""
+    """The human-readable body of a ledger row, without the markup.
+
+    A ROW MAY CONTAIN LITERAL PIPES AND THE FINDING IS EVERYTHING BETWEEN THE
+    STATUS AND THE EVIDENCE (2026-08-25). This used to take `body[3]` -- the
+    text up to the FIRST pipe after the status -- which silently ended the
+    entry at any `||`, any `a|b` in quoted code, any pipe in a shell snippet.
+    **Measured across the ledger at the time of the fix: 54 rows damaged,
+    102,124 characters unreachable, 29 entries losing their SO WHAT and 30
+    losing their falsifier** -- and `check_ledger.py` passed every one, because
+    it greps the RAW line where the text is present. Writer and reader
+    disagreeing, with nothing asserting they agree.
+
+    `ledger.py`'s INDEX path already joined the middle cells correctly, so the
+    two halves of one tool disagreed with each other. This makes --show match.
+
+    Slice is [3:-2]: a well-formed row splits to ['', id, status, finding,
+    evidence, ''], so -2 drops the evidence and the trailing empty.
+    """
     body = line.split("|")
-    txt = body[3] if len(body) > 3 else line
+    if len(body) >= 6:
+        txt = "|".join(body[3:-2])
+    elif len(body) > 3:
+        txt = body[3]
+    else:
+        txt = line
     return re.sub(r"\*\*|`|~~", "", txt).strip()
 
 
