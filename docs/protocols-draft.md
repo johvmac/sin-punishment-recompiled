@@ -198,6 +198,73 @@ guess.**
 
 ---
 
+## P6 — Before a COMPACT
+
+**TRIGGER.** The user says they are about to compact, or the context is long
+enough that it is imminent. `IMPROVISED 2026-08-25` — first version.
+
+**WHAT A COMPACT ACTUALLY DOES, because the protocol follows from it:** it
+replaces the conversation with a SUMMARY. **I do not choose what survives, and
+I cannot check afterwards what was dropped.** So the rule is simple and total:
+
+> **ANYTHING THAT MUST SURVIVE GOES IN A FILE. Nothing that matters may exist
+> only in the conversation.**
+
+**THE DANGER IS NOT LOSS, IT IS LAUNDERING.** A `/clear` leaves nothing, which
+is honest. **A compact leaves a confident paraphrase.** Today produced several
+claims that were later refuted — A412's identification of the boundary,
+A414's "ares-test is the route", A410's frame-rate mapping. A summary carries
+those forward WITHOUT their hedges, and the next turn treats them as settled.
+**So the compact-specific step is to make sure the ledger's wording, not the
+summary's, is what a later turn will find.**
+
+1. **Every finding is an ENTRY and COMMITTED** — not "established in chat".
+   `git status` clean apart from the known-dirty submodules.
+2. **Every claim still UNVERIFIED is labelled so inside its entry.** Not in the
+   chat that is about to be discarded. If a summary might say "we found X",
+   the entry must already say what X rests on.
+3. **The USER'S DECISIONS made in conversation are written down.** They exist
+   nowhere else. Today: "keep running at OG resolution until we have a reason
+   not to", and the U15 sign-off — both would have evaporated.
+4. **The handoff carries: what CHANGED under the reader, the live thread, and
+   the next step stated as ONE BLOCKER.** A next step written as a topic
+   ("continue the clears work") survives compaction uselessly; written as a
+   blocker ("`Z` is unbound; bind it or test a 20-frame `A`") it does not.
+5. **Artefacts are named for what they ARE**, not when they were made.
+   `REFERENCE-tutorial-real-game.png` is findable after a compact;
+   `seq/xc01-after-Z.png` is not.
+6. **Background tasks stopped, stray processes checked.** A task still running
+   through a compact has no one watching it. The user caught one today.
+7. **The newest entries are verified to RENDER** (`--show`). T199 is why: an
+   entry that exists but truncates is worse than no entry once the
+   conversational memory of it is gone.
+
+**CHECKER WOULD ASSERT** *(designed, not built)*: that the working tree is
+clean and that the handoff's mtime is newer than the newest ledger entry's
+commit. Both are cheap; neither is written.
+
+## P7 — Before a CLEAR
+
+**TRIGGER.** `/clear`, or ending the session. `IMPROVISED 2026-08-25`
+
+**A CLEAR IS A COMPACT WITH NOTHING RETAINED, so P6 applies IN FULL and this
+adds what only matters when there is no summary at all.**
+
+1. **The handoff's `[ONCE]` steps are CURRENT**, because they are the entire
+   entry point. Check each still describes reality: the observed-run line, the
+   status-page URL and click state, the visited-set rule.
+2. **Nothing is mid-flight.** Either finished, or written as a resumable
+   blocker with its evidence paths. "I was part-way through X" is unrecoverable.
+3. **The dashboard is published if the queue or frontier moved**, since it is
+   the user's only view that does not depend on this conversation.
+4. **The handoff supersedes cleanly** — one file, dated, saying which it
+   replaces. Two live handoffs is the two-halves failure with the session's
+   entry point as the victim.
+
+**WHAT NEITHER PROTOCOL CAN DO, stated so it is not assumed:** neither recovers
+a claim I never wrote down. The test for both is not "did I summarise well" but
+**"if the conversation vanished right now, would the files alone be enough?"**
+
 ## Deviations log — THIS IS THE DATA
 
 **Add a row whenever a session runs one of these differently, including when
