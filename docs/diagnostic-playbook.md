@@ -2964,6 +2964,40 @@ pixel look wrong", it is the wrong instrument.
 
 ---
 
+## `ultralib_oracle.py` — the SDK named by compiling it ourselves (added 2026-08-25, A444)
+
+**Purpose.** Build ultralib (the public libultra reconstruction) at several SDK
+versions, extract every named function from the objects, and match against our
+ROM with `symbol_transplant`'s skeleton and matcher UNCHANGED — one definition
+of "matches". Relocation holes in unlinked objects are the same fields the mask
+zeroes, which is why object-vs-ROM comparison works at all. The era is decided
+by VOTE — whichever version recovers the most of our 57 already-named functions
+— never by assumption.
+
+**The finding it encodes (A444): S&P's libultra is the GCC build, not IDO.**
+The IDO oracle diverged at word 0–2 in every C function while all assembly
+matched; the fingerprint is `lui+ori` address construction and `v0` scratch
+(GCC) versus `%lo`-folded loads and `t6/t7` (IDO). `TARGET=libgultra_rom` is
+the one that matches — 178 exact-unique at 2.0K against 20 for the best IDO
+build. **Run the GCC target first for anything Treasure.**
+
+**Controls — and the FIRST set was worthless, which is the part to remember.**
+Three deliberate breaks (regex loosened, extraction shifted 4 bytes, masking
+skipped in `oracle_side`) ALL PASSED the original self-check: one break was
+masked by the size gate, one kept every masked JAL valid, and one broke a
+function no control exercised. T100's rule — a checker that finds nothing on
+day one is suspect — applied to the controls themselves. The rebuilt set: C2
+feeds the regex a crafted `*UND*` row with a NONZERO size; C3 pins the RAW
+prologue/epilogue words of a known function, which catches a shift of any
+size; C4 compares `oracle_side`'s hash to an independently computed one, so
+the production path is exercised end to end. All three breaks now caught.
+
+    make -C ~/Documents/reference-recomps/ultralib VERSION=K TARGET=libgultra_rom COMPARE=0
+    scripts/ultralib_oracle.py --versions I J K L --target libgultra_rom
+    scripts/ultralib_oracle.py --self-check
+
+---
+
 ## `symbol_transplant.py` — borrow the Mischief Makers port's function names (added 2026-08-25, A440/A441)
 
 **Purpose.** T197 phases 0–1: verify our MM ROM against the other port's
