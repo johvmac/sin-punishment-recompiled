@@ -240,6 +240,42 @@ def write_png(path, buf, w, h):
     open(path, "wb").write(png)
 
 
+def tasks_in(logpath):
+    return [int(t) for t in re.findall(r"\[dlgeom\] task=(\d+) BEGIN",
+                                       open(logpath, errors="replace").read())]
+
+
+def frame_json(logpath, task, w, h):
+    """One frame as plain data, IN LIST ORDER, for the step-through viewer.
+
+    Order is the whole value here: the viewer reveals triangles one draw at a
+    time, which is what RT64's own 'View Draw Call' was supposed to do and
+    could not (A316/A332 — every setting produced no visible change, because
+    the colour buffer is never cleared in the tutorial so the old picture just
+    stayed). Offline we control the rasteriser, so an incremental draw is
+    actually incremental.
+    """
+    r = parse(extract(logpath, task), Replay())
+    tris, behind = [], 0
+    for t in r.tris:
+        pts = []
+        for p in t[:3]:
+            if p[3] <= 1e-6:
+                pts = None
+                break
+            # Integer screen pixels: sub-pixel precision buys nothing for a
+            # step-through viewer and roughly halves the embedded payload.
+            pts.append([int((p[0] / p[3] * 0.5 + 0.5) * w),
+                        int((1.0 - (p[1] / p[3] * 0.5 + 0.5)) * h)])
+        if pts is None:
+            behind += 1
+            continue                     # dropped, and counted -- never mirrored in
+        tris.append({"p": pts, "c": t[3]})
+    return {"task": task, "w": w, "h": h, "tris": tris,
+            "behind": behind, "dropped": r.dropped_tris,
+            "matrices": r.child, "built": len(r.tris)}
+
+
 def extract(logpath, task):
     want, out = f"task={task} BEGIN", []
     on = False
@@ -327,6 +363,8 @@ def main():
     ap.add_argument("--height", type=int, default=240)
     ap.add_argument("--fill", action="store_true", help="filled tris, not wireframe")
     ap.add_argument("--stats", action="store_true")
+    ap.add_argument("--json-all", metavar="OUT",
+                    help="every dumped frame in the log as JSON, in list order")
     ap.add_argument("--self-check", action="store_true")
     ap.add_argument("-h", "--help", action="store_true")
     a = ap.parse_args()
@@ -335,6 +373,23 @@ def main():
         return 0
     if a.self_check:
         return self_check()
+    if a.json_all:
+        if not a.log:
+            print("need <log>", file=sys.stderr)
+            return 2
+        found = tasks_in(a.log)
+        if not found:
+            print(f"[dlrender] no [dlgeom] traces in {a.log}", file=sys.stderr)
+            return 1
+        frames = [frame_json(a.log, t, a.width, a.height) for t in found]
+        import json
+        open(a.json_all, "w").write(json.dumps({"frames": frames}))
+        for f in frames:
+            print(f"[dlrender] task={f['task']:<6} tris={len(f['tris']):<6} "
+                  f"sublists={len({t['c'] for t in f['tris']}):<4} "
+                  f"behind-eye-dropped={f['behind']}")
+        print(f"[dlrender] wrote {a.json_all} ({len(frames)} frame(s))")
+        return 0
     if not a.log or a.task is None:
         print("need <log> and --task (or --self-check)", file=sys.stderr)
         return 2
