@@ -50,17 +50,28 @@ run log. **The nag is not the authority — if you want to look, look.**
 Work top to bottom. **Items marked ⚑ are things I cannot check myself at all**;
 your answer is the only evidence that will ever exist for them.
 
-## 1. ⚑ AUDIO — highest value, and we have zero evidence of any kind
+## 1. ⚑ AUDIO — REWRITTEN 2026-08-25: the sound is ON, and this run closes A97
 
-* **Is there ANY sound at all?** Music, sound effects, voice, menu blips.
-* If there is sound: **is it correct, or is it damaged?** Buzzing, clicking,
-  static, stuttering, wrong pitch, one channel only.
-* **When does it start?** At boot, at the title, only in certain scenes?
-* **Does it change or stop** at any point during the run?
+**The state changed completely on 2026-08-25 (A447): the silence was a
+recompilation layout error, it is fixed, and you already heard sound and said
+"it sounded perfect to me". This run is the FORMAL verdict you deferred to it.**
 
-> Why it matters: A97's current state is "audio silence only — the crash half
-> was fixed". If you hear anything at all, that claim is wrong and A97 needs
-> restating. If you hear silence, it is the first actual evidence for it.
+* **Is it the right music?** You have heard the real game's opening and
+  tutorial (the paced ares reference, A436). Same tunes, same moments?
+* **Sound effects and menu blips** — present, and matching what the reference
+  had at the same points?
+* **CLIPPING — the one measured worry.** The capture peaks at full scale
+  (A447), which can mean audible crackle/distortion on loud passages. Listen
+  for harshness where the music gets busy. "Loud but clean" and "crackles when
+  loud" are different findings; say which.
+* **Stutter, dropouts, wrong pitch, one channel only** — any of the classic
+  stream failures.
+* **Does it survive the whole run** — through the attract, past START, into
+  the tutorial, up to the stall?
+
+> Why it matters: A97 is held open ONLY for this verdict. "Sounded right
+> throughout" closes a 25-day investigation; any defect you can name becomes
+> its first sharp follow-up. Either answer is a real result.
 
 ## 2. THE LAST TEN SECONDS BEFORE IT DIES — the scene is formally unidentified
 
