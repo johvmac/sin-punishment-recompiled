@@ -189,3 +189,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-25T08:08:07+10:00	180	180	0	0	0	5377	30	CLEAN	observed-080500.log	none
 2026-08-25T08:54:10+10:00	210	210	0	0	0	6169	0	STALLED	a404-n64conditions.log	none
 2026-08-25T11:44:54+10:00	240	240	0	0	0	6169	0	STALLED	fbclamp-nonperturb.log	none
+2026-08-25T12:00:45+10:00	240	240	0	0	0	6169	0	STALLED	inspector-depth.log	SNP_VISIBLE=1
