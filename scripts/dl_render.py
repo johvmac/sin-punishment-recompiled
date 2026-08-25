@@ -174,8 +174,19 @@ WMIN = 1e-3
 # degenerate. Counted and dropped, never drawn -- see the guard in project().
 GUARD = 8.0
 # Above this NDC depth, non-depth-writing geometry is SCENERY rather than
-# screen-pinned overlay. Heuristic, and labelled one -- see A428.
-SCENE_Z = 0.5
+# screen-pinned overlay.
+#
+# 0.0, NOT 0.5, AND THE DIFFERENCE WAS MEASURED (A430). A428 set it to 0.5 from
+# ONE frame, reasoning that nothing sat between 0.442 and 0.918. That read the
+# lowest member of the UPPER cluster as if it were the top of the lower one.
+# Across all four tutorial frames the real gap is between -0.504 and 0.388 --
+# wide, empty, and consistent -- while 0.5 cuts through a populated band: at
+# task 5400 the same 138 shadow triangles fall the other side of it and the
+# split swings from 144 screen-pinned to 6.
+#
+# Still a heuristic. But now it sits in the gap the data actually has, checked
+# on four frames rather than one.
+SCENE_Z = 0.0
 
 
 def _clip_plane(poly, dist):
