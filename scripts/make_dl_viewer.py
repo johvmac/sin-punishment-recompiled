@@ -133,7 +133,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     renderer. Pick a frame, then scrub. Each step adds the next sub-list in the
     order the RSP would have run it; the newest one lands in mint before settling
     to its own colour. <b>Arrow keys step</b> — hold Shift for ten at a
-    time, Home and End for either end.</p>
+    time, Home and End for either end. Geometry splits three ways: what writes
+    depth, scenery that does not (the pylons live here), and screen-pinned
+    overlay. Dashed boxes are rectangle commands — mint for textured, amber for
+    fills — drawn as outlines because we have no textures to put in them.</p>
   </header>
 
   <div class="chips" id="chips" role="group" aria-label="Frame"></div>
@@ -158,7 +161,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <div class="btns">
       <button class="btn" id="gran" type="button" aria-pressed="false">Step by triangle</button>
       <button class="btn" id="wire" type="button" aria-pressed="false">Wireframe</button>
-      <button class="btn" id="ovl" type="button" aria-pressed="false">Show 2D overlay</button>
+      <button class="btn" id="kd" type="button" aria-pressed="true">Depth-writing</button>
+      <button class="btn" id="ks" type="button" aria-pressed="true">Scene, no depth</button>
+      <button class="btn" id="ko" type="button" aria-pressed="false">Screen overlay</button>
+      <button class="btn" id="kr" type="button" aria-pressed="true">Rects</button>
     </div>
   </div>
 
@@ -167,7 +173,8 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <div class="cell"><span class="k">Triangles shown</span><span class="v" id="r2">0</span></div>
     <div class="cell"><span class="k">Sub-lists in frame</span><span class="v" id="r3">0</span></div>
     <div class="cell warn"><span class="k">Clipped / dropped</span><span class="v" id="r4">0</span></div>
-    <div class="cell"><span class="k">2D overlay tris</span><span class="v" id="r5">0</span></div>
+    <div class="cell"><span class="k">Depth / scene / screen</span><span class="v" id="r5">0</span></div>
+    <div class="cell"><span class="k">Rect commands</span><span class="v" id="r6">0</span></div>
   </div>
 
   <p class="note" id="foot"></p>
@@ -178,7 +185,11 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
 (function () {
   var DATA = JSON.parse(document.getElementById("data").textContent);
   var frames = DATA.frames, fi = 0, pos = 0, byTri = false, wire = false;
-  var playing = null, lastAdded = -1, addedAt = 0, showOvl = false;
+  var playing = null, lastAdded = -1, addedAt = 0;
+  // A428: three populations, not two. 'Scene, no depth' is where the pylons
+  // live -- calling them overlay hid them for a day.
+  var show = { d: true, s: true, o: false };
+  var showRects = true;
 
   var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   var slider = document.getElementById("slider");
@@ -207,7 +218,7 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   // covering the whole frame at z = -0.996 -- nearest possible, so they win
   // every depth test and paint the scene out. Hiding them shows the 3D scene;
   // showing them shows what the frame also contains.
-  function keep(t) { return showOvl || t.z !== 0; }
+  function keep(t) { return show[t.k || (t.z ? "d" : "o")]; }
   function shown() {
     var f = frame();
     if (byTri) return f.tris.slice(0, pos).filter(keep);
@@ -296,6 +307,25 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     } else {
       rasterize(list, f, freshC, age);
     }
+    // RECT COMMANDS, drawn as OUTLINES on purpose. G_TEXRECT and G_FILLRECT
+    // are how this game paints skies, borders and UI panels; the offline
+    // renderer has no textures, so filling them would paint a solid slab over
+    // the scene and read as geometry. An outline shows WHERE they are and how
+    // big without pretending to show what they contain. A blank region in this
+    // viewer with a rect outline around it is a texture we cannot draw -- not
+    // a hole in the game.
+    if (showRects && f.rects && f.rects.length) {
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      var sx = f.w / 320, sy = f.h / 240;   // rect coords are 10.2 at 320x240
+      f.rects.forEach(function (rc) {
+        ctx.strokeStyle = rc.kind === "tex" ? "#57E0B0" : "#E0A64A";
+        ctx.strokeRect(rc.x0 * sx, rc.y0 * sy,
+                       (rc.x1 - rc.x0) * sx, (rc.y1 - rc.y0) * sy);
+      });
+      ctx.restore();
+    }
     document.getElementById("cnt").textContent = pos;
     document.getElementById("of").textContent =
       "of " + maxPos() + (byTri ? " triangles" : " draws");
@@ -304,10 +334,14 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     document.getElementById("r2").textContent = list.length + " / " + f.tris.length;
     document.getElementById("r3").textContent = g.order.length;
     document.getElementById("r4").textContent = f.behind;
-    var ov = 0;
-    f.tris.forEach(function (t) { if (t.z === 0) ov++; });
+    var nr = (f.rects || []).length, nt = 0;
+    (f.rects || []).forEach(function (rc) { if (rc.kind === "tex") nt++; });
+    document.getElementById("r6").textContent =
+      nr + (nr ? " (" + nt + " tex)" : "");
+    var n = { d: 0, s: 0, o: 0 };
+    f.tris.forEach(function (t) { n[t.k || (t.z ? "d" : "o")]++; });
     document.getElementById("r5").textContent =
-      ov + (showOvl ? " (shown)" : " (hidden)");
+      n.d + " / " + n.s + " / " + n.o;
     document.getElementById("foot").textContent =
       "Task " + f.task + " \\u00b7 " + f.matrices + " matrix set-ups \\u00b7 " +
       f.built + " triangles built, " + f.behind +
@@ -354,10 +388,16 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     this.textContent = byTri ? "Step by draw" : "Step by triangle";
     setPos(maxPos(), false);
   });
-  document.getElementById("ovl").addEventListener("click", function () {
-    showOvl = !showOvl;
-    this.setAttribute("aria-pressed", showOvl ? "true" : "false");
-    this.textContent = showOvl ? "Hide 2D overlay" : "Show 2D overlay";
+  [["kd", "d"], ["ks", "s"], ["ko", "o"]].forEach(function (pair) {
+    document.getElementById(pair[0]).addEventListener("click", function () {
+      show[pair[1]] = !show[pair[1]];
+      this.setAttribute("aria-pressed", show[pair[1]] ? "true" : "false");
+      draw();
+    });
+  });
+  document.getElementById("kr").addEventListener("click", function () {
+    showRects = !showRects;
+    this.setAttribute("aria-pressed", showRects ? "true" : "false");
     draw();
   });
   document.getElementById("wire").addEventListener("click", function () {

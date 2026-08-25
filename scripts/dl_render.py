@@ -102,6 +102,7 @@ class Replay:
         self.unresolved_mtx = 0
         self.unresolved_vtx = 0
         self.dropped_tris = 0
+        self.rects = []         # (kind, ulx, uly, lrx, lry, sub-list)
 
     def mtx(self, param, words):
         m = mat_from_words(words)
@@ -155,6 +156,10 @@ def parse(lines, replay):
                 replay.unresolved_vtx += 1
                 continue
             replay.vtx(int(f[2]), int(f[3]), int(f[4]), int(f[5]))
+        elif k == "r":
+            # rect kind, ulx, uly, lrx, lry -- already in screen pixels.
+            replay.rects.append((f[2], int(f[3]), int(f[4]), int(f[5]),
+                                 int(f[6]), replay.child))
         elif k == "t":
             # The 4th field is Z_UPD. Traces from before 2026-08-25 lack it and
             # default to 1 -- reproducing the old behaviour rather than
@@ -168,6 +173,9 @@ WMIN = 1e-3
 # A vertex still projecting beyond this many frame-widths after clipping is
 # degenerate. Counted and dropped, never drawn -- see the guard in project().
 GUARD = 8.0
+# Above this NDC depth, non-depth-writing geometry is SCENERY rather than
+# screen-pinned overlay. Heuristic, and labelled one -- see A428.
+SCENE_Z = 0.5
 
 
 def _clip_plane(poly, dist):
@@ -326,9 +334,23 @@ def frame_json(logpath, task, w, h):
     for pts, c, zu in scr:
         # Integer screen pixels; depth kept to 4 decimals, which is ample for a
         # depth TEST and keeps the embedded payload down.
+        # THREE-WAY, and the threshold lives HERE rather than in the page.
+        # A428: the non-depth-writing triangles are two populations, not one --
+        # scenery at scene depth (the pylons) and screen-pinned overlay (the
+        # controller). Calling both "2D overlay" was wrong and hid the pylons.
+        #   d = depth-writing        s = scene depth, no depth-write
+        #   o = screen-pinned overlay
+        # SCENE_Z is a HEURISTIC on a bimodal distribution (nothing between
+        # 0.44 and 0.92 in the frames measured), not a principled boundary.
+        if zu:
+            kind = "d"
+        else:
+            kind = "s" if min(p[2] for p in pts) > SCENE_Z else "o"
         tris.append({"p": [[int(p[0]), int(p[1]), round(p[2], 4)] for p in pts],
-                     "c": c, "z": zu})
+                     "c": c, "z": zu, "k": kind})
     return {"task": task, "w": w, "h": h, "tris": tris,
+            "rects": [{"kind": k, "x0": a, "y0": b, "x1": c2, "y1": d2, "c": ch}
+                      for k, a, b, c2, d2, ch in r.rects],
             "behind": behind, "dropped": r.dropped_tris,
             "matrices": r.child, "built": len(r.tris)}
 
