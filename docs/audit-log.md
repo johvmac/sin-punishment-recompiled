@@ -333,3 +333,11 @@ Level-1 discipline audits. The daily review reads THIS file, not the raw data.
   - cron: last push ended in a refusal/error — [daily-push] REFUSING: ledger check failed (see above). Fix the entries, not the checker.
 - suppressed as superseded (4): A394 (single-run, justified in the entry); A390 (single-run, justified in the entry); A385 (single-run, justified in the entry); T194 (single-run, justified in the entry)
 
+## Audit #24 — since a95571fb
+- ledger: 641 entries (+47 this window), 40 withdrawn
+- rolls: 10 this window; runs: 13 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - A399: created and withdrawn within one audit window. What made it look right?
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 66 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+- suppressed as superseded (6): A432 (single-run, justified in the entry); A430 (single-run, justified in the entry); A428 (single-run, justified in the entry); A426 (single-run, justified in the entry); T204 (single-run, justified in the entry); A401 (single-run, justified in the entry)
+
