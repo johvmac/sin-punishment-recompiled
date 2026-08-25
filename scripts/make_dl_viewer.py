@@ -158,6 +158,7 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <div class="btns">
       <button class="btn" id="gran" type="button" aria-pressed="false">Step by triangle</button>
       <button class="btn" id="wire" type="button" aria-pressed="false">Wireframe</button>
+      <button class="btn" id="ovl" type="button" aria-pressed="false">Show 2D overlay</button>
     </div>
   </div>
 
@@ -165,7 +166,8 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <div class="cell"><span class="k">Draws shown</span><span class="v" id="r1">0</span></div>
     <div class="cell"><span class="k">Triangles shown</span><span class="v" id="r2">0</span></div>
     <div class="cell"><span class="k">Sub-lists in frame</span><span class="v" id="r3">0</span></div>
-    <div class="cell warn"><span class="k">Dropped behind eye</span><span class="v" id="r4">0</span></div>
+    <div class="cell warn"><span class="k">Clipped / dropped</span><span class="v" id="r4">0</span></div>
+    <div class="cell"><span class="k">2D overlay tris</span><span class="v" id="r5">0</span></div>
   </div>
 
   <p class="note" id="foot"></p>
@@ -176,7 +178,7 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
 (function () {
   var DATA = JSON.parse(document.getElementById("data").textContent);
   var frames = DATA.frames, fi = 0, pos = 0, byTri = false, wire = false;
-  var playing = null, lastAdded = -1, addedAt = 0;
+  var playing = null, lastAdded = -1, addedAt = 0, showOvl = false;
 
   var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   var slider = document.getElementById("slider");
@@ -198,11 +200,19 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     var f = frame();
     return byTri ? f.tris.length : groups(f).order.length;
   }
+  // The 2D overlay is EXCLUDED BY DEFAULT and this is not cosmetic. A422
+  // measured which triangles carry Z_UPD; the ones that do not are screen-space
+  // overlay, drawn on hardware with depth-write off and a mostly transparent
+  // texture. Offline they are opaque, and task 2400 draw 114 is two of them
+  // covering the whole frame at z = -0.996 -- nearest possible, so they win
+  // every depth test and paint the scene out. Hiding them shows the 3D scene;
+  // showing them shows what the frame also contains.
+  function keep(t) { return showOvl || t.z !== 0; }
   function shown() {
     var f = frame();
-    if (byTri) return f.tris.slice(0, pos);
+    if (byTri) return f.tris.slice(0, pos).filter(keep);
     var g = groups(f), lim = pos;
-    return f.tris.filter(function (t) { return g.idx[t.c] < lim; });
+    return f.tris.filter(function (t) { return g.idx[t.c] < lim && keep(t); });
   }
   function colour(c, fresh) {
     if (fresh) return getComputedStyle(document.documentElement)
@@ -294,6 +304,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     document.getElementById("r2").textContent = list.length + " / " + f.tris.length;
     document.getElementById("r3").textContent = g.order.length;
     document.getElementById("r4").textContent = f.behind;
+    var ov = 0;
+    f.tris.forEach(function (t) { if (t.z === 0) ov++; });
+    document.getElementById("r5").textContent =
+      ov + (showOvl ? " (shown)" : " (hidden)");
     document.getElementById("foot").textContent =
       "Task " + f.task + " \\u00b7 " + f.matrices + " matrix set-ups \\u00b7 " +
       f.built + " triangles built, " + f.behind +
@@ -339,6 +353,12 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     this.setAttribute("aria-pressed", byTri ? "true" : "false");
     this.textContent = byTri ? "Step by draw" : "Step by triangle";
     setPos(maxPos(), false);
+  });
+  document.getElementById("ovl").addEventListener("click", function () {
+    showOvl = !showOvl;
+    this.setAttribute("aria-pressed", showOvl ? "true" : "false");
+    this.textContent = showOvl ? "Hide 2D overlay" : "Show 2D overlay";
+    draw();
   });
   document.getElementById("wire").addEventListener("click", function () {
     wire = !wire;

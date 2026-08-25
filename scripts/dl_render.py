@@ -121,7 +121,7 @@ class Replay:
         if 0 <= slot < VTX_CACHE:
             self.cache[slot] = (x, y, z)
 
-    def tri(self, a, b, c):
+    def tri(self, a, b, c, zupd=1):
         vs = [self.cache[i] if 0 <= i < VTX_CACHE else None for i in (a, b, c)]
         if any(v is None for v in vs):
             # A triangle referencing a slot never loaded is DROPPED and
@@ -131,7 +131,9 @@ class Replay:
             self.dropped_tris += 1
             return
         mvp = mat_mul(self.mv, self.proj)
-        self.tris.append(tuple(xform(mvp, v) for v in vs) + (self.child,))
+        # (p0, p1, p2, sub-list, depth-writing?). The last field is A422's
+        # Z_UPD and it separates the 3D scene from the 2D overlay.
+        self.tris.append(tuple(xform(mvp, v) for v in vs) + (self.child, zupd))
 
 
 def parse(lines, replay):
@@ -154,7 +156,11 @@ def parse(lines, replay):
                 continue
             replay.vtx(int(f[2]), int(f[3]), int(f[4]), int(f[5]))
         elif k == "t":
-            replay.tri(int(f[2]), int(f[3]), int(f[4]))
+            # The 4th field is Z_UPD. Traces from before 2026-08-25 lack it and
+            # default to 1 -- reproducing the old behaviour rather than
+            # silently reclassifying every triangle as overlay.
+            replay.tri(int(f[2]), int(f[3]), int(f[4]),
+                       int(f[5]) if len(f) > 5 else 1)
     return replay
 
 
@@ -232,13 +238,13 @@ def project(tris, w, h):
             if any(abs(p[0]) > GUARD * w or abs(p[1]) > GUARD * h for p in pts):
                 dropped += 1
                 continue
-            out.append((pts, t[3]))
+            out.append((pts, t[3], t[4] if len(t) > 4 else 1))
     return out, dropped
 
 
 def raster(tris, w, h, fill):
     buf = bytearray(w * h * 3)
-    for pts, child in tris:
+    for pts, child, _zu in tris:
         r = (child * 97) % 200 + 55
         g = (child * 57) % 200 + 55
         b = (child * 151) % 200 + 55
@@ -317,11 +323,11 @@ def frame_json(logpath, task, w, h):
     r = parse(extract(logpath, task), Replay())
     scr, behind = project(r.tris, w, h)
     tris = []
-    for pts, c in scr:
+    for pts, c, zu in scr:
         # Integer screen pixels; depth kept to 4 decimals, which is ample for a
         # depth TEST and keeps the embedded payload down.
         tris.append({"p": [[int(p[0]), int(p[1]), round(p[2], 4)] for p in pts],
-                     "c": c})
+                     "c": c, "z": zu})
     return {"task": task, "w": w, "h": h, "tris": tris,
             "behind": behind, "dropped": r.dropped_tris,
             "matrices": r.child, "built": len(r.tris)}
@@ -412,13 +418,13 @@ def self_check():
               (0.0, 1.0, -5.0, 1.0), 0)]
     got, dropped = project(strad, 320, 240)
     inside = all(abs(p[0]) <= GUARD * 320 and abs(p[1]) <= GUARD * 240
-                 for t, _ in got for p in t)
+                 for t in got for p in t[0])
     chk("a triangle crossing the near plane is CLIPPED, not exploded",
         len(got) >= 1 and inside)
 
     # 7. Depth survives projection and is finite -- the z-buffer needs it.
     chk("each projected vertex carries a finite NDC depth",
-        all(isinstance(p[2], float) and p[2] == p[2] for t, _ in got for p in t))
+        all(isinstance(p[2], float) and p[2] == p[2] for t in got for p in t[0]))
 
     print(f"\n[dlrender] self-check {ok}/{ok + fail}")
     return 0 if fail == 0 else 1
@@ -483,7 +489,7 @@ def main():
           f"{'filled' if a.fill else 'wireframe'}, coloured by sub-list)")
     if a.stats:
         per = {}
-        for _, c in tris:
+        for _, c, _z in tris:
             per[c] = per.get(c, 0) + 1
         top = sorted(per.items(), key=lambda kv: -kv[1])[:10]
         print(f"[dlrender] {len(per)} sub-lists drew; largest: " +
