@@ -246,9 +246,37 @@ summary's, is what a later turn will find.**
    entry that exists but truncates is worse than no entry once the
    conversational memory of it is gone.
 
+8. **LEAVE A MESSAGE FOR THE COMPACTOR — the last thing in the last turn.**
+   The user's addition, 2026-08-25. **It is the only lever I have on what the
+   summary says**, and it is aimed at P6's actual danger: a paraphrase that
+   drops hedges. Everything else in this protocol writes to FILES so the
+   summary does not matter; this one accepts that a summary will exist and
+   tries to make it honest.
+
+   **It is addressed to the summariser, not to the user**, and it must carry:
+   * **WHICH CLAIMS ARE UNVERIFIED OR WERE REFUTED THIS SESSION, by name.**
+     This is the load-bearing part. A summary saying "we established the real
+     game does not clear at the boundary" would be repeating A412, which A414
+     refuted hours later.
+   * **The authority order**: ledger and handoff over the summary. If the
+     summary and a file disagree, **the file wins and the summary is the thing
+     that is wrong**.
+   * **The few paths worth carrying** — not a file list, the two or three an
+     unprepared reader could not find.
+   * **The next step as one blocker.**
+   * **What NOT to carry**: the narrative. How I got somewhere is in the
+     entries; a summary retelling it spends space that the blocker needs.
+
+   **KEEP IT SHORT.** A long message competes with the content it is trying to
+   protect. If it runs past a screen, the protocol is being used to re-summarise
+   the session, which is the compactor's job and not mine.
+
 **CHECKER WOULD ASSERT** *(designed, not built)*: that the working tree is
 clean and that the handoff's mtime is newer than the newest ledger entry's
-commit. Both are cheap; neither is written.
+commit. Both are cheap; neither is written. **Note the compactor message CANNOT
+be checked mechanically** — nothing can read whether a summary was faithful,
+which is exactly why the message names the refuted claims explicitly rather
+than trusting tone.
 
 ## P7 — Before a CLEAR
 
@@ -268,9 +296,29 @@ adds what only matters when there is no summary at all.**
    replaces. Two live handoffs is the two-halves failure with the session's
    entry point as the victim.
 
+5. **LEAVE THE MESSAGE THAT STARTS THE NEXT SESSION.** The user's addition,
+   2026-08-25, and the mirror of P6's compactor message: **after a clear there
+   is no summary to steer, so the lever moves from "what survives" to "what the
+   first turn does."** It lives in **`docs/START-HERE.md`** so it survives the
+   clear that erases everything else.
+
+   **IT MUST BE A POINTER, NOT A SUMMARY.** `CLAUDE.md`'s standing rule is that
+   a second copy is a copy that goes stale, and a seed message restating the
+   handoff is exactly that — it would drift within a day and then mislead the
+   one turn least able to notice. **So: name the handoff, name the `[ONCE]`
+   steps, name the one blocker, stop.** Anything longer belongs in the handoff.
+
+   **IT MUST NOT PRE-EMPT THE `[ONCE]` GATES.** A seed saying "carry on with the
+   clears work" invites skipping the observed-run gate and the visited-set
+   check. The seed's job is to get those RUN, not to get past them.
+
 **WHAT NEITHER PROTOCOL CAN DO, stated so it is not assumed:** neither recovers
 a claim I never wrote down. The test for both is not "did I summarise well" but
 **"if the conversation vanished right now, would the files alone be enough?"**
+
+**AND THE TWO MESSAGES ARE NOT INTERCHANGEABLE**, which is why they are separate
+steps: the compactor message argues with a summary that will exist; the seed
+message replaces a conversation that will not.
 
 ## Deviations log — THIS IS THE DATA
 
