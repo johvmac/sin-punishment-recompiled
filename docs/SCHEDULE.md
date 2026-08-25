@@ -36,6 +36,11 @@ each checkpoint. Tick the box when done.
       the 92 has a proven extent (A292, by hand). The rest are a lead list, and
       each needs its own read before a `size` is edited.** New tool
       `scripts/gap_classify.py`, three gates met.
+      **AND THEN A420 (roll #247) TOOK THE VALUE BACK OUT: only 1 of the 92 is
+      in a section that demonstrably loads, and it loses no drawing commands.
+      Do NOT spend a slot editing these sizes — on the route we can reach they
+      would change nothing.** Reopen only for a level that loads those overlays,
+      or if the unsegmented compressed third is ever brought in.
       **T11 triage, RE-PLANNED 2026-08-19 (roll #36).**
       "Top 20 gaps by size" is the WRONG plan: **13 of the top 20 are
       `.ovlfile12`**, which would burn the whole budget re-deriving one
