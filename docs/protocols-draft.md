@@ -351,8 +351,9 @@ lost:**
 > 1. timer ends
 > 2. something comes up that needs my attention - if possible, shelve it"
 
-1. **START THE TIMER FIRST, in the background, before any work.** A timer
-   started after the first checkpoint measures the wrong thing.
+1. **START THE TIMER FIRST, in the background, before any work — AT N + 5
+   MINUTES** (see the buffer section below; a stated 30 is `sleep 2100`). A
+   timer started after the first checkpoint measures the wrong thing.
 2. **KEEP ROLLING UNTIL ONE OF THE TWO CONDITIONS FIRES.** Not until the work
    feels finished, and not until a convenient boundary — those are the same
    rationalisation the roll exists to prevent.
@@ -377,14 +378,24 @@ lost:**
 that no stretch ends with routable frontier work still open and no halt-class
 blocker named. That is checkable from the log and the ledger alone.
 
-**OPEN QUESTION, NOT INVENTED HERE (2026-08-25):** the user asked whether a
-**5-minute buffer** had been added to the 30. **No such buffer appears anywhere
-in four session transcripts** — not as "buffer", not as 35 minutes, not as 2100
-seconds. Either it was discussed somewhere unrecorded, or it is a crossed wire.
-**It is written down as an open question rather than silently adopted or
-silently dropped**, because guessing the rule is how a protocol acquires a step
-nobody agreed to. If confirmed, the likely intent is a wrap-up margin: stop
-taking NEW rolls at N minutes, use the last 5 to close out and report.
+**THE 5-MINUTE BUFFER — SETTLED BY THE USER, 2026-08-25, IN THESE WORDS:**
+
+> "you should aim for 30 minutes, but allow yourself to go an extra 5 minutes
+> over - so add 5 minutes to any timer I give in that way"
+
+**So: SET THE TIMER TO N + 5, ALWAYS.** A stated 30 becomes `sleep 2100`, not
+`sleep 1800`. **N is the aim; N+5 is the boundary.** The margin exists because
+a checkpoint's write-up regularly runs past the roll that started it — on
+2026-08-25 checkpoint #247 did exactly that — and a hard stop at N either
+truncates the write-up or gets quietly ignored, and both are worse than a
+margin that was planned for.
+
+**PROVENANCE, RECORDED HONESTLY BECAUSE IT WAS DISPUTED (T202):** this rule is
+**NOT** in any of the four session transcripts. It was searched for and is
+genuinely absent. **It became a rule when the user stated it on 2026-08-25**,
+not before — so nothing done earlier violated it. It is written here rather
+than left to memory precisely because that is what went wrong: the rest of P8
+was also "obviously agreed" and also unrecorded for six days.
 
 ---
 
