@@ -1,30 +1,29 @@
-# Sin & Punishment (JP) - custom audio RSP microcode (Treasure)
+# Sin & Punishment (JP) - custom audio RSP microcode (Treasure) -- MAIN ONLY.
 #
-# text_offset 0x32280: verified entry pattern (unique in ROM):
-#   IMEM 0x000: j 0x1064            (jump to main task handler)
-#   IMEM 0x004: addi $1, $zero, 0xFC0   (delay slot: $1 = OSTask ptr in DMEM)
-#   only occurrences of 0x09000419 / 0x20010FC0 in the whole ROM.
-# text runs 0x32280..0x32FA4 (0xD24 bytes), 100% RSP-valid instructions
-# (0 invalid; 337 vector/cop0 ops). Ends with `j 0x10EC` + delay at 0x32FA0;
-# 0x32FA4-0x32FAC = 3 nops padding; 0x32FB0 = F3DEX2 text (md5-verified).
-# text_address 0x04001000: game's RSP task loader (ROM 0x21560-0x21864) writes
-#   SP PC = 0x04001000 and DMAs ucode text at SP_MEM_ADDR = 0x04001000 (IMEM 0x000).
+# RE-BASED 2026-08-25 (A447). The previous config recompiled ROM 0x32280 as one
+# contiguous text at IMEM 0x1000. That block is rspboot (0xD0 bytes, stock boot
+# microcode) + the head of main -- and at runtime rspboot RELOCATES main:
+# it DMAs task->t.ucode (RDRAM 0x80056F50 = ROM 0x32350) into IMEM 0x1080 and
+# jumps there. So everything past the stub in the old audio.cpp was the right
+# bytes at the wrong addresses, 0x50 out of phase -- a valid-looking, wrong
+# program. The SIG0 "yield check" it kept aborting in was rspboot's, not the
+# game's. Verified: RDRAM 0x80056F50 (A99 snapshot) == ROM 0x32350; the layout
+# convention (boot at 0x1000, main at 0x1080, size 0xC60) matches BanjoRecomp's
+# working n_aspMain port exactly. The bytes are NOT n_aspMain's (768/792 words
+# differ) -- the ucode is custom; only the packaging is stock.
 #
-# Indirect jumps: jr $1 (command dispatch via DMEM table -> covered by all
-# 4-aligned in-text addresses), jr $7 -> 0x1080, jr $5 -> {0x108, 0x154} ($ra
-# of jal 0x1120), jr $ra (jal returns, tracked by RSPRecomp).
-text_offset = 0x32280
-text_size = 0xD24
-text_address = 0x04001000
+# rspboot is NOT recompiled: its two jobs (copy main into IMEM, jump 0x1080)
+# are both no-ops in a static recompile, and the harness enters main directly.
+text_offset = 0x32350
+text_size = 0xC60
+text_address = 0x04001080
 rom_file_path = "../rom/sinpunishment.z64"
 output_file_path = "audio.cpp"
 output_function_name = "n_aspMain"
 
+# Blanket jump table over the whole text, same approach the previous config
+# used: jr-dispatch targets are data-driven and cheaper to cover than to prove.
 extra_indirect_branch_targets = [
-    0x1000, 0x1004, 0x1008, 0x100C, 0x1010, 0x1014, 0x1018, 0x101C,
-    0x1020, 0x1024, 0x1028, 0x102C, 0x1030, 0x1034, 0x1038, 0x103C,
-    0x1040, 0x1044, 0x1048, 0x104C, 0x1050, 0x1054, 0x1058, 0x105C,
-    0x1060, 0x1064, 0x1068, 0x106C, 0x1070, 0x1074, 0x1078, 0x107C,
     0x1080, 0x1084, 0x1088, 0x108C, 0x1090, 0x1094, 0x1098, 0x109C,
     0x10A0, 0x10A4, 0x10A8, 0x10AC, 0x10B0, 0x10B4, 0x10B8, 0x10BC,
     0x10C0, 0x10C4, 0x10C8, 0x10CC, 0x10D0, 0x10D4, 0x10D8, 0x10DC,
@@ -124,7 +123,4 @@ extra_indirect_branch_targets = [
     0x1C80, 0x1C84, 0x1C88, 0x1C8C, 0x1C90, 0x1C94, 0x1C98, 0x1C9C,
     0x1CA0, 0x1CA4, 0x1CA8, 0x1CAC, 0x1CB0, 0x1CB4, 0x1CB8, 0x1CBC,
     0x1CC0, 0x1CC4, 0x1CC8, 0x1CCC, 0x1CD0, 0x1CD4, 0x1CD8, 0x1CDC,
-    0x1CE0, 0x1CE4, 0x1CE8, 0x1CEC, 0x1CF0, 0x1CF4, 0x1CF8, 0x1CFC,
-    0x1D00, 0x1D04, 0x1D08, 0x1D0C, 0x1D10, 0x1D14, 0x1D18, 0x1D1C,
-    0x1D20,
 ]
