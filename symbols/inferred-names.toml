@@ -19,3 +19,15 @@
 0x80042F50 = "osInvalDCache"          # our map says osWritebackDCache
 0x80043080 = "osWritebackDCache"      # our map says boot_func_80043080
 # 0x80043100 osWritebackDCacheAll already above -- our map says osInvalDCache
+
+# --- FROM THE BANJO-KAZOOIE MAP, 2026-08-25 evening (A442) -- a DIFFERENT
+# studio, so only the precompiled-SDK tier can cross; each row is skeleton-
+# exact and unique both ways against all 6,295 of our functions.
+# Confidence varies with size and is per-row, not uniform.
+0x80041630 = "alFilterNew"          # 7 words; first name ever in our audio band
+0x80042EA0 = "alSynDelete"          # 2 words -- LOW confidence, uniqueness only
+0x80043720 = "gu_sqrtf"             # 2 words -- LOW confidence, uniqueness only
+0x80047D20 = "boot_osMapTLBRdb"     # 22 words
+# @80046120 __osSetCompare -- already above from MM; Banjo agrees (2 sources)
+# @80043100 osWritebackDCacheAll -- Banjo AGREES with MM against our label,
+#            second independent source; see A441/A442.
