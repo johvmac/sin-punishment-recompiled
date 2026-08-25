@@ -61,6 +61,28 @@ set -uo pipefail
 SINK="snp_capture"
 LOADED_SINK=""; LOADED_LOOP=""; PAREC_PID=""
 
+# CAPTURE RATE — SET IN BOTH PLACES OR IT DOES NOTHING (A459, 2026-08-25).
+#
+# The rate lives in TWO spots and fixing only one leaves a resample in the
+# chain: the null sink the game is routed through, and `parec` reading its
+# monitor. Neither was ever set. Measured on this machine: PipeWire's default
+# spec is float32le 2ch 48000Hz and parec's own built-in default is 44100, so
+# the chain ran game -> 48000 sink -> 44100 capture — TWO resamples, both at
+# non-integer ratios. Every audio artefact this project holds was recorded
+# through that.
+#
+# WHY 22050: it is the game's own rate and it was THE USER'S DECISION (A436,
+# measured — 47 KB/s against 71, "anything above it is resampled padding").
+# That decision reached the ares captures and never reached this file.
+#
+# THE HONEST CAVEAT, because A308 measured something that does not fit neatly:
+# our binary opens TWO audio devices, freq=48000 AND freq=22050. 22050 is the
+# N64's rate; which one the OUTPUT stream carries is not established. So
+# `finish` now records the game's ACTUAL negotiated sink-input rate into a
+# sidecar, and a mismatch is printed rather than silently resampled. Override
+# with SNP_CAPTURE_RATE if that measurement says 48000.
+CAPRATE="${SNP_CAPTURE_RATE:-22050}"
+
 _unload_all() {
     [[ -n "$LOADED_LOOP" ]] && pactl unload-module "$LOADED_LOOP" 2>/dev/null
     [[ -n "$LOADED_SINK" ]] && pactl unload-module "$LOADED_SINK" 2>/dev/null
@@ -75,6 +97,25 @@ _cleanup() {
 trap _cleanup EXIT INT TERM
 
 usage() { sed -n '/^# Usage:/,/^set -/p' "$0" | sed 's/^# \{0,1\}//;$d'; }
+
+# The sample spec of whatever stream is actually sitting on OUR sink. This is
+# the control on $CAPRATE: A308 logged the binary opening BOTH 48000 and 22050
+# devices, so which rate the OUTPUT carries is a measurement, not a given. If
+# this disagrees with $CAPRATE we are resampling and `finish` says so out loud.
+snp_stream_spec() {
+    local sidx
+    sidx=$(pactl list short sinks 2>/dev/null | awk -v s="$SINK" '$2==s{print $1; exit}')
+    [[ -n "$sidx" ]] || return 1
+    # FIELD ORDER MATTERS AND I GOT IT WRONG FIRST TIME: pactl prints `Sink:`
+    # BEFORE `Sample Specification:`. The original version required the spec to
+    # be known when it reached Sink:, so it matched nothing, silently, forever
+    # -- a control that could never fire. Caught by reading pactl's real output
+    # instead of trusting the shape I assumed.
+    pactl list sink-inputs 2>/dev/null | awk -v k="$sidx" '
+        /^Sink Input #/            { sk="" }
+        /^[ \t]*Sink: /            { sk=$2 }
+        /Sample Specification:/    { if (sk==k) { sub(/^[ \t]*Sample Specification: /,""); print; exit } }'
+}
 
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
@@ -104,18 +145,19 @@ if [[ "${1:-}" == "--self-check" ]]; then
     TD=$(mktemp -d); trap '_cleanup; rm -rf "$TD"' EXIT
     ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=440:duration=6"  "$TD/a.wav"
     ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=1800:duration=6" "$TD/b.wav"
-    LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK)
+    LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK rate=$CAPRATE channels=2)
     OTHER=$(pactl load-module module-null-sink sink_name=snp_selftest_other)
     paplay --device=snp_selftest_other --property=application.name=SNPCHK_A "$TD/a.wav" & PA=$!
     paplay --device=snp_selftest_other --property=application.name=SNPCHK_B "$TD/b.wav" & PB=$!
     sleep 1
     IDX=$(pactl list sink-inputs | awk '/Sink Input #/{i=$NF} /application.name = "SNPCHK_A"/{print i; exit}' | tr -d '#')
     [[ -n "$IDX" ]] && pactl move-sink-input "$IDX" $SINK
-    timeout 4 parec -d ${SINK}.monitor --file-format=wav "$TD/cap.wav" 2>/dev/null
+    timeout 4 parec -d ${SINK}.monitor --rate=$CAPRATE --file-format=wav "$TD/cap.wav" 2>/dev/null
     wait $PA $PB 2>/dev/null; pactl unload-module "$OTHER" 2>/dev/null; _unload_all
-    python3 - "$TD/cap.wav" <<'EOF'
+    python3 - "$TD/cap.wav" "$CAPRATE" <<'EOF'
 import sys, wave, numpy as np
 w = wave.open(sys.argv[1]); n = w.getnframes(); sr = w.getframerate()
+want = int(sys.argv[2])
 a = np.frombuffer(w.readframes(n), dtype=np.int16).astype(float)
 if w.getnchannels() > 1: a = a[::w.getnchannels()]
 checks = []
@@ -130,6 +172,11 @@ checks.append(("captures the stream MOVED IN (440Hz)", ina > 0.5, f"relative ene
 checks.append(("captures NOTHING from the stream left OUT (1800Hz) — the privacy property",
                outb < 0.05, f"relative energy {outb:.4f}"))
 checks.append(("capture is not empty", peak > 0, f"peak {peak:.0f}"))
+# A459: the rate is requested in TWO places and PipeWire's Pulse shim is free to
+# ignore either. Asserting the file's ACTUAL rate is the only thing that proves
+# the flag did anything -- without it "I added --rate" is a claim, not a change.
+checks.append((f"capture really comes out at the requested rate ({want} Hz)",
+               sr == want, f"file says {sr} Hz"))
 bad = 0
 for nme, ok, d in checks:
     bad += not ok
@@ -137,7 +184,7 @@ for nme, ok, d in checks:
 sys.exit(bad)
 EOF
     BAD=$?
-    NC=3
+    NC=4
     # 4. THE PIPELINE MUST FINALIZE: one lossless pass, master removed. Same
     #    shape as the video pipeline's finalize control. Without this a run
     #    leaves a 35 MB WAV per 3 minutes on the archive drive -- the first
@@ -179,10 +226,18 @@ STATEF="${TMPDIR:-/tmp}/.snp_audio_capture_state"
 if [[ "${1:-}" == "prepare" ]]; then
     OUT="${2:?need an output .wav}"
     REALSINK=$(pactl info | awk -F': ' '/Default Sink/{print $2}')
-    LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK) || exit 1
+    LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK rate=$CAPRATE channels=2) || exit 1
     LOADED_LOOP=$(pactl load-module module-loopback source=${SINK}.monitor sink="$REALSINK" latency_msec=50)
-    setsid parec -d ${SINK}.monitor --file-format=wav "$OUT" >/dev/null 2>&1 &
-    printf '%s\n%s\n%s\n%s\n' "$LOADED_SINK" "$LOADED_LOOP" "$!" "$OUT" > "$STATEF"
+    setsid parec -d ${SINK}.monitor --rate=$CAPRATE --file-format=wav "$OUT" >/dev/null 2>&1 &
+    PP=$!
+    # Poll for the game's stream and record what it ACTUALLY negotiated. Runs in
+    # the background because the stream does not exist until the game opens
+    # audio, and the caller must not be blocked waiting for it.
+    ( for _ in $(seq 1 120); do
+          SPEC=$(snp_stream_spec) && [[ -n "$SPEC" ]] && { printf '%s\n' "$SPEC" > "${OUT%.wav}.streamspec"; break; }
+          sleep 1
+      done ) >/dev/null 2>&1 &
+    printf '%s\n%s\n%s\n%s\n' "$LOADED_SINK" "$LOADED_LOOP" "$PP" "$OUT" > "$STATEF"
     trap - EXIT INT TERM          # hand ownership to `finish`
     echo "$SINK"                  # caller exports PULSE_SINK=<this>
     exit 0
@@ -195,6 +250,20 @@ if [[ "${1:-}" == "finish" ]]; then
     pactl unload-module "$LOADED_LOOP" 2>/dev/null
     pactl unload-module "$LOADED_SINK" 2>/dev/null
     rm -f "$STATEF"; LOADED_SINK=""; LOADED_LOOP=""
+    # SAY IT OUT LOUD IF WE RESAMPLED. A capture silently taken at the wrong
+    # rate is exactly the artefact A459 found in every file this project holds.
+    SPECF="${OUT%.wav}.streamspec"
+    if [[ -s "$SPECF" ]]; then
+        SPEC=$(cat "$SPECF"); SRATE=$(grep -oE '[0-9]+Hz' "$SPECF" | tr -d 'Hz')
+        if [[ -n "$SRATE" && "$SRATE" != "$CAPRATE" ]]; then
+            echo "[audio] **RATE MISMATCH** — the game's stream is ${SRATE} Hz, captured at ${CAPRATE} Hz."
+            echo "[audio] This capture WAS resampled. Re-run with SNP_CAPTURE_RATE=$SRATE to avoid it."
+        else
+            echo "[audio] rate OK — game stream $SPEC, captured at ${CAPRATE} Hz, no resample"
+        fi
+    else
+        echo "[audio] stream spec NOT captured — cannot say whether ${CAPRATE} Hz resampled. Not assuming it did not."
+    fi
     # ONE compression pass, LOSSLESS, mirroring the video pipeline's shape --
     # capture raw, compress once, remove the master.
     #
@@ -239,13 +308,13 @@ if [[ -z "$IDX" ]]; then
 fi
 
 REALSINK=$(pactl info | awk -F': ' '/Default Sink/{print $2}')
-LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK) || exit 1
+LOADED_SINK=$(pactl load-module module-null-sink sink_name=$SINK rate=$CAPRATE channels=2) || exit 1
 pactl move-sink-input "$IDX" $SINK || exit 1
 # Loopback so the run is still AUDIBLE -- an observed run the user cannot hear
 # would defeat the entire point of capturing audio in the first place.
 LOADED_LOOP=$(pactl load-module module-loopback source=${SINK}.monitor sink="$REALSINK" latency_msec=50)
 echo "[audio] capturing sink-input $IDX (pid $PID) -> $OUT ; you will still hear it"
-timeout "$SECS" parec -d ${SINK}.monitor --file-format=wav "$OUT" 2>/dev/null &
+timeout "$SECS" parec -d ${SINK}.monitor --rate=$CAPRATE --file-format=wav "$OUT" 2>/dev/null &
 PAREC_PID=$!
 wait $PAREC_PID 2>/dev/null
 PAREC_PID=""
