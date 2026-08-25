@@ -67,7 +67,31 @@ each checkpoint. Tick the box when done.
       > this is startable.** Note A261's warning before writing any checker for
       > it: four controls that are all truncation-flagged-or-not are ONE
       > control; vary the failure MODE.
-- [ ] **2026-08-21** — **RT64 debugger inspector on a paused tutorial frame.**
+- [x] **2026-08-21** — **CLOSED 2026-08-25 (roll #257, witness `2d5de0`). All
+      five measurements are accounted for and NONE OF THE REMAINING ONES NEEDS
+      THE PANEL, which is the point — the item was overdue for four days
+      because every route into it required the user at a real display, and
+      three of the five have since been answered by instruments that do not.**
+      * **1 (frame stats) — DONE 2026-08-21, A285.**
+      * **3 (View Depth Buffer) — DONE 2026-08-25, A421.** It was the highest-
+        value item here and it was blocked by a crash of my own prescribing
+        (A310); T203 clamped the unchecked loop, the user drove the slider to
+        0 and to 1 with no crash, and the depth buffer was read for the first
+        time on this project.
+      * **4 (draw-call slider) — ANSWERED OFFLINE, A437.** The replay draws the
+        submitted list into an EMPTY image, so a duplicate seen there cannot be
+        residue — the one thing the slider could never rule out. Queue row U2
+        is swept.
+      * **5 (texture dump) — DONE 2026-08-21, A286** (queue row U4).
+      * **2 (free camera) — NOT DONE, AND IT NO LONGER HAS ANYTHING TO FIND.**
+        Its whole purpose was to separate *drawn off-screen* from *not drawn*.
+        **A422 removed that question**: the scenery is absent from lists walked
+        to `stop=end`, so there is nothing off-screen to fly to. **Do not
+        re-queue it for A218.** It would become worth having again only for a
+        scene whose geometry IS submitted and still invisible.
+      **WHAT REMAINS ON THE PANEL IS U6 ONLY**, which this list's own status
+      block marks LOW PRIORITY and PRODUCES NO EVIDENCE. **Do not re-open this
+      item to run it.**
       *(User-requested 2026-08-20; sequenced AFTER the T11 triage above.)*
       **Setup is already done and verified** — `developer_mode` is `true` in
       `~/.config/sinpunishment/graphics.json` (backup at `.pre-devmode.bak`),

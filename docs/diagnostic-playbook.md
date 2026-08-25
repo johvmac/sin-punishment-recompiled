@@ -2964,6 +2964,66 @@ pixel look wrong", it is the wrong instrument.
 
 ---
 
+## `dup_draws.py` — is the game asking for the same thing twice? (added 2026-08-25, A437/A438)
+
+**Purpose.** Count duplicate draws *inside one submitted frame*, offline, from
+`dl_render.py --json-all` output. Two definitions, deliberately: **EXACT** (same
+geometry in the same place) and **SHAPE/SIZE** (same geometry somewhere else).
+They mean opposite things — an exact overlap is invisible, a displaced copy is
+the visible clutter A219 is about.
+
+**The incident that motivated it.** Queue row U2 asked the user to truncate a
+tutorial frame with RT64's `View Draw Call` and report whether duplicate overlay
+copies appear one-per-index. It sat SHELVED from 2026-08-22 because A316 found
+every slider setting produced no visible change. **The offline replay is a
+strictly better instrument for that question and the reason is structural: it
+draws into an EMPTY image, so a duplicate seen there cannot be residue.** The
+slider truncates into the game's own never-cleared buffer (A304) and could never
+separate the two. A queue item can outlive the instrument it names.
+
+**Read the RECTANGLES, not only the triangles.** The first version counted
+triangle sub-lists only and reported the tutorial essentially clean. Overlay
+elements on this hardware are usually `G_TEXRECT`, and there are 56–93 rectangles
+per tutorial frame. **Every non-null result in A437 and the whole of A438 come
+from the half that was nearly omitted** — a scoped negative one step from being
+published as a general one.
+
+**Controls — 8, varying the failure MODE per A261.** C1 exact copy must fire,
+C2 a clean frame must stay silent, C3 a translated copy must classify as
+shape-not-exact, C4 a same-count different-proportion sub-list must stay silent;
+C5–C8 repeat those on the rectangle path and add kind-sensitivity (a fill and a
+texrect of the same box are different commands). **Six deliberate breaks, each
+caught by a different control** — exact signature losing position, shape
+signature folding to a count, grouping by index, rect signature losing position,
+rect signature losing kind, and rects skipped entirely.
+
+**C4 caught its own fixture first.** The injected sub-list was a same-size
+triangle at a different position, which *is* a shape duplicate, so the detector
+was right and the control read as a detector failure. **A control is only a
+control if its fixture means what it claims** — the same trap as C5 in
+`gap_classify.py` below, two days running.
+
+**SCOPE, inherited whole from `dl_render.py`.** This is what was *submitted*. A
+duplicate submitted and then z-rejected is still counted here.
+
+    scripts/dl_render.py <log> --json-all frames.json
+    scripts/dup_draws.py frames.json --task 5400 --verbose
+    scripts/dup_draws.py --self-check
+
+### `make_dl_viewer.py` — the same frames, stepped by hand
+
+**Not a measuring instrument and it must not be cited as one.** It builds a
+self-contained HTML page from the same `--json-all` export: pick a frame, drag a
+slider, watch the draws stack up one at a time with a software z-buffer, toggle
+scene / screen-pinned / other geometry and rectangle outlines. **Its output is
+the USER'S reading, which is why it exists** — A428, A429 and A430 are all
+things the user saw in it, and two of them corrected me. **Caught by
+`lint_tools.py` as undocumented on 2026-08-25, one checkpoint after it was
+written: T71 gate 3 says the write-up happens in the SAME checkpoint, and it
+did not.**
+
+---
+
 ## `gap_classify.py` — where a symbol really ends, read off the ROM (added 2026-08-25, A419)
 
 **Purpose.** T11 step 2: decide, for each unclaimed gap between two function
