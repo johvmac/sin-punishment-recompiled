@@ -1,0 +1,21 @@
+# Inferred names, transplanted from the Mischief Makers port's map.
+# EVERY ROW IS AN INFERENCE (T197): skeleton-exact, unique both ways.
+# This file is a VIEW for readers and tools. RecompiledFuncs is never edited.
+# holdout at emit time: 2/57 recovered, 1 disagreements
+
+0x8003E330 = "osSetIntMask"  # our map already names this osSetIntMask
+0x80043100 = "osWritebackDCacheAll"  # our map already names this osInvalDCache
+0x800460F0 = "__osGetCause"
+0x80046120 = "__osSetCompare"
+0x80046130 = "__osSetFpcCsr"  # our map already names this __osSetFpcCsr
+0x80046140 = "__osSetSR"
+
+# --- RESOLVED BY HAND-VERIFICATION, 2026-08-25 (A441) -- these three are not
+# inferences; each was confirmed by cache-op fingerprint + byte comparison,
+# with the correctly-labelled osInvalICache pair as the same-drift control.
+# OUR MAP'S LABELS IN symbols/sinpunishment.syms.toml ARE WRONG AT ALL THREE;
+# renaming there forces a full RecompiledFuncs regeneration, so the rename is
+# queued for a decision rather than done silently. Completes A147's suspicion.
+0x80042F50 = "osInvalDCache"          # our map says osWritebackDCache
+0x80043080 = "osWritebackDCache"      # our map says boot_func_80043080
+# 0x80043100 osWritebackDCacheAll already above -- our map says osInvalDCache

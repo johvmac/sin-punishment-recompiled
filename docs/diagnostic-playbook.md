@@ -2964,6 +2964,50 @@ pixel look wrong", it is the wrong instrument.
 
 ---
 
+## `symbol_transplant.py` — borrow the Mischief Makers port's function names (added 2026-08-25, A440/A441)
+
+**Purpose.** T197 phases 0–1: verify our MM ROM against the other port's
+documented SHA-256 (it REFUSES on mismatch — their addresses are
+revision-specific), skeleton-hash every named MM function and every function of
+ours, and accept only matches that are exact on masked words, same length, and
+**unique in both directions**. `--emit` writes the inferred-name view
+`symbols/inferred-names.toml`; **RecompiledFuncs is never touched.**
+
+**What its first run established (A440).** Exact instruction-level matching
+across the two games is dead: MM ships a different build kind of libultra —
+its C functions run 1.4–4× longer for the same routine — so only hand-written
+assembly survives. Yield: 3 new CP0 accessor names, plus a three-way mislabel
+in OUR map caught by the blind holdout (A441). **Do not re-run phase 1
+expecting more; phase 2 (call-graph shape) is the only surviving route and
+needs the still-owed negative control first.**
+
+**The mask, so a match means what it claims:** J/JAL targets and the imm16 of
+LUI/ADDI/ADDIU/ORI and all loads/stores are zeroed; registers, branch offsets
+and ANDI/XORI/SLTI immediates are kept. The self-collision census prints for
+both sides every run — small functions collide heavily (530 shared hashes on
+our side) and the both-ways uniqueness rule is what absorbs that.
+
+**The drift yardstick (A441), worth reusing:** a TRUE assembly pair across
+these two SDK releases differs by exactly one word — the `or`-vs-`addu`
+encoding of `move` — measured on the known-correct `osInvalICache` pair.
+Anything at or below that drift is the same function; C-compiled code sits
+nowhere near it.
+
+**Controls — 5, each break caught by a different one.** C1 the mask hits
+exactly the claimed fields; C2 an address-half difference must collapse; C3 a
+register difference must survive; C4 a duplicate-source match must come back
+ambiguous, never accepted; C5 two sections at one vram must extract from their
+own ROM bases. **C5 caught its own fixture first** — `bytes(range(256))*64` is
+periodic and the two ROM bases were congruent mod 256, so both sections read
+identical bytes. Third fixture bug in three days (dup_draws C4, gap_classify
+C5): a control is only a control if the fixture means what it claims.
+
+    scripts/symbol_transplant.py --dry-run
+    scripts/symbol_transplant.py --emit symbols/inferred-names.toml
+    scripts/symbol_transplant.py --self-check
+
+---
+
 ## `ledger_graph.py` — the ledger as a graph, and its cycles (added 2026-08-25, A439)
 
 **Purpose.** Read `docs/findings-ledger.md` as a directed graph — an edge from A

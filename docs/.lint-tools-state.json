@@ -72,6 +72,7 @@
   "status_page.py",
   "strip_scratch_hooks.sh",
   "symbol_gaps.py",
+  "symbol_transplant.py",
   "test_check_ledger.py",
   "test_display_isolate.py",
   "test_gdb_trace.py",
@@ -87,7 +88,7 @@
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 37,
+ "runs": 38,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
