@@ -271,6 +271,13 @@ summary's, is what a later turn will find.**
    protect. If it runs past a screen, the protocol is being used to re-summarise
    the session, which is the compactor's job and not mine.
 
+   **POST IT IN A FENCED CODE BLOCK — a copyable field, not prose** (the user's
+   instruction, 2026-08-25). Prose cannot be lifted cleanly: it picks up the
+   surrounding sentences, and the parts that matter most here are exact — entry
+   IDs, paths, the names of refuted claims. **A message meant to be moved must
+   be selectable in one gesture.** Plain fences, not `bash` — these are not
+   commands and must not offer to run.
+
 **CHECKER WOULD ASSERT** *(designed, not built)*: that the working tree is
 clean and that the handoff's mtime is newer than the newest ledger entry's
 commit. Both are cheap; neither is written. **Note the compactor message CANNOT
@@ -311,6 +318,12 @@ adds what only matters when there is no summary at all.**
    **IT MUST NOT PRE-EMPT THE `[ONCE]` GATES.** A seed saying "carry on with the
    clears work" invites skipping the observed-run gate and the visited-set
    check. The seed's job is to get those RUN, not to get past them.
+
+   **POST IT IN A FENCED CODE BLOCK TOO, and keep the file's copy fenced.** It is
+   pasted verbatim as a first message; anything that makes the user re-type or
+   trim it will be trimmed wrong. `START-HERE.md` already fences it — **the same
+   text must be offered in the chat at clear time, because the user is not
+   going to open a file to find the message that opens the session.**
 
 **WHAT NEITHER PROTOCOL CAN DO, stated so it is not assumed:** neither recovers
 a claim I never wrote down. The test for both is not "did I summarise well" but
