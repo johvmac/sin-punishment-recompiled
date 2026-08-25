@@ -75,6 +75,7 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   h1 { font-size: 1.5rem; margin:0; letter-spacing:-0.02em; text-wrap:balance;
        font-weight:650; }
   .sub { color:var(--muted); font-size:0.9rem; max-width:62ch; margin:0; }
+  .sub b { color:var(--ink); font-weight:600; }
   .eyebrow { font-family:var(--mono); font-size:0.7rem; letter-spacing:0.14em;
              text-transform:uppercase; color:var(--trace); }
 
@@ -155,7 +156,8 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <p class="sub">Rebuilt from the game's own display list — no emulator, no
     renderer. Pick a frame, then scrub. Each step adds the next sub-list in the
     order the RSP would have run it; the newest one lands in mint before settling
-    to its own colour.</p>
+    to its own colour. <b>Arrow keys move through the list</b> — hold Shift for
+    ten at a time, Home and End for either end.</p>
   </header>
 
   <div class="chips" id="chips" role="group" aria-label="Frame"></div>
@@ -254,7 +256,9 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     rowsEl.innerHTML = "";
     g.order.forEach(function (c, i) {
       var b = document.createElement("button");
-      b.className = "row"; b.type = "button"; b.dataset.i = i;
+      // ROVING TABINDEX: only the current row is tabbable. With 126 rows the
+      // alternative is 126 tab stops between the list and everything after it.
+      b.className = "row"; b.type = "button"; b.dataset.i = i; b.tabIndex = -1;
       b.innerHTML = "<span class='sw' style='background:" + colour(c, false) +
                     "'></span><span class='n'>" + (i + 1) +
                     "</span><span class='t'>" + counts[c] + " tri</span>";
@@ -271,7 +275,18 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     var g = groups(frame()), act = activeSub(), lim = byTri ? -1 : pos;
     [].forEach.call(rowsEl.children, function (el, i) {
       var c = g.order[i];
-      el.classList.toggle("active", c === act);
+      var isAct = (c === act);
+      el.classList.toggle("active", isAct);
+      el.tabIndex = isAct ? 0 : -1;
+      if (isAct) el.setAttribute("aria-current", "true");
+      else el.removeAttribute("aria-current");
+      // Keep FOCUS on the selected row, but only when the user is already in
+      // the list -- stealing focus from the slider mid-drag would be worse
+      // than not following at all.
+      if (isAct && rowsEl.contains(document.activeElement)
+          && document.activeElement !== el) {
+        el.focus({ preventScroll: true });
+      }
       el.classList.toggle("pending", byTri ? false : i >= lim);
       if (c === act && el.scrollIntoView) {
         var r = el.getBoundingClientRect(), p = rowsEl.getBoundingClientRect();
@@ -371,8 +386,20 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     }, 90);
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowRight") { setPos(pos + 1, true); e.preventDefault(); }
-    if (e.key === "ArrowLeft") { setPos(pos - 1, true); e.preventDefault(); }
+    // UP/DOWN move through the LIST, not just the scroll box. Without the
+    // preventDefault the browser scrolls the rows container and the selection
+    // stays put, so the highlight and the view drift apart -- which is exactly
+    // what made the list feel broken.
+    var d = 0;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") d = 1;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") d = -1;
+    else if (e.key === "Home") { setPos(0, false); e.preventDefault(); return; }
+    else if (e.key === "End") { setPos(maxPos(), false); e.preventDefault(); return; }
+    else return;
+    // PageUp/PageDown-sized jumps with a modifier, since 126 draws is a long
+    // way at one step per press.
+    setPos(pos + d * ((e.shiftKey || e.metaKey || e.ctrlKey) ? 10 : 1), true);
+    e.preventDefault();
   });
 
   pickFrame(0);
