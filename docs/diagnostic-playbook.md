@@ -166,11 +166,22 @@ assuming the flag took.
   empty file — so a `rc=2` on a freshly built file is correct, not a fault.
 * **`scripts/eaf_make.py`** (added 2026-08-25, A413/U16) writes the file they
   annotate INTO. `--dry-run` prints tiers and media and exits; `--self-check`
-  is 6/6 with one arm **verified to discriminate**.
+  is **11/11** with three arms **verified to discriminate** (was 6/6 — see
+  T205, and note the suite was passing at 9/9 while the tool mis-paired media).
 
   ```sh
   scripts/eaf_make.py CLIP.mp4 -o OUT.eaf --tier a --tier b --question "..."
   ```
+
+  **IT LINKS BOTH MEDIA, AND IT REFUSES IF IT CANNOT (T205).** Our `.mp4` has
+  **no audio track** — the sound finalises to a `.flac` beside it (T160) — so a
+  project linking only the video is a **silent film**, which is precisely what
+  T150 predicted would leave A97 where it is. The `.flac` is found by **nearest
+  timestamp within 120 s**, never by sort order: the first version paired the
+  11:40 video with the 08:50 sound, and **a cross-run pair is worse than no
+  audio — it plays, the timestamps look plausible, and every annotation made
+  against it is silently wrong.** No sound beside the video ⇒ `rc=2`; pass
+  `--audio <file>`, or `--no-audio` to say you meant it.
 
   **IT PRE-FILLS NOTHING, AND THAT IS THE POINT, NOT AN OMISSION.** Tiers arrive
   empty and named after the question. A383 found the user's labels disagreed
