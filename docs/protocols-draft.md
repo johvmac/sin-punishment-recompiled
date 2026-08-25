@@ -225,7 +225,9 @@ summary's, is what a later turn will find.**
    the entry must already say what X rests on.
 3. **The USER'S DECISIONS made in conversation are written down.** They exist
    nowhere else. Today: "keep running at OG resolution until we have a reason
-   not to", and the U15 sign-off — both would have evaporated.
+   not to", and the U15 sign-off — both would have evaporated. **Check by
+   MEANING, not by phrase**: the resolution decision is in A404 in different
+   words, and a literal grep for it reports a false absence.
 4. **The handoff carries: what CHANGED under the reader, the live thread, and
    the next step stated as ONE BLOCKER.** A next step written as a topic
    ("continue the clears work") survives compaction uselessly; written as a
@@ -233,8 +235,11 @@ summary's, is what a later turn will find.**
 5. **Artefacts are named for what they ARE**, not when they were made.
    `REFERENCE-tutorial-real-game.png` is findable after a compact;
    `seq/xc01-after-Z.png` is not.
-6. **Background tasks stopped, stray processes checked.** A task still running
-   through a compact has no one watching it. The user caught one today.
+6. **Background tasks stopped, stray processes checked** — with `pgrep -x`,
+   NOT `pgrep -f`. `-f` matches the command line of the shell running the
+   check and reports a phantom process; that happened three times in one day,
+   once leaving a wait-loop that never exited. A task still running through a
+   compact has no one watching it. The user caught that one, not the check.
 7. **The newest entries are verified to RENDER** (`--show`). T199 is why: an
    entry that exists but truncates is worse than no entry once the
    conversational memory of it is gone.
@@ -277,6 +282,8 @@ protocol written wrong, and that is worth more than compliance.
 | 2026-08-25 | P3 pre-flight | Ran the tool **twice under different display isolation** (xvfb, then xephyr) rather than once, because the first result was a null and headlessness was an unexcluded confound. | **Yes, and it was decisive.** The second run matched the configuration our working ares captures actually use. A single headless null would have been discarded as "probably the display". |
 | 2026-08-25 | P1 observed run | The **emulator's own recording was used as an independent instrument** to check a control's verdict, which is not a step P1 lists. It overturned the verdict. | **Yes — consider promoting.** "When an instrument reports a null, check whether another instrument watched the same run" may belong in P1 proper. |
 | 2026-08-25 | *(none — a gap)* | **T71's third gate (playbook write-up in the same checkpoint) was nearly missed on `ares-64`.** Five dumps were taken and two entries written while the tool was still ungated; the write-up happened only because the USER asked whether to step back and document. | **No — the process failed and a person caught it.** None of the five protocols covers "a new tool entered use". T71 lives in `CLAUDE.md` and nothing in the checkpoint loop asks whether this checkpoint introduced a tool. **Strong candidate for P6.** |
+| 2026-08-25 | P6 compact | **Ran P6 against this session and its own check 6 gave a FALSE POSITIVE**: `pgrep -c -f "ares-test\|Xvfb"` returned 1 with nothing running — matching the shell running it, the third self-match today. `pgrep -c -x <name>` returns 0 correctly. | **Fix the check, not the finding.** P6.6 should specify `-x` (exact process name) rather than `-f`. Also check 3 was too literal: it grepped for the user's decision verbatim and missed it in the ledger, where A404 records it in different words. **A checker matching remembered phrasing is the A409 needle error again.** |
+| 2026-08-25 | P4 user-directed | **Wrote an entry the user then asked me to write.** They said "write that all up"; A416 was already committed. Checking rather than asserting is what found T199. | **Both, and the order mattered.** Saying "already done" would have been true and would have missed a 54-row defect. **"It is already written" is a claim like any other.** |
 | 2026-08-25 | *(none — a gap)* | **A wait-loop ran forever and I reported the work complete while it was still listed as running; the USER spotted it, not me.** `until [ -f X.mp4 ] \|\| ! pgrep -f "desktop-ui/ares"` — `pgrep -f` matched **the background shell's own command line**, which contains that string, so the process check could never go false; and the `.mp4` never appeared because the recording finalised as `.mkv`. Both exits closed. | **No — and it is a known family.** `guard_bash.py` already warns that `pkill -f` matches its own shell, but only for `pkill`, where the failure is loud. As a **condition** the same self-match fails SILENTLY, which is worse. Second instance today (the stray-process check matched itself too). **Candidate: extend the guard to `pgrep -f` inside a loop condition, or use `pgrep -c` against a pattern that cannot match the wrapper.** |
 | 2026-08-25 | P3 pre-flight | `guard_bash.py` refused `cmake --build build` for a THIRD-PARTY tree (its regex has no directory scoping). Worked around with `ninja -C build`, **stated openly to the user, and the guard deliberately NOT edited.** | **Unresolved — needs a decision.** Working around a guard is exactly what a guard exists to prevent, even when the fire is spurious. The rule should probably scope to the project root, but weakening a safety check to unblock myself is the user's call, not mine. |
 
