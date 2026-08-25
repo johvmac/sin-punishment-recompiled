@@ -280,3 +280,5 @@ A gap in the numbering means a roll was skipped.
 - roll #261: **EXPLOIT** (drew 0.690 vs eps 0.3) -> `A225` [witness `113176`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #262: **EXPLORE** (drew 0.079 vs eps 0.3) -> `T197` [witness `be5a22`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #263: **EXPLOIT** (drew 0.916 vs eps 0.3) -> `A211` [witness `72de00`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #264: **EXPLORE** (drew 0.163 vs eps 0.3) -> `T150` [witness `35a839`] — WIRE ELAN INTO THE OBSERVED RUN: record FIRST, then serve the recording up for annotation. USER-
+- roll #265: **EXPLOIT** (drew 0.746 vs eps 0.3) -> `A218` [witness `004f5a`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
