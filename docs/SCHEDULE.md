@@ -25,7 +25,18 @@ each checkpoint. Tick the box when done.
       confirm `scripts/decomp.sh main_func_800B4CE8` works. ~620 functions of
       mid-level engine become readable; this blind spot already caused one
       confidently wrong conclusion.
-- [ ] **2026-08-21** — **T11 triage, RE-PLANNED 2026-08-19 (roll #36).**
+- [x] **2026-08-21** — **DONE 2026-08-25 (roll #246), see A419.** Step 2 ran as
+      specified — bounded, top-of-list first, hit rate recorded — but **not
+      against splat's `endlabel`**, because A259/A281 established splat is
+      guessing at these boundaries and A292 showed the ROM answers directly.
+      **106 candidates outside `ovlfile12`, all classified: 92 CONTINUATION
+      (87%), 3 SEPARATE, 6 UNCLEAR, 2 NO-CODE, 3 PADDING.** `truncation_sweep.py`,
+      reading the generated C instead of the ROM, independently flags 81 of the
+      92 and **none** of the 14 non-hits. **WHAT IS STILL OWED: exactly one of
+      the 92 has a proven extent (A292, by hand). The rest are a lead list, and
+      each needs its own read before a `size` is edited.** New tool
+      `scripts/gap_classify.py`, three gates met.
+      **T11 triage, RE-PLANNED 2026-08-19 (roll #36).**
       "Top 20 gaps by size" is the WRONG plan: **13 of the top 20 are
       `.ovlfile12`**, which would burn the whole budget re-deriving one
       structural fact. Run `scripts/symbol_gaps.py` first, then do these as

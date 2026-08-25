@@ -2865,8 +2865,9 @@ below is installed and verified working.
 | **`scripts/guard_bash.py`** | PreToolUse hook, always on | **refuses shell commands that bypass a mechanised discipline** — launching the binary directly instead of via `run_game.sh`, and merging a project script's stderr into a pipe that truncates by position (A196). It fires often and it is not advisory; rephrase rather than retry. `test_guard.py` 30/30 |
 | **`scripts/lint_hooks.py`** | pre-flight lint | scratch debug hooks left in `sinpunishment.toml`. Part of the session-start block; `daily_push.sh` refuses to push while any remain. `test_lint_hooks.py` 10/10 |
 | **`scripts/resolve_bt.sh`** | post-processor | turns the raw addresses in `[taskbt]` lines into game function names via `nm`. `SNP_TASK_BT` prints addresses only, because the binary is linked without `-rdynamic` |
-| **`scripts/symbol_gaps.py`** | static | classifies the unclaimed gaps between consecutive function symbols. **The named first step of the T11 triage** (see `SCHEDULE.md`) |
+| **`scripts/symbol_gaps.py`** | static | classifies the unclaimed gaps between consecutive function symbols. **The named first step of the T11 triage** (see `SCHEDULE.md`). `--skip ovlfile12` withholds the section T11 closed; the withheld COUNT still prints (T76) |
 | **`scripts/truncation_sweep.py`** | static | sweeps every generated function for A85's truncation signature (class BC-2) — the defect behind A96 |
+| **`scripts/gap_classify.py`** | static, ROM only | **T11 step 2.** Decodes each gap's actual ROM bytes and sorts it into PADDING / SEPARATE / CONTINUATION / RETURNS-BOTH / NO-CODE / UNCLEAR. Generalises A292's hand-read; the one route to this that does not go through splat. `--self-check` 7/7, verified to FAIL on 3 deliberate breaks (A419) |
 | **`scripts/overlay_map.py`** | static, ROM only | computes where every compressed code overlay unpacks to, from the ROM alone |
 | **`scripts/probe_stubs.py`** | codegen | injects a first-call probe into every silently-stubbed recompiled function, so a stub that is actually reached announces itself |
 | **`scripts/inject_flag_trace.py`** | codegen | injects `SNP` flag-protocol tracing into the generated pump/dispatcher code |
@@ -2896,6 +2897,63 @@ by design. Anything meant to outlive the session goes somewhere durable.
 is 640x480, so halving discards upscaling, not detail (verified: fully legible at
 a quarter of the pixels). A `dark_fraction` number once said "not black" for a
 frame that was solid black.
+
+---
+
+## `gap_classify.py` — where a symbol really ends, read off the ROM (added 2026-08-25, A419)
+
+**Purpose.** T11 step 2: decide, for each unclaimed gap between two function
+symbols, whether the earlier symbol is TRUNCATED or the gap is something else.
+It reads the gap's bytes out of the ROM and counts exits, which is what A292
+did by hand for one function. **It is the only route to this question that does
+not pass through splat**, and A259/A281 established splat is guessing here.
+
+**The incident that motivated it (A261).** Two structural rules were built for
+this and both were killed:
+
+* **Rule 1**, first `jr $ra` scanning forward, ran past the next symbol and
+  **borrowed a neighbour's return** — 172 of 251 flagged, not credible.
+* **Rule 2**, "returns inside its declared size", assumed every function ends in
+  `jr $ra`; `ovlfile07_func_800E4780` does not.
+
+**Both passed all four of A261's controls, because all four were the same
+shape** — a truncation, flagged or not. *Four controls that vary only in the
+answer are one control.*
+
+**So the controls here vary the failure MODE, in both directions:**
+
+| | must | why it discriminates |
+|---|---|---|
+| C1 L1 `ovlfile02_func_800E4F34` @ old `0x14` | FLAG | recorded truncation, the START crash |
+| C2 L7 `ovlfile20_func_800E5634` @ old `0x54` | FLAG | recorded truncation, the attract freeze |
+| C3 A292's `ovlfile07_func_800E4780` @ `0x40` | FLAG | proven by hand, splat-independent |
+| C4 a real all-zero gap | **NOT flag** | over-flagging mode |
+| C5 a real successor fed in as a gap | **NOT flag** | over-flagging mode — kills rule 1 |
+| C6 both predicates vs `objdump` | agree | the decoder is hand-rolled (T60/T62/T63) |
+
+**C5 HAS A TRAP AND I FELL IN IT FIRST TIME.** The predecessor in the fixture
+must be one that **NEVER RETURNS**. With a returning predecessor, a
+forward-scanning rule declines to flag anyway, so the ordering bug hides and
+the control passes for the wrong reason — it went green against a deliberately
+broken build. T44 measured 138 legitimately non-returning functions, so the
+right fixture is easy to find. **The fixture search uses literal encodings, not
+the module's own predicates**: a search built on the thing under test reports
+"no fixture found" when the predicate breaks, hiding a wrong verdict behind a
+missing case.
+
+**Verified to FAIL, not merely to pass** (T71 gate 2): three deliberate breaks
+— dead return predicate, dead prologue predicate, and CONTINUATION tested
+before SEPARATE (rule 1's exact defect) — **3/3 caught**.
+
+**Read the scope line it prints, and mean it.** A CONTINUATION says the sole
+exit sits at the next symbol. **It does not prove the extent.** Exactly one of
+the 92 current hits is proven (A292, by hand). Before editing any `size` in
+`symbols/sinpunishment.syms.toml`, do the per-function read — the gap says
+bytes are unclaimed, not that they belong to this function.
+
+**Known hole, stated because it is the composing step:** `j`, `jal` and
+`jr $ra` are counted; **`jr` on a register other than `$ra` is not.** A region
+whose functions all exit that way would read as one long function.
 
 ---
 
