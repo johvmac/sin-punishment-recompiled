@@ -158,23 +158,82 @@ def parse(lines, replay):
     return replay
 
 
+WMIN = 1e-3
+# A vertex still projecting beyond this many frame-widths after clipping is
+# degenerate. Counted and dropped, never drawn -- see the guard in project().
+GUARD = 8.0
+
+
+def _clip_plane(poly, dist):
+    """Sutherland-Hodgman against one plane, `dist(v) >= 0` meaning inside."""
+    out = []
+    n = len(poly)
+    for i in range(n):
+        a, b = poly[i], poly[(i + 1) % n]
+        da, db = dist(a), dist(b)
+        if da >= 0:
+            out.append(a)
+        if (da >= 0) != (db >= 0):
+            t = da / (da - db)
+            out.append([a[k] + t * (b[k] - a[k]) for k in range(4)])
+    return out
+
+
+def clip_near(v0, v1, v2):
+    """Clip a clip-space triangle, returning 0..n triangles.
+
+    WITHOUT THIS, A TRIANGLE CROSSING THE EYE PLANE EXPLODES. Measured on real
+    data: task 600 draw 61 projected to 6,928% of the screen and task 2400
+    reached 53,889%, which is what made the environment paint over the
+    characters in the viewer. Dropping the whole triangle would instead delete
+    geometry that is partly visible, so it is clipped and re-triangulated.
+
+    TWO PLANES, AND THE SECOND IS THE ONE THAT MATTERS. `w >= WMIN` alone does
+    NOT bound anything -- coordinates still divide by a near-zero w, which the
+    self-check caught. The real near plane is `z + w >= 0`; there w equals the
+    near distance rather than zero, so the divide stays finite. Both are
+    applied: the standard plane for correctness, the numerical one for safety.
+    """
+    poly = _clip_plane([list(v0), list(v1), list(v2)], lambda v: v[3] - WMIN)
+    if len(poly) < 3:
+        return []
+    poly = _clip_plane(poly, lambda v: v[2] + v[3])
+    if len(poly) < 3:
+        return []
+    return [(poly[0], poly[i], poly[i + 1]) for i in range(1, len(poly) - 1)]
+
+
 def project(tris, w, h):
-    """Clip-space -> screen. Drops anything behind the eye rather than
-    dividing by a negative w, which mirrors geometry into the frame."""
-    out, behind = [], 0
+    """Clip-space -> screen, WITH near-plane clipping and NDC depth.
+
+    Returns (screen_tris, dropped). Each screen triangle carries a per-vertex
+    depth `z/w`, which is LINEAR IN SCREEN SPACE and so can be interpolated
+    barycentrically by a depth test -- that is what makes a real z-buffer
+    possible downstream. Painter's order alone is wrong for this data: the game
+    draws characters first and environment after, and on hardware the depth
+    test rejects the later surface. Without depth the environment paints over
+    the characters and they vanish (the user, reading task 600, 2026-08-25).
+    """
+    out, dropped = [], 0
     for t in tris:
-        pts, ok = [], True
-        for p in t[:3]:
-            if p[3] <= 1e-6:
-                ok = False
-                break
-            pts.append(((p[0] / p[3] * 0.5 + 0.5) * w,
-                        (1.0 - (p[1] / p[3] * 0.5 + 0.5)) * h))
-        if ok:
+        pieces = clip_near(t[0], t[1], t[2])
+        if not pieces:
+            dropped += 1
+            continue
+        for piece in pieces:
+            pts = []
+            for p in piece:
+                pts.append(((p[0] / p[3] * 0.5 + 0.5) * w,
+                            (1.0 - (p[1] / p[3] * 0.5 + 0.5)) * h,
+                            p[2] / p[3]))
+            # GUARD: anything still off in the distance after two clip planes
+            # is degenerate. Counted and dropped rather than drawn -- a single
+            # such triangle covers the frame and reads as a solid surface.
+            if any(abs(p[0]) > GUARD * w or abs(p[1]) > GUARD * h for p in pts):
+                dropped += 1
+                continue
             out.append((pts, t[3]))
-        else:
-            behind += 1
-    return out, behind
+    return out, dropped
 
 
 def raster(tris, w, h, fill):
@@ -256,21 +315,13 @@ def frame_json(logpath, task, w, h):
     actually incremental.
     """
     r = parse(extract(logpath, task), Replay())
-    tris, behind = [], 0
-    for t in r.tris:
-        pts = []
-        for p in t[:3]:
-            if p[3] <= 1e-6:
-                pts = None
-                break
-            # Integer screen pixels: sub-pixel precision buys nothing for a
-            # step-through viewer and roughly halves the embedded payload.
-            pts.append([int((p[0] / p[3] * 0.5 + 0.5) * w),
-                        int((1.0 - (p[1] / p[3] * 0.5 + 0.5)) * h)])
-        if pts is None:
-            behind += 1
-            continue                     # dropped, and counted -- never mirrored in
-        tris.append({"p": pts, "c": t[3]})
+    scr, behind = project(r.tris, w, h)
+    tris = []
+    for pts, c in scr:
+        # Integer screen pixels; depth kept to 4 decimals, which is ample for a
+        # depth TEST and keeps the embedded payload down.
+        tris.append({"p": [[int(p[0]), int(p[1]), round(p[2], 4)] for p in pts],
+                     "c": c})
     return {"task": task, "w": w, "h": h, "tris": tris,
             "behind": behind, "dropped": r.dropped_tris,
             "matrices": r.child, "built": len(r.tris)}
@@ -350,6 +401,25 @@ def self_check():
     chk("geometry behind the eye is dropped, in front is kept",
         nb_f == 0 and nb_b == 1)
 
+    # 6. DISCRIMINATING: a triangle STRADDLING the eye plane must be CLIPPED,
+    #    not dropped and not projected whole. Dropping deletes geometry that is
+    #    partly visible; projecting it whole is what produced a triangle
+    #    covering 53,889% of the screen on real data.
+    # Clip-space values as a real perspective matrix produces them: w is the
+    # view depth, z runs to -w at the near plane. One vertex is well inside
+    # the frustum, one is beyond the near plane.
+    strad = [((0.0, 0.0, -1.0, 2.0), (1.0, 0.0, -1.0, 2.0),
+              (0.0, 1.0, -5.0, 1.0), 0)]
+    got, dropped = project(strad, 320, 240)
+    inside = all(abs(p[0]) <= GUARD * 320 and abs(p[1]) <= GUARD * 240
+                 for t, _ in got for p in t)
+    chk("a triangle crossing the near plane is CLIPPED, not exploded",
+        len(got) >= 1 and inside)
+
+    # 7. Depth survives projection and is finite -- the z-buffer needs it.
+    chk("each projected vertex carries a finite NDC depth",
+        all(isinstance(p[2], float) and p[2] == p[2] for t, _ in got for p in t))
+
     print(f"\n[dlrender] self-check {ok}/{ok + fail}")
     return 0 if fail == 0 else 1
 
@@ -387,7 +457,7 @@ def main():
         for f in frames:
             print(f"[dlrender] task={f['task']:<6} tris={len(f['tris']):<6} "
                   f"sublists={len({t['c'] for t in f['tris']}):<4} "
-                  f"behind-eye-dropped={f['behind']}")
+                  f"clipped/dropped={f['behind']}")
         print(f"[dlrender] wrote {a.json_all} ({len(frames)} frame(s))")
         return 0
     if not a.log or a.task is None:

@@ -92,34 +92,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   .chip:focus-visible, .btn:focus-visible, input:focus-visible {
     outline:2px solid var(--trace); outline-offset:2px; }
 
-  .main { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:16px;
-          align-items:start; }
-  @media (max-width: 820px) { .main { grid-template-columns:minmax(0,1fr); } }
   .stage { background:var(--well); border:1px solid var(--line); padding:14px;
            display:flex; justify-content:center; }
   canvas { width:100%; max-width:640px; height:auto; display:block;
            image-rendering: pixelated; }
-
-  /* The list is the slider's legend: without it a position is just a number. */
-  .list { background:var(--panel); border:1px solid var(--line);
-          display:flex; flex-direction:column; min-height:0; }
-  .list h2 { margin:0; font-family:var(--mono); font-size:0.66rem;
-             letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
-             padding:11px 12px; border-bottom:1px solid var(--line); font-weight:500; }
-  .rows { overflow-y:auto; max-height:452px; }
-  .row { display:flex; align-items:center; gap:9px; padding:5px 12px;
-         font-family:var(--mono); font-size:0.75rem; cursor:pointer;
-         border:0; background:none; color:var(--ink); width:100%;
-         text-align:left; border-left:2px solid transparent; }
-  .row:hover { background:color-mix(in srgb, var(--ink) 7%, transparent); }
-  .row .sw { width:10px; height:10px; flex:none; border-radius:1px; }
-  .row .n { color:var(--muted); min-width:2.4em; }
-  .row .t { margin-left:auto; color:var(--muted); }
-  .row.pending { opacity:0.32; }
-  .row.active { border-left-color:var(--trace); color:var(--trace);
-                background:color-mix(in srgb, var(--trace) 12%, transparent); }
-  .row.active .n, .row.active .t { color:var(--trace); }
-  .row:focus-visible { outline:2px solid var(--trace); outline-offset:-2px; }
 
   .scrub { background:var(--panel); border:1px solid var(--line);
            padding:18px 20px; display:flex; flex-direction:column; gap:14px; }
@@ -156,19 +132,13 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     <p class="sub">Rebuilt from the game's own display list — no emulator, no
     renderer. Pick a frame, then scrub. Each step adds the next sub-list in the
     order the RSP would have run it; the newest one lands in mint before settling
-    to its own colour. <b>Arrow keys move through the list</b> — hold Shift for
-    ten at a time, Home and End for either end.</p>
+    to its own colour. <b>Arrow keys step</b> — hold Shift for ten at a
+    time, Home and End for either end.</p>
   </header>
 
   <div class="chips" id="chips" role="group" aria-label="Frame"></div>
 
-  <div class="main">
-    <div class="stage"><canvas id="cv" width="640" height="480"></canvas></div>
-    <div class="list">
-      <h2>Draws, in list order</h2>
-      <div class="rows" id="rows"></div>
-    </div>
-  </div>
+  <div class="stage"><canvas id="cv" width="640" height="480"></canvas></div>
 
   <div class="scrub">
     <div class="scrubtop">
@@ -211,7 +181,6 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   var slider = document.getElementById("slider");
   var chips = document.getElementById("chips");
-  var rowsEl = document.getElementById("rows");
 
   function frame() { return frames[fi]; }
   // Draws = sub-lists, in first-appearance order. That is what "each of the
@@ -241,61 +210,60 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     var r = (c * 97) % 200 + 55, g = (c * 57) % 200 + 55, b = (c * 151) % 200 + 55;
     return "rgb(" + r + "," + g + "," + b + ")";
   }
-  // Which sub-list is "current": the one just revealed when stepping by draw,
-  // or the one owning the current triangle when stepping by triangle -- so the
-  // highlight means the same thing in both modes.
-  function activeSub() {
-    var f = frame(), g = groups(f);
-    if (pos <= 0) return -1;
-    if (!byTri) return g.order[pos - 1];
-    return f.tris[Math.min(pos, f.tris.length) - 1].c;
-  }
-  function buildRows() {
-    var f = frame(), g = groups(f), counts = {};
-    f.tris.forEach(function (t) { counts[t.c] = (counts[t.c] || 0) + 1; });
-    rowsEl.innerHTML = "";
-    g.order.forEach(function (c, i) {
-      var b = document.createElement("button");
-      // ROVING TABINDEX: only the current row is tabbable. With 126 rows the
-      // alternative is 126 tab stops between the list and everything after it.
-      b.className = "row"; b.type = "button"; b.dataset.i = i; b.tabIndex = -1;
-      b.innerHTML = "<span class='sw' style='background:" + colour(c, false) +
-                    "'></span><span class='n'>" + (i + 1) +
-                    "</span><span class='t'>" + counts[c] + " tri</span>";
-      b.addEventListener("click", function () {
-        if (byTri) { var n = 0, k = 0;
-          for (k = 0; k < f.tris.length; k++) { n++; if (g.idx[f.tris[k].c] === i) break; }
-          setPos(n, true);
-        } else setPos(i + 1, true);
-      });
-      rowsEl.appendChild(b);
-    });
-  }
-  function syncRows() {
-    var g = groups(frame()), act = activeSub(), lim = byTri ? -1 : pos;
-    [].forEach.call(rowsEl.children, function (el, i) {
-      var c = g.order[i];
-      var isAct = (c === act);
-      el.classList.toggle("active", isAct);
-      el.tabIndex = isAct ? 0 : -1;
-      if (isAct) el.setAttribute("aria-current", "true");
-      else el.removeAttribute("aria-current");
-      // Keep FOCUS on the selected row, but only when the user is already in
-      // the list -- stealing focus from the slider mid-drag would be worse
-      // than not following at all.
-      if (isAct && rowsEl.contains(document.activeElement)
-          && document.activeElement !== el) {
-        el.focus({ preventScroll: true });
+  // SOFTWARE Z-BUFFER. Painter's order is WRONG for this data and the user
+  // found it: the game draws characters first and the environment after, and
+  // on hardware the depth test rejects the later surface. Filling in list
+  // order made the environment paint straight over the soldiers, so they
+  // vanished at draw 61 of task 600 -- an artefact of this viewer, not of the
+  // game. NDC z is linear in screen space, so plain barycentric interpolation
+  // of it is the correct test.
+  var img = null, zbuf = null;
+  function rasterize(list, f, freshC, age) {
+    if (!img || img.width !== f.w || img.height !== f.h) {
+      img = ctx.createImageData(f.w, f.h);
+      zbuf = new Float32Array(f.w * f.h);
+    }
+    var d = img.data, W = f.w, H = f.h;
+    d.fill(0); zbuf.fill(Infinity);
+    var freshRGB = null;
+    list.forEach(function (t) {
+      var fresh = (t.c === freshC && age < 1 && freshC === lastAdded);
+      var col = colour(t.c, fresh), r, g2, b;
+      if (col.charAt(0) === "#") {
+        r = parseInt(col.substr(1, 2), 16); g2 = parseInt(col.substr(3, 2), 16);
+        b = parseInt(col.substr(5, 2), 16);
+      } else {
+        var m = col.match(/\\d+/g); r = +m[0]; g2 = +m[1]; b = +m[2];
       }
-      el.classList.toggle("pending", byTri ? false : i >= lim);
-      if (c === act && el.scrollIntoView) {
-        var r = el.getBoundingClientRect(), p = rowsEl.getBoundingClientRect();
-        if (r.top < p.top || r.bottom > p.bottom) {
-          el.scrollIntoView({ block: "nearest" });
+      var ax = t.p[0][0], ay = t.p[0][1], az = t.p[0][2];
+      var bx = t.p[1][0], by = t.p[1][1], bz = t.p[1][2];
+      var cx = t.p[2][0], cy = t.p[2][1], cz = t.p[2][2];
+      var den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+      if (Math.abs(den) < 1e-9) return;
+      var x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx)));
+      var x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
+      var y0 = Math.max(0, Math.floor(Math.min(ay, by, cy)));
+      var y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
+      for (var py = y0; py <= y1; py++) {
+        for (var px = x0; px <= x1; px++) {
+          var l0 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / den;
+          if (l0 < 0) continue;
+          var l1 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / den;
+          if (l1 < 0) continue;
+          var l2 = 1 - l0 - l1;
+          if (l2 < 0) continue;
+          var z = l0 * az + l1 * bz + l2 * cz;
+          var i = py * W + px;
+          if (z >= zbuf[i]) continue;
+          zbuf[i] = z;
+          var o = i * 4;
+          d[o] = r; d[o + 1] = g2; d[o + 2] = b; d[o + 3] = 255;
         }
       }
     });
+    ctx.putImageData(img, 0, 0);
   }
+
   function draw() {
     var f = frame(), g = groups(f);
     cv.width = f.w; cv.height = f.h;
@@ -303,16 +271,21 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     var freshC = (!byTri && pos > 0) ? g.order[pos - 1] : -1;
     var age = (performance.now() - addedAt) / 400;
     var list = shown();
-    list.forEach(function (t) {
-      var fresh = (t.c === freshC && age < 1 && freshC === lastAdded);
-      ctx.beginPath();
-      ctx.moveTo(t.p[0][0], t.p[0][1]);
-      ctx.lineTo(t.p[1][0], t.p[1][1]);
-      ctx.lineTo(t.p[2][0], t.p[2][1]);
-      ctx.closePath();
-      if (wire) { ctx.strokeStyle = colour(t.c, fresh); ctx.lineWidth = 1; ctx.stroke(); }
-      else { ctx.fillStyle = colour(t.c, fresh); ctx.fill(); }
-    });
+    if (wire) {
+      // Wireframe deliberately ignores depth -- it is for seeing WHERE
+      // geometry is, including what is hidden behind other geometry.
+      list.forEach(function (t) {
+        var fresh = (t.c === freshC && age < 1 && freshC === lastAdded);
+        ctx.beginPath();
+        ctx.moveTo(t.p[0][0], t.p[0][1]);
+        ctx.lineTo(t.p[1][0], t.p[1][1]);
+        ctx.lineTo(t.p[2][0], t.p[2][1]);
+        ctx.closePath();
+        ctx.strokeStyle = colour(t.c, fresh); ctx.lineWidth = 1; ctx.stroke();
+      });
+    } else {
+      rasterize(list, f, freshC, age);
+    }
     document.getElementById("cnt").textContent = pos;
     document.getElementById("of").textContent =
       "of " + maxPos() + (byTri ? " triangles" : " draws");
@@ -325,7 +298,6 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       "Task " + f.task + " \\u00b7 " + f.matrices + " matrix set-ups \\u00b7 " +
       f.built + " triangles built, " + f.behind +
       " dropped behind the eye. Dropped geometry is counted, never mirrored into frame.";
-    syncRows();
     if (age < 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       requestAnimationFrame(draw);
     }
@@ -346,7 +318,6 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       c.setAttribute("aria-pressed", n === i ? "true" : "false");
     });
     lastAdded = -1;
-    buildRows();
     setPos(maxPos(), false);
   }
 
