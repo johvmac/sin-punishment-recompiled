@@ -96,7 +96,35 @@ logo, プッシュ スタート, © 2000 Nintendo.
 > Why it matters: the run log records a return code. It cannot tell a freeze
 > from a crash, and that distinction has changed our diagnosis before.
 
-## 5. GENERAL FEEL — the things no scalar catches
+## 5. ⚑ THE SKYBOX, IN THE SOLDIERS SHOT (added 2026-08-25, user-requested)
+
+**The shot:** the attract scene with the green soldiers — the one whose
+reconstruction is `task 1500` in the draw-call stepper. Not the pylon shot, not
+the tutorial. **If the attract does not reach it before the run ends, say so
+rather than reporting on a different scene** — scene identity has been wrong
+twice from sampling (A93, A161) and both times the observation was right and
+the quantifier wrong.
+
+**Why it is worth your eyes.** In the offline reconstruction that shot leaves a
+region blank in the **top left** where every other attract frame is filled.
+Task 2400 draws its sky as ordinary geometry; **this one apparently does not.**
+The reconstruction cannot settle it, because it draws triangles only and
+**ignores `G_TEXRECT` entirely — 18-20 of them per frame** — which is how N64
+games usually paint a sky.
+
+**So the question is precisely:**
+
+* **Is there a sky in that shot at all** on screen, or is that region flat
+  black / a solid colour?
+* If there IS a sky — does it look **correct**, or wrong in some way (banding,
+  a stuck frame, a repeated strip, the wrong colour)?
+* Does it **move with the camera**, or sit fixed on screen?
+
+**A "there is obviously a sky and it looks fine" is a real and useful answer**
+— it would mean the blank is purely my renderer's blind spot and nothing is
+wrong with the game there. Please do not hunt for a defect to report.
+
+## 6. GENERAL FEEL — the things no scalar catches
 
 * **Frame rate**: smooth, or stuttering/slideshow?
 * **Input**: does pressing START visibly do anything?
