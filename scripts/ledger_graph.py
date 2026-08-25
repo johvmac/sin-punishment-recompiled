@@ -259,6 +259,90 @@ def self_check():
     return 0 if ok else 1
 
 
+# --------------------------------------------------------------------------
+# LAYOUT. Computed HERE rather than in the browser, and that is a correctness
+# decision rather than a performance one: a layout produced in the page cannot
+# be looked at before it ships. This one is written to the payload, rendered to
+# a PNG by --layout-png, and CHECKED BY EYE before anything is published.
+# It is also deterministic -- no clock, no RNG, seeded from a phyllotaxis
+# spiral -- so the same ledger always produces the same picture.
+# --------------------------------------------------------------------------
+def layout(nodes, edges, keep, iters=600, rep=None, link=46.0):
+    import numpy as np
+    ids = [n for n in nodes if keep(n)]
+    if not ids:
+        return {}
+    ix = {v: i for i, v in enumerate(ids)}
+    n = len(ids)
+    rep = rep if rep is not None else (260.0 if n > 200 else 900.0)
+    k = np.arange(n)
+    a = k * 2.399963267949
+    r = (11.0 if n > 200 else 26.0) * np.sqrt(k)
+    pos = np.stack([np.cos(a) * r, np.sin(a) * r], 1).astype(np.float64)
+    vel = np.zeros_like(pos)
+    E = np.array([[ix[e["s"]], ix[e["t"]]] for e in edges
+                  if e["s"] in ix and e["t"] in ix], dtype=np.int64)
+    alpha = 0.9
+    for _ in range(iters):
+        d = pos[:, None, :] - pos[None, :, :]
+        d2 = (d ** 2).sum(-1)
+        np.fill_diagonal(d2, np.inf)
+        d2 = np.maximum(d2, 0.01)
+        f = rep / d2
+        f[d2 > 240000.0] = 0.0
+        dist = np.sqrt(d2)
+        acc = (d / dist[..., None] * f[..., None]).sum(1)
+        if len(E):
+            dv = pos[E[:, 1]] - pos[E[:, 0]]
+            dd = np.maximum(np.sqrt((dv ** 2).sum(-1)), 1e-6)
+            ff = (dd - link) * 0.0085
+            u = dv / dd[:, None] * ff[:, None]
+            np.add.at(acc, E[:, 0], u)
+            np.add.at(acc, E[:, 1], -u)
+        acc -= pos * 0.0016
+        vel = (vel + acc) * 0.80
+        pos += vel * alpha
+        alpha *= 0.988
+    pos -= pos.mean(0)
+    span = max(np.abs(pos).max(), 1.0)
+    pos = pos / span * 500.0
+    return {ids[i]: [round(float(pos[i, 0]), 1), round(float(pos[i, 1]), 1)]
+            for i in range(n)}
+
+
+def layout_png(nodes, edges, comps, out, keep, size=1400):
+    """Render a computed layout so it can be LOOKED AT before it is published.
+
+    A layout is the one part of this that no assertion covers -- 'the numbers
+    are finite' does not mean 'a person can read it'. T71's second gate asks for
+    a control that can fail; for a picture the control is a picture.
+    """
+    from PIL import Image, ImageDraw
+    pos = layout(nodes, edges, keep)
+    if not pos:
+        print("[graph] nothing to lay out"); return 1
+    big = set(max(comps, key=len)) if comps else set()
+    img = Image.new("RGB", (size, size), (12, 16, 18))
+    dr = ImageDraw.Draw(img)
+    sc = (size - 80) / 1000.0
+    P = lambda i: (pos[i][0] * sc + size / 2, pos[i][1] * sc + size / 2)
+    col = {"back": (93, 109, 116), "forward": (224, 148, 64), "cross": (90, 163, 196)}
+    for e in edges:
+        if e["s"] in pos and e["t"] in pos:
+            dr.line([P(e["s"]), P(e["t"])], fill=col[e["k"]], width=1)
+    indeg = {}
+    for e in edges:
+        indeg[e["t"]] = indeg.get(e["t"], 0) + 1
+    for i in pos:
+        x, y = P(i)
+        rr = max(2.0, min(9.0, 1.6 + (indeg.get(i, 0) ** 0.5) * 0.9))
+        c = (224, 96, 74) if i in big else (139, 154, 161)
+        dr.ellipse([x - rr, y - rr, x + rr, y + rr], fill=c)
+    img.save(out)
+    print(f"[graph] wrote {out} ({len(pos)} nodes laid out)")
+    return 0
+
+
 def main(argv):
     if "--self-check" in argv:
         return self_check()
@@ -283,6 +367,29 @@ def main(argv):
             "cycles": comps,
         }))
         print(f"[graph] wrote {out}")
+        return 0
+
+    if "--layout-png" in argv:
+        out = argv[argv.index("--layout-png") + 1]
+        which = argv[argv.index("--view") + 1] if "--view" in argv else "all"
+        inbig = set(max(comps, key=len)) if comps else set()
+        inany = {n for c in comps for n in c}
+        keep = {"all": lambda n: True,
+                "cyc": lambda n: n in inany,
+                "small": lambda n: n in inany and n not in inbig}[which]
+        return layout_png(nodes, edges, comps, out, keep)
+
+    if "--layout-json" in argv:
+        out = argv[argv.index("--layout-json") + 1]
+        inbig = set(max(comps, key=len)) if comps else set()
+        inany = {n for c in comps for n in c}
+        views = {
+            "all": layout(nodes, edges, lambda n: True),
+            "cyc": layout(nodes, edges, lambda n: n in inany),
+            "small": layout(nodes, edges, lambda n: n in inany and n not in inbig),
+        }
+        Path(out).write_text(json.dumps(views, separators=(",", ":")))
+        print(f"[graph] wrote {out} ({', '.join(f'{k}={len(v)}' for k, v in views.items())})")
         return 0
 
     if "--dot" in argv:

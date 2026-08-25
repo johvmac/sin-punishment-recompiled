@@ -2964,6 +2964,50 @@ pixel look wrong", it is the wrong instrument.
 
 ---
 
+## `ledger_graph.py` — the ledger as a graph, and its cycles (added 2026-08-25, A439)
+
+**Purpose.** Read `docs/findings-ledger.md` as a directed graph — an edge from A
+to B when B's ID appears in A's row — and find the cycles. **User-requested.**
+`--cycles` expands them, `--json` / `--layout-json` feed a viewer, `--dot` emits
+graphviz, `--layout-png` renders the layout so it can be looked at.
+
+**What it is for.** Entries are written in order, so the graph should be a DAG,
+and it is: **back edges alone produce zero cycles across all 648 entries.** Every
+loop comes from a retroactive edit or from a cross-series reference. The
+back-edges-only run is the standing control — if it ever stops being a DAG,
+entry numbering has stopped meaning what every tool here assumes.
+
+**It uses `ledger.py`'s parser and asserts its edge rule matches `ledger.py`'s
+CITES footer** (control C6, on a real entry). A second definition of "cites"
+would let an entry be linked for one reader and not the other — T185, T187 and
+T193 are three instances of state living in two places with nothing checking
+they agree, and this would have been a fourth.
+
+**IT IS A MENTION GRAPH, NOT A DEPENDENCY GRAPH.** An edge means one row
+contains another's ID, which includes "do not confuse this with A161" and bare
+withdrawal notices. The CITES footer has always had this property; this
+inherits it whole and must not be described as anything stronger.
+
+**The layout is computed in Python, not in the browser, and that is a
+correctness decision.** The first build simulated in the page — and the preview
+pane does not composite, so `requestAnimationFrame` never fired and **the layout
+could not be inspected before publishing**. `--layout-png` renders it so a
+person can look. Deterministic: no clock, no RNG, phyllotaxis seed.
+**For a picture, the control is a picture.**
+
+**Controls — 6, varying the failure mode.** C1 must find a 3-cycle exactly, C2
+must not invent one in a DAG, C3 must keep two disjoint cycles apart, C4 must
+not call a self-reference a cycle, C5 must classify a cross-series edge as
+`cross` rather than retroactive, C6 must agree with `ledger.py`. Four deliberate
+breaks — reporting singleton components, merging all components, treating cross
+as forward, truncating the text scanned — each caught by a different control.
+
+    scripts/ledger_graph.py --cycles
+    scripts/ledger_graph.py --layout-png /tmp/g.png --view small
+    scripts/ledger_graph.py --self-check
+
+---
+
 ## `dup_draws.py` — is the game asking for the same thing twice? (added 2026-08-25, A437/A438)
 
 **Purpose.** Count duplicate draws *inside one submitted frame*, offline, from
