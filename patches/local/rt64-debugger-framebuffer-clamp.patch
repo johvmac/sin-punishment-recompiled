@@ -1,0 +1,30 @@
+diff --git a/src/hle/rt64_workload_queue.cpp b/src/hle/rt64_workload_queue.cpp
+index 5a331aa..df84318 100644
+--- a/src/hle/rt64_workload_queue.cpp
++++ b/src/hle/rt64_workload_queue.cpp
+@@ -507,7 +507,24 @@ namespace RT64 {
+             resizedTargets.clear();
+             colorDepthPairs.clear();
+ 
+-            const uint32_t fbPairCount = (debuggerRenderer.framebufferIndex >= 0) ? (debuggerRenderer.framebufferIndex + 1) : workload.fbPairCount;
++            // A310: the debugger's "View Framebuffer" slider SIZES this loop over
++            // workload.fbPairs with NO clamp against the workload actually being
++            // rendered. The inspector computes the slider's maximum from the workload
++            // IT is displaying; nothing makes that the same object as this one. A285
++            // measured the pair count varying by scene (attract 4->5, start screen 1,
++            // tutorial 2), so a count that shrinks under the debugger's fixed index is
++            // the normal case. Setting the slider to 0 in the tutorial SIGSEGVed a run
++            // 11 s in, and index 0 is not the safe end -- it is the one that ALWAYS
++            // executes, so a frame with zero pairs is indexed at [0].
++            //
++            // This clamp is what makes "View Depth Buffer" reachable AT ALL: that
++            // checkbox is ImGui::BeginDisabled(framebufferIndex < 0), so the only door
++            // to it was the one that crashed.
++            //
++            // LOCAL ONLY -- nothing goes upstream (T36/T38). The framebufferIndex < 0
++            // path is byte-for-byte unchanged, so non-debugger runs cannot be affected.
++            const uint32_t debuggerPairCount = uint32_t(debuggerRenderer.framebufferIndex + 1);
++            const uint32_t fbPairCount = (debuggerRenderer.framebufferIndex >= 0) ? std::min(debuggerPairCount, workload.fbPairCount) : workload.fbPairCount;
+             for (uint32_t f = 0; f < fbPairCount; f++) {
+                 const FramebufferPair &fbPair = workload.fbPairs[f];
+ #           if RT_ENABLED
