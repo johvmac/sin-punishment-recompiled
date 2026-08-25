@@ -42,7 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # ONE PARSER, TWO CALLERS (T192). The ledger reader sections entries too; a
 # second copy here would drift and the two views would disagree about what an
 # entry says.
-from sections import sections as _sections, roundtrip as _sections_roundtrip
+from sections import sections as _sections, roundtrip as _sections_roundtrip, gist as sections_gist
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
@@ -215,10 +215,19 @@ def _esc(s):
 
 
 def _gist(line):
-    """The human-readable text of a ledger row, without the markup."""
-    body = line.split("|")
-    txt = body[3] if len(body) > 3 else line
-    return re.sub(r"\*\*|`|~~", "", txt).strip()
+    """The human-readable text of a ledger row, without the markup.
+
+    DELEGATES TO `sections.gist` RATHER THAN REIMPLEMENTING IT (T199,
+    2026-08-25). This was a verbatim copy of that function, and when the
+    original was fixed for literal pipes -- which had been truncating 54 rows
+    and 102,124 characters -- the copy silently kept the bug. **So the page the
+    USER reads was cutting those same entries short after the ledger reader had
+    been repaired.** A second copy of a function is a copy that goes stale, and
+    this is that failure with a user-facing surface attached.
+
+    Kept as a thin wrapper rather than deleted so callers below are unchanged.
+    """
+    return sections_gist(line)
 
 
 def _summarise(line, n=190):
@@ -1195,6 +1204,22 @@ def self_check():
             if _sections_roundtrip(c) != "".join(c.split())]
     chk(f"sectioning loses NO text ({len(corpus)} bodies, {len(real)} from the ledger)",
         not lost, f"{len(lost)} lose text: {lost[:3]}")
+
+    # THE PAGE'S ROW TEXT MUST COME FROM THE LEDGER READER, NOT A COPY OF IT
+    # (T199). `_gist` here WAS a verbatim duplicate of `sections.gist`, and when
+    # that was fixed for literal pipes -- 54 rows, 102,124 characters truncated
+    # -- the copy kept the bug, so the USER's page went on cutting those entries
+    # short after the ledger reader was repaired. Asserted on a row whose
+    # finding contains a pipe, which is the exact case that diverged, and
+    # asserted to AGREE with the shared implementation rather than merely to
+    # "work" -- agreement is the property that a re-duplication would break.
+    _piped = ("| A999 | MEASURED | head `a || b` middle "
+              "**SO WHAT: the tail must survive** | 2026-01-01 evidence |")
+    chk("row text delegates to sections.gist, never a local copy (T199)",
+        _gist(_piped) == sections_gist(_piped)
+        and "the tail must survive" in _gist(_piped)
+        and "2026-01-01 evidence" not in _gist(_piped),
+        "a second copy of gist is a copy that goes stale, on the user's own page")
     # The project's own closing vocabulary is the part a reader most needs to
     # find, and every one of them is missed by the generic caps pattern.
     probe = ("Roll #1. WHY THIS AND NOT SOMETHING ELSE: because. "
