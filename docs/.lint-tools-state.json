@@ -1,5 +1,6 @@
 {
  "known": [
+  "ablate.py",
   "ares_capture.sh",
   "ares_peek.py",
   "ares_register.py",
@@ -11,6 +12,7 @@
   "audit_misses.py",
   "auto_label_fix.py",
   "auto_stub_pass.py",
+  "av_drift.py",
   "away.py",
   "backlog.py",
   "backup_drive.sh",
@@ -36,6 +38,7 @@
   "freeze_survey.sh",
   "gap_classify.py",
   "gdb_fault.sh",
+  "gdb_hangdump.sh",
   "gdb_threads.sh",
   "gdb_trace.sh",
   "gdb_watch.sh",
@@ -48,6 +51,7 @@
   "lint_tools.py",
   "make_dl_viewer.py",
   "minimize_window.py",
+  "morning.sh",
   "observed_run.sh",
   "overlay_map.py",
   "patch_si_stubs.py",
@@ -84,12 +88,13 @@
   "test_supersede.py",
   "truncation_sweep.py",
   "ultralib_oracle.py",
+  "unsquash.py",
   "user_queue.py",
   "xclick.py",
   "xtest_key.py",
   "yay0_extract.py"
  ],
- "runs": 39,
+ "runs": 41,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
