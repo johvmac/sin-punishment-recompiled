@@ -151,6 +151,18 @@ for a in "$@"; do
     case "$a" in SNP_ISO=*) WANT_ISO="${a#SNP_ISO=}" ;; esac
 done
 [[ -n "$WANT_ISO" ]] && export SNP_ISO="$WANT_ISO"
+# THE WHOLE CLASS, KILLED, 2026-08-27 — THIRD INSTANCE FORCED IT. SNP_VISIBLE
+# (above), then SNP_ISO (A312), and now SNP_REC: the overnight ablation screen
+# passed SNP_REC=0 on all 621 runs and STILL RECORDED EVERY ONE (~2.7 GB of
+# mp4s, A503), because the assignment reached only the game's env via `env`
+# while display_isolate — sourced into THIS shell — read an unset SNP_REC and
+# defaulted to recording. Two special cases did not stop the third; a special
+# case per variable never will. So: every SNP_* assignment in the argument
+# list is exported into this shell too. SNP_* is the wrapper's own namespace —
+# non-SNP assignments (SP_AUTOSTART etc.) stay game-only, unchanged.
+for a in "$@"; do
+    case "$a" in SNP_*=*) export "${a%%=*}=${a#*=}" ;; esac
+done
 # SNP_VISIBLE arrives as an ARGUMENT (an env assignment forwarded to `env`),
 # not in this script's own environment, so it is re-exported here before the
 # shared helper reads it.
