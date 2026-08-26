@@ -169,6 +169,12 @@ def run_one(target, name, args, outdir: Path, tsv: Path):
     raw = outdir / f"ablate-{tag}-{stamp}.raw"
 
     cmd = [str(RUN_GAME), str(args.secs), str(log)]
+    # A screen of hundreds of runs would keep ~21 MB of video EACH (13 GB over
+    # 620) that nobody will ever watch — the signature is the evidence, not the
+    # picture. SNP_REC=0 is display_isolate's own opt-out. Pass --keep-video to
+    # restore recording for a screen whose rows you intend to look at.
+    if not args.keep_video:
+        cmd.append("SNP_REC=0")
     if target != "BASELINE":
         cmd.append(f"SNP_ABLATE={target}")
     if args.geom:
@@ -274,6 +280,8 @@ def main():
     ap.add_argument("--outdir", type=Path, required=False)
     ap.add_argument("--limit", type=int, default=0, help="stop after N targets (testing)")
     ap.add_argument("--keep-audio", action="store_true")
+    ap.add_argument("--keep-video", action="store_true",
+                    help="record video per run (default OFF: 21 MB/run adds up fast)")
     ap.add_argument("--dry-run", action="store_true",
                     help="print every command that would run, run nothing (T71 gate 1)")
     ap.add_argument("--self-check", action="store_true")

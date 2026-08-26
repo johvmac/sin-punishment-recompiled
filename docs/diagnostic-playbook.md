@@ -4569,3 +4569,22 @@ The armed-task geometry trace now also emits, at each `task=N BEGIN`:
 Both live in the runtime tree (uncommitted, as all probes). An absence from a
 list read is trustworthy exactly when the same line shows other entities —
 the instrument proves it can see in the same breath (T209 by construction).
+
+## `av_drift.py` — audio-vs-picture drift by anchor CHANGE (added 2026-08-26, T217)
+
+Measures drift as the **change** in offset between an early and a late anchor
+pair, so the unknown constant gap between "music starts" and "screen brightens"
+cancels. Replaces A462's ad-hoc script, which did not survive.
+
+**Read this before using it: it produced a confidently wrong +139 s on its
+first real run**, pairing an audio silence at t=180 with a video fade at t=38.
+The correspondence check added after that failure compares FULL ordered
+transition lists and returns **NA when the counts disagree** — which is what
+the known-drifting pair now returns (video 16 transitions, audio 2).
+
+**THE CONTENT PROBLEM THIS EXPOSED, and it is the real finding:** our attract's
+music plays CONTINUOUSLY across scene cuts, so silence-vs-fade anchoring cannot
+work on this game at all. A drift measurement needs either music-CHANGE
+detection (spectral novelty) or a marker stamped into both streams at source.
+**Prefer the marker.** Controls: `--self-check` 5/5, breaks 3 and 4 verified to
+FAIL (a constant offset must read ZERO drift; silence must yield NO anchor).
