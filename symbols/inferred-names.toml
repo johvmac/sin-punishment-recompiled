@@ -173,3 +173,30 @@
 0x8004B610 = "__osContRamRead"            # 122 words
 0x8004B800 = "__osContRamWrite"           # 129 words
 0x8004BA10 = "osAfterPreNMI"              # 7 words
+
+# --- FROM THE ULTRALIB 2.0K ORACLE AT TARGET libultra_rom (A496, 2026-08-26).
+# WHY THESE WERE MISSED FOR A DAY, and it is not what A493 guessed: they were
+# always compiled. The oracle scans ONE target per run, and the two built
+# targets carry DIFFERENT, non-overlapping function sets -- neither is a
+# superset. Worse, the era vote is winner-takes-all: libgultra_rom wins the
+# validation vote 36/57 against libultra_rom's 5/57, so every real match that
+# exists ONLY in the losing configuration was discarded silently.
+# Same evidence class as every row above: skeleton-exact and unique both ways.
+# Each one's size matches A493's independently-measured table to the byte.
+0x8003E0FC = "__osPopThread"        # 4w/16B, matches A493's table
+0x80046110 = "__osGetSR"            # 3w/12B
+0x80046150 = "__osSetWatchLo"       # 4w/16B
+0x80047C60 = "__osProbeTLB"         # 46w/184B
+0x80047D80 = "osUnmapTLBAll"        # 17w/68B
+0x80048AC0 = "guNormalize"          # 21w/84B -- CONFIRMS A493's pattern read
+                                    # (sum of three squares against 1.0f); A493
+                                    # named this as its own falsifier and the
+                                    # compiled library agrees.
+
+# --- READ, NOT MATCHED (A495). No byte-match exists: bcmp is absent from the
+# winning target and did not match in the losing one. Two independent readings
+# agree -- a blinded sub-agent at 0.85 and my own -- on an unambiguous
+# fingerprint: pointer xor for mutual alignment, lwl/lwr misaligned heads,
+# word-at-a-time compare, and TWO exits returning 0 or 1 rather than a signed
+# difference, which is what makes it bcmp and not memcmp.
+0x80043CA0 = "bcmp"                 # EVIDENCE CLASS: reading, not byte-match
