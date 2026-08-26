@@ -2864,6 +2864,7 @@ below is installed and verified working.
 | `scripts/snapshot_build.sh` | repo | **build state that outlives the session.** The untracked generated tree + its inputs + both binaries + a MANIFEST. Reason mandatory; refuses without the archive (T115) |
 | **`docs/instrument-semantics.md`** | repo | **what a reading MEANS** — `ctx` is per-THREAD, breakpoints fire BEFORE their line, reach counts scale with the arm window, RDRAM snapshots are host-endian. **Read before designing any condition.** Every row names the incident that paid for it (T108) |
 | `scripts/audio_capture.sh` | repo | **game-ONLY audio capture, routed BEFORE launch** via `PULSE_SINK` so nothing is missed at startup (T104). One LOSSLESS FLAC pass, master removed. **Isolation asserted behaviourally by a two-tone control.** `prepare`/`finish`/`attach`, `--self-check` (4), `--dry-run`, `--cleanup` |
+| `scripts/ablate.py` + `SNP_ABLATE` | repo + runtime tree (hook NOT committed) | **ablation screen: run the game with ONE function stubbed to `jr ra`, per run, and diff the signature.** Full section below. `--dry-run`, `--self-check` (6, breaks 3/3 verified to FAIL), resumable TSV. **Screen rows are TRIAGE, never claims (T22)** |
 | `docs/observation-checklist.md` | repo | what the user should look for, versioned. ⚑ marks the items **I cannot check at all** |
 | `scripts/lint_tools.py` | repo | three enforcement checks nothing else made: is a NEW script documented (T71 gate 3), does anything taking arguments have a help path (T37), and does any script DEFAULT an evidence path to `/tmp` (T47). Baseline-bounded so it reports what you just built, not the backlog. `--dry-run`, `--strict`, `--self-check` (9 controls) |
 | `scripts/test_gdb_trace.py` | repo | 14 controls over `gdb_trace.sh`; run it as `gdb_trace.sh --self-check` |
@@ -4441,3 +4442,67 @@ hardware-accurate emulation corrupts `0x8007AF0C` the way we do. That is
 answerable behaviourally: run ares to the same attract point and see whether it
 continues past where our build stops -- seconds to judge by eye. Do not sink
 more time into the debug server for this.
+
+## `ablate.py` + `SNP_ABLATE` — break one function per run, on purpose (added 2026-08-26, user-directed)
+
+**Purpose.** Attribution by subtraction: stub ONE function to an immediate
+return, run headless, and read what changed off the per-run signature. Built
+for A218-shaped questions ("which function feeds the geometry that appears?")
+and usable as a confirmation probe for A211-shaped ones ("does stubbing the
+candidate machinery move the stall?"). **The motivating incident is the
+technique survey of 2026-08-26** — the user asked whether systematic
+function-breaking could be automated; it can, because the runtime already
+dispatches through per-section function tables with native pointers.
+
+**Mechanism.** `SNP_ABLATE=<vram>[,<vram>...]` in the runtime
+(`lib/N64ModernRuntime/librecomp/src/overlays.cpp`, `snp_ablate_init()`, runs
+at the end of `init_overlays()` before any game code). Each vram is resolved
+against EVERY code section; every match gets its native first byte overwritten
+with x86-64 `RET` (0xC3) under a brief `mprotect` window — the function becomes
+`jr ra; nop`, registers untouched. **This catches direct calls too**:
+`RECOMP_FUNC` is `noipa` under gcc, so no caller has inlined a body. The hook
+is in the NEVER-COMMITTED runtime tree, like every probe.
+
+* `SNP_ABLATE_DRYRUN=1` — resolve, report, exit before launch (T71 gate 1).
+* A vram that starts no function is a **hard error, exit 2** — a typo must not
+  silently ablate nothing (T65). Proven the honest way: a hex-conversion
+  mistake during the control runs hit exactly this path and halted the run.
+* Shared-window vram (A261) patches EVERY match and logs each; qualify your
+  candidate list against loaded overlays before reading an ovlfile result.
+
+**Controls, all run 2026-08-26 before the first screen row existed:**
+
+| control | expectation | result |
+|---|---|---|
+| positive (mechanism): stub `boot_gameEntry` 0x80025C40 | run visibly breaks | **0 frames, DEGRADED** vs 1297 CLEAN baseline |
+| negative: stub 0x800E47F0 (ovlfile05, never loaded in the 250 s attract log) | signature identical | **1298 CLEAN, aud 86.9%, RMS −15.25 — identical** |
+| refuse: bogus vram | halt at init | **REFUSING + exit, no run** |
+
+**>>> THE alAudioFrame TRAP, and it is a finding: stubbing 0x80042B2C (the
+ultralib oracle's `alAudioFrame`, A444) changed NOTHING — audio 86.9% non-zero
+either way. The SDK audio driver is IN the ROM and is NOT the runtime audio
+path; Treasure's own driver is. So audio amplitude does NOT discriminate for
+SDK-audio targets, and any A444 name is evidence of static presence, never of
+runtime use. <<<**
+
+**The harness** (`scripts/ablate.py`): one TSV row per run — verdict / wall /
+gfx totals off `run-log.tsv`'s own row, `patched_n` (0 ⇒ `INVALID-NO-PATCH`:
+the run measured the ordinary game), audio %/RMS from a per-run
+`SNP_AUDIO_DUMP` (raw deleted after stats unless `--keep-audio`), and a
+geometry digest per armed task (v/t/r counts + hash of the ordered t/r lines).
+Resumable: targets already in the TSV are skipped.
+
+* **`SNP_DL_GEOM` is silently inert without `SNP_DL_CENSUS=1`** — it lives
+  inside the census block. The harness arms both; measured on its own first
+  smoke test (geom=NA on every row).
+* Baseline digests are deterministic in practice (identical hashes across
+  runs, consistent with A449) — but **T22 stands: a screen row that differs
+  from baseline is a CANDIDATE for a 3-run confirmation, never a claim.**
+* A 45 s run reaches the attract only. **The tutorial needs ≥170 s** — a
+  tutorial-window screen is a different, longer night.
+
+**Invocation used for the first screen (2026-08-26, main segment, 620
+functions + baseline):**
+
+    scripts/ablate.py --targets <archive>/evidence/2026-08-26/ablate-targets-main.txt \
+        --outdir <archive>/evidence/2026-08-26/ablate-screen --secs 45 --geom 900,1100
