@@ -284,3 +284,19 @@ A gap in the numbering means a roll was skipped.
 - roll #265: **EXPLOIT** (drew 0.746 vs eps 0.3) -> `A218` [witness `004f5a`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #266: **EXPLOIT** (drew 0.351 vs eps 0.3) -> `A219` [witness `bdbbf8`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #267: **EXPLORE** (drew 0.070 vs eps 0.3) -> `A97` [witness `bce3bd`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #268: **EXPLOIT** (drew 0.480 vs eps 0.3) -> `T213` [witness `fd40f0`] — TWO GATES IN ORDER, EACH ABLE TO KILL IT: GATE 0 (minutes, web): does ANY named symbol map or de
+- roll #269: **EXPLOIT** (drew 0.612 vs eps 0.3) -> `A225` [witness `94a441`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #270: **EXPLORE** (drew 0.186 vs eps 0.3) -> `A97` [witness `791c2f`] — >>> ROLL #49 (2026-08-19) ANSWERED THE 'NEXT STEP' BELOW — read A116 first. SIG0 is the YIELD-RE
+- roll #271: **EXPLOIT** (drew 0.983 vs eps 0.3) -> `A211` [witness `94539c`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #272: **EXPLOIT** (drew 0.825 vs eps 0.3) -> `A218` [witness `6ea4c5`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #273: **EXPLOIT** (drew 0.493 vs eps 0.3) -> `A219` [witness `835c7c`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #274: **EXPLOIT** (drew 0.913 vs eps 0.3) -> `T211` [witness `1b0262`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #275: **EXPLOIT** (drew 0.668 vs eps 0.3) -> `A463` [witness `00f3df`] — OPENED 2026-08-26 at the user's direction ("pop it on the ledger to be looked into again later")
+- roll #276: **EXPLOIT** (drew 0.941 vs eps 0.3) -> `A225` [witness `92c067`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #277: **EXPLOIT** (drew 0.694 vs eps 0.3) -> `A211` [witness `69007c`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #278: **EXPLORE** (drew 0.112 vs eps 0.3) -> `T150` [witness `5e78ec`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
+- roll #279: **EXPLORE** (drew 0.071 vs eps 0.3) -> `T197` [witness `f495ec`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #280: **EXPLORE** (drew 0.118 vs eps 0.3) -> `A219` [witness `3ee1d7`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #281: **EXPLOIT** (drew 0.824 vs eps 0.3) -> `A218` [witness `325a59`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #282: **EXPLOIT** (drew 0.789 vs eps 0.3) -> `T211` [witness `d49030`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #283: **EXPLOIT** (drew 0.301 vs eps 0.3) -> `A463` [witness `44c46a`] — OPENED 2026-08-26 at the user's direction ("pop it on the ledger to be looked into again later")

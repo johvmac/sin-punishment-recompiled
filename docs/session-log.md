@@ -24,3 +24,6 @@ Append-only. Written by `scripts/session.py end`.
 > Recorded as unreliable rather than corrected to a number I would be inventing, and
 > queued as a small owed job under T162. Every other row in this file is measured.
 | 2026-08-22 14:00 | 29m43s / 35m00s | 14 | 11 | 1 | 0 | 0 | Found that the sound patch tells the game to abort on every check, killed my own theory that the missing scenery was stacking on itself, built the small-jobs list, and made the public README say honestly that the game is not playable. |
+| 2026-08-26 15:49 | 46m19s / 65m00s | 15 | 15 | 1 | 0 | 0 | fourteen checkpoints decoded the game's scene-loading machinery end to end, built and controlled two new instruments, and caught two of this session's own claims before they hardened |
+| 2026-08-26 16:57 | 113m10s / 65m00s | 0 | 0 | 0 | 0 | 0 | interrupted early at the user's direction to restart the clock; the join method was proven on the logo scene and the deciding capture completed |
+| 2026-08-26 18:50 | 48m55s / 65m00s | 0 | 9 | 0 | 0 | 0 | the missing-scenery question was driven from four possible mechanisms down to one silent level-script reader, and every innocent explanation for its silence was eliminated except two, with a one-command test left to pick between them |
