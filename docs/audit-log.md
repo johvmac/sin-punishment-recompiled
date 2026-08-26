@@ -391,3 +391,9 @@ T209 — the rule it produced ("state what the instrument would have shown if
 the answer were different") is now in `CLAUDE.md`, promoted WITHOUT a checker
 after two checker designs failed their own controls. Nothing new to extract
 here that T209 does not already carry.
+## Audit #27 — since 00398a8e
+- ledger: 698 entries (+10 this window), 42 withdrawn
+- rolls: 10 this window; runs: 0 (0 exited early, 0 contaminated)
+- suppressed as superseded (1): A470 (single-run, justified in the entry)
+- nothing flagged (quiet streak 1; at 3, halve the frequency)
+
