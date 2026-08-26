@@ -4506,3 +4506,31 @@ functions + baseline):**
 
     scripts/ablate.py --targets <archive>/evidence/2026-08-26/ablate-targets-main.txt \
         --outdir <archive>/evidence/2026-08-26/ablate-screen --secs 45 --geom 900,1100
+
+## `ARES_WATCH` — ask the real game which instruction writes a byte (added 2026-08-26, T211/A470)
+
+**Purpose.** The write-watch oracle: a local patch to our ares-64 checkout
+(`ares/n64/cpu/memory.cpp`, `CPU::write` — the SINGLE choke point for CPU
+stores; the cached/uncached split is after it). `ARES_WATCH="80068A88,..."`
+(hex, ≤16 bytes, KSEG0-virtual or physical) logs
+`[watch] pc=... paddr=... size=... data=...` to stderr on every CPU store
+touching a watched byte. Replaces the DEAD gdb route (A405) with something
+narrower. **Motivating incident: A211 needs to know what normally ENDS a
+tutorial pause, and only the working game can say.**
+
+* **Scope: CPU stores only.** DMA writes bypass the choke point — deliberate:
+  the question is which CODE writes scene state, not which DMA loads over it.
+* **The dynarec does NOT bypass the hook** — measured, not assumed: the
+  positive control logged 754 writes at full speed.
+* **Controls (A470, run before first use):** positive — the display-list
+  append pointer, written every frame: 754 hits with PCs. negative — a
+  top-of-RAM word: exactly one boot-time zeroing write (data 0, boot-library
+  pc), then silence.
+* Launch headless by sourcing `scripts/display_isolate.sh`
+  (`snp_isolate_display`), then `timeout N ./build/desktop-ui/ares --system
+  "Nintendo 64" <ABSOLUTE rom path>` with the env set. The isolation wrapper
+  auto-records — expect a ~2 MB/s .mkv rider beside the log.
+* Rebuild after touching the patch: `ninja -C build desktop-ui` (NOT
+  `cmake --build` — guard false positive, known).
+* **The attract needs NO input** (A436) — the tutorial arrives by itself at
+  ~200 s emulated, so pause-machinery questions need a ≥215 s run.
