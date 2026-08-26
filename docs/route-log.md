@@ -309,3 +309,4 @@ A gap in the numbering means a roll was skipped.
 - roll #290: **EXPLOIT** (drew 0.367 vs eps 0.3) -> `A218` [witness `47019a`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #291: **EXPLOIT** (drew 0.499 vs eps 0.3) -> `T211` [witness `62e3ab`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
 - roll #292: **EXPLOIT** (drew 0.772 vs eps 0.3) -> `A463` [witness `714b79`] — OPENED 2026-08-26 at the user's direction ("pop it on the ledger to be looked into again later")
+- roll #293: **EXPLOIT** (drew 0.513 vs eps 0.3) -> `A225` [witness `85ba16`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
