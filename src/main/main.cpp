@@ -182,6 +182,7 @@ static SDL_AudioDeviceID audio_device = 0;
 static FILE* audio_dump_file = nullptr;
 static uint64_t audio_queue_call_count = 0;
 static uint64_t audio_total_samples_queued = 0;
+static uint64_t audio_total_samples_queued_all = 0;
 static size_t audio_min_depth_before = SIZE_MAX;
 
 void queue_samples(int16_t* samples, size_t count) {
@@ -200,6 +201,27 @@ void queue_samples(int16_t* samples, size_t count) {
             audio_total_samples_queued += count;
             if (audio_total_samples_queued % 44100 == 0) {
                 fflush(audio_dump_file);
+            }
+        }
+        // SNP_AV_STAMP (2026-08-26, A463 step 1 via T217's redesign):
+        // audio time vs WALL CLOCK, stamped where samples are queued. The
+        // video side needs no probe -- A471 measured it at exactly 30.000 fps
+        // against wall clock in the drifting run itself, so any divergence
+        // here IS the drift. Prints once a second of audio.
+        if (getenv("SNP_AV_STAMP") != nullptr) {
+            // <chrono> is already included by this file — no new header, so the
+            // patch cannot fail on a missing include.
+            static uint64_t stamped = 0;
+            static auto t0 = std::chrono::steady_clock::now();
+            audio_total_samples_queued_all += count;
+            uint64_t total = audio_total_samples_queued_all;
+            if (total - stamped >= 22050) {
+                stamped = total;
+                double wall = std::chrono::duration<double>(
+                    std::chrono::steady_clock::now() - t0).count();
+                double atime = (double)total / 2.0 / 22050.0;  // stereo interleaved
+                fprintf(stderr, "[avstamp] wall=%.3f audio=%.3f lag=%.3f samples=%llu\n",
+                        wall, atime, wall - atime, (unsigned long long)total);
             }
         }
         Uint32 depth_before = SDL_GetQueuedAudioSize(audio_device);
