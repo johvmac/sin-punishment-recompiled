@@ -158,6 +158,15 @@ def main():
             (f"## {other}T10:00:00+10:00 — build abc\n", today, False, "YESTERDAY's run must NOT clear it"),
             (f"## DEFERRED {other} — user away\n",       today, False, "yesterday's deferral must NOT clear it"),
             ("",                                          today, False, "an empty log must NOT clear it"),
+            # T150/T101: a recording I made MYSELF is preparation, not an
+            # observation. If a `## RECORDED <date>` stanza cleared the gate,
+            # I could clear it alone — the one property T101 exists to deny.
+            # A456 noted this held only "by the shape of a heading"; this makes
+            # it held by a control.
+            (f"## RECORDED {today} — unattended capture, awaiting annotation\n",
+             today, False, "a RECORDED-only stanza must NOT clear it (T101/T150)"),
+            (f"## RECORDED {today} — capture\n## {today}T10:00:00+10:00 — build abc\n",
+             today, True,  "a RECORDED stanza must not BLOCK a real run the same day"),
         ]
         for text, day, want, why in cases:
             if ot(text, day) != want:
