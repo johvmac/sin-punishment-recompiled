@@ -252,7 +252,21 @@ cat "$CHECKLIST"
 echo
 echo "==========================================================================="
 echo " build $HASH   |   ${SECS}s   |   window appears shortly, INPUT IS ISOLATED"
-echo " Expected: dies ~158s with no input. Sound: unknown -- LISTEN."
+# BANNER RE-AIMED 2026-08-27. It said "dies ~158s with no input. Sound: unknown"
+# and BOTH halves were dead: A450/A451 measured that nothing dies -- the picture
+# freezes at ~205-213 s while the engine and the audio run straight on -- and the
+# sound has worked since A447. A banner is the last thing read before watching,
+# so a stale one aims the whole observation at a closed question.
+#
+# WHAT IS DELIBERATELY NOT SAID HERE: what I expect the sound to do. A498
+# measured a specific prediction last night and it is timestamped in the ledger,
+# so it cannot be retrofitted -- but printing it above the run would collect
+# AGREEMENT rather than a judgement. That is the same principle the labelling
+# task is built on (my answers are never shown beside the question), and it
+# matters more here, because the listener is the only instrument there is.
+echo " Nothing crashes. The PICTURE freezes ~205-213s; engine and sound run on."
+echo " Sound works. What is OPEN is whether it stays WITH the picture -- listen"
+echo " early, then again near the end, and judge for yourself."
 echo "==========================================================================="
 read -r -p " Press Enter when you are ready to watch... " _
 
@@ -314,9 +328,27 @@ ans() { read -r -p "$1 " REPLY; printf '%s' "${REPLY:-(no answer)}"; }
 # **A stale prompt does not just miss an answer, it aims the user's attention
 # at a question that is already closed.** Keep #6 verbatim whatever else moves:
 # it is the standing disagreement channel (T101) and nothing else collects it.
+# PROMPT 3 RETIRED AND ITS SLOT REUSED, 2026-08-27. It asked whether the sound
+# keeps going past the freeze. THAT IS NOW ANSWERED BY AN INSTRUMENT and does
+# not need the user's time: A498 stamped audio continuously to 214.6 s across
+# two runs, well past the ~208 s freeze, so the answer is yes and it is
+# measured. Retiring a prompt the moment an instrument can answer it is the
+# whole discipline here — this procedure spends the ONE resource I cannot
+# regenerate, and a question already answered elsewhere is a pure waste of it.
+#
+# WHAT REPLACES IT IS THE THING ONLY EARS CAN SETTLE. A498 established that we
+# QUEUE far more audio than the device can play. It could NOT establish whether
+# that excess ever reaches a listener — if it is being discarded somewhere, the
+# backlog is a number in a log and nothing more. No probe I can write answers
+# that. A person hearing whether the sound keeps pace with the picture does,
+# in one run, and it is the difference between a real defect and an artefact.
+#
+# ASKED NEUTRALLY, AND SPLIT EARLY-VS-LATE ON PURPOSE: a single "is it in sync"
+# invites a yes, and a drift that grows is invisible unless the question makes
+# you compare two moments. No expected value is stated, here or in the banner.
 A_MUSIC=$(ans   "1. Is it the RIGHT MUSIC? (same tunes/moments as the real game) —")
 A_TEXTURE=$(ans "2. Does the sound have any STUTTER, BUZZ or GRAIN — or is it smooth? —")
-A_AFTER=$(ans   "3. When the PICTURE FREEZES, does the SOUND keep going? how long? —")
+A_SYNC=$(ans    "3. Sound vs picture: does it line up EARLY? and still near the END, or behind? —")
 A_FREEZE=$(ans  "4. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
 A_SCENERY=$(ans "5. Tutorial background — still black/empty, or is any scenery there? —")
 A_DISAGREE=$(ans "6. ANYTHING that contradicts what I have claimed:")
@@ -338,7 +370,7 @@ cat >> "$LOG" <<EOF
 - **sound:** ${SOUND:-\*\*NOT CAPTURED\*\* — A97 cannot be answered from this run}
 - **right music (A97):** $A_MUSIC
 - **sound texture / stutter (A460):** $A_TEXTURE
-- **audio past the freeze (A450):** $A_AFTER
+- **sound vs picture, early then late (A498):** $A_SYNC
 - **freeze: waiting or locked (A451):** $A_FREEZE
 - **tutorial scenery (A218):** $A_SCENERY
 - **CONTRADICTS MY CLAIMS:** $A_DISAGREE

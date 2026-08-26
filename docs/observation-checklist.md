@@ -82,6 +82,27 @@ recompilation layout error, it is fixed, and you already heard sound and said
 * **Does it survive the whole run** — through the attract, past START, into
   the tutorial, up to the stall?
 
+### ⚑⚑ THE ONE THAT MATTERS MOST THIS RUN (added 2026-08-27) — DOES THE SOUND STAY WITH THE PICTURE?
+
+**Judge it twice, and compare: once in the first twenty seconds, and again in
+the last minute.** Does a sound land when the thing that makes it happens on
+screen — an impact, a menu blip, a music change at a scene cut? Or does it
+arrive late, and is it arriving *later* at the end than it was at the start?
+
+**Why you and not a probe.** Overnight I measured the audio pipeline producing
+far more sound than the output device can play, at a fixed ratio, so a backlog
+accumulates. That measurement can say we *generate* too much. **It cannot say
+whether any of it reaches your ears** — if the excess is being thrown away
+somewhere downstream, the backlog is a number in a log and nothing else. There
+is no probe I can write that settles that. You listening for one run does.
+
+**I am deliberately not telling you what I expect to happen**, and that is not
+coyness — a stated expectation collects agreement instead of a judgement, which
+is the same reason my labels are never shown beside the labelling task. The
+prediction is written down and timestamped from last night, so it cannot be
+adjusted afterwards to match whatever you say. **Both answers are a real
+result, and "it stayed in sync the whole way" is the more interesting one.**
+
 > Why it matters: A97 is held open ONLY for this verdict. "Sounded right
 > throughout" closes a 25-day investigation; any defect you can name becomes
 > its first sharp follow-up. Either answer is a real result.
@@ -127,14 +148,22 @@ logo, プッシュ スタート, © 2000 Nintendo.
 > frame for frame". That is my comparison of stills. A "looks wrong to me"
 > from you overrides it.
 
-## 4. HOW IT DIES — a crash, a freeze and a clean exit look identical in a log
+## 4. ~~HOW IT DIES~~ — RETIRED 2026-08-27. IT CONTRADICTED SECTION 2.
 
-* Does it **vanish**, **freeze on a frame**, or **fade/exit tidily**?
-* Roughly **when**? (expected: ~158s with no input, ~45–55s after START)
-* Is the last frame **black**, or a frozen picture?
+**This section asked "roughly when does it die? expected ~158s" while section 2
+of this same document says in bold that the crash-at-158s framing is DEAD.** One
+checklist cannot ask you to time a death it elsewhere tells you does not happen.
+A450/A451 measured it: nothing crashes, nothing blocks — the picture freezes at
+~205–213 s and the engine, the audio and the frame-swap machinery all run on.
 
-> Why it matters: the run log records a return code. It cannot tell a freeze
-> from a crash, and that distinction has changed our diagnosis before.
+**Section 2 is where the ending is now described, and it is the one to read.**
+Nothing is lost by deleting this: every question here is either answered by the
+run log or asked better in section 2.
+
+> The general lesson, and it is why this is struck through rather than quietly
+> removed: **a stale prompt does not merely fail to collect an answer — it aims
+> your attention at a question that is already closed**, and this procedure
+> spends the one resource the project cannot regenerate.
 
 ## 5. ⚑ THE SKYBOX, IN THE SOLDIERS SHOT (added 2026-08-25, user-requested)
 
@@ -179,11 +208,17 @@ wrong with the game there. Please do not hunt for a defect to report.
 Any of these means **stop and tell me**, because several ledger entries assume
 the opposite:
 
-* it **gets past ~158s** (or past ~55s post-START) **without dying**
-* the crash moves to a **different time, function, or fault address**
+* the picture **gets past ~205–213 s** without freezing, or freezes somewhere new
+* the freeze **resolves on its own** and play continues — the real game's
+  tutorial pauses constantly and every one of its 78 pauses resumes (A451)
 * a **scene we have never seen** appears
-* **audio starts working**
-* the crash becomes a **freeze**, or vice versa
+* **the sound and the picture come apart**, or having come apart, come back
+* anything **actually crashes** — it stopped doing that, so a crash is now news
+
+~~* it gets past ~158s without dying / the crash moves / audio starts working~~
+**— RETIRED 2026-08-27 with section 4, same reason: the crash framing is dead
+(A450/A451) and the audio has worked since A447. Criteria that can never fire
+make the list feel complete while checking nothing.**
 
 # IF YOU DISAGREE WITH SOMETHING I HAVE WRITTEN
 
