@@ -4551,3 +4551,21 @@ Controls: self-check 3/3 asserts the output colour set is EXACTLY the input's
 `--dry-run` prints the transform. Skips non-squashed inputs unless `--force`.
 **Viewing aid, not a measuring instrument** — measure on the original.
 **Run it on anything squashed before handing the user a frame to judge.**
+
+## `[dlgeom]` samplers: `arena` and `listN` lines (added 2026-08-26, A481/A484/A485)
+
+The armed-task geometry trace now also emits, at each `task=N BEGIN`:
+* `arena` — five sampled words from the background-texture band (the region the
+  real game's tutorial backdrop strips read from). Populated-vs-zero split
+  load/fill faults from submission faults in one run (A481).
+* `listN` — a walk of scheduler list N printing `node:handler` pairs, node
+  layout (countdown +0, HANDLER +4, next +C, payload +10) read from the
+  six-list walker's own code. Bounded 24 nodes, address-sanity guarded.
+  **First outputs self-validated: every printed handler resolves to a real
+  function in the generated tree.** Traps: the NODE POOL ADDRESS MOVES between
+  scenes (attract vs tutorial pools differ — never assume it); `x` lines are
+  raw SETTIMG operands (w0 w1).
+
+Both live in the runtime tree (uncommitted, as all probes). An absence from a
+list read is trustworthy exactly when the same line shows other entities —
+the instrument proves it can see in the same breath (T209 by construction).
