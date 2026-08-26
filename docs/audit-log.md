@@ -397,3 +397,12 @@ here that T209 does not already carry.
 - suppressed as superseded (1): A470 (single-run, justified in the entry)
 - nothing flagged (quiet streak 1; at 3, halve the frequency)
 
+## Audit #28 — since 930ad978
+- ledger: 728 entries (+30 this window), 42 withdrawn
+- rolls: 10 this window; runs: 635 (11 exited early, 0 contaminated)
+- **3 thing(s) to look at:**
+  - A503: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - A498: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 112 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+- suppressed as superseded (8): A507 (single-run, justified in the entry); A501 (single-run, justified in the entry); A493 (single-run, justified in the entry); A491 (single-run, justified in the entry); A490 (single-run, justified in the entry); A489 (single-run, justified in the entry); A481 (single-run, justified in the entry); A480 (single-run, justified in the entry)
+
