@@ -4539,3 +4539,15 @@ tutorial pause, and only the working game can say.**
   `cmake --build` — guard false positive, known).
 * **The attract needs NO input** (A436) — the tutorial arrives by itself at
   ~200 s emulated, so pause-machinery questions need a ≥215 s run.
+
+## `unsquash.py` — de-smoosh a field capture for human eyes (added 2026-08-26, user request)
+
+Reference frames captured as one interlaced field come out **640x240** and look
+vertically squashed. `scripts/unsquash.py <in.png>` doubles pixels VERTICALLY
+(restoring aspect) then integer-scales by **NEAREST NEIGHBOUR** (default x2 →
+1280x960) — no resampling at any step, so no blur and no invented pixels.
+Controls: self-check 3/3 asserts the output colour set is EXACTLY the input's
+(a resampler fails this — verified by breaking a copy to BILINEAR, 1/3);
+`--dry-run` prints the transform. Skips non-squashed inputs unless `--force`.
+**Viewing aid, not a measuring instrument** — measure on the original.
+**Run it on anything squashed before handing the user a frame to judge.**
