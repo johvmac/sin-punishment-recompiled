@@ -4628,3 +4628,98 @@ threshold had passed two of three.
 **The transferable lesson: when a deliberate break changes nothing, do not
 conclude the tool is robust.** Either the condition is redundant or it never
 fired. Both were true here, and only counting the candidates told them apart.
+
+## `morning.sh` — the day's machine-side prep, on cron (added 2026-08-27, user request)
+
+**Purpose.** The morning chores were being done at the keyboard while the user
+waited. Their words: *"I'd rather not have to wait around for it to get sorted
+out every day."* This does the part a machine can do alone, at 06:03 daily.
+
+```bash
+scripts/morning.sh --dry-run      # say what it would do, change nothing
+scripts/morning.sh --self-check   # 5 controls
+```
+
+Crontab line (installed 2026-08-27; **06:03, not 06:00** — an off-minute, so it
+does not land with every other cron on the planet):
+
+```
+3 6 * * * cd <repo> && ./scripts/morning.sh >> <repo>/scripts/morning.log 2>&1
+```
+
+**What it does:** the L2 audit, today's evidence directory, and a status-page
+HTML rebuild. Then it writes `docs/MORNING.md` (readable) and
+`docs/.morning-state.json` (the detector).
+
+### TWO THINGS IT DELIBERATELY DOES NOT DO, and both are load-bearing
+
+**It never republishes the status page.** That needs the claude.ai artifact
+capability, which is documented as absent from headless/cron runs. A job that
+"publishes" and silently fails every morning is **exactly T194** — the nightly
+push that died for three days and 182 commits into a log nobody read. The
+regenerate it *can* do takes under a second, so the session loses nothing.
+
+**It never runs the game and never clears the observed-run gate.** That gate
+exists for the two things nobody here can check alone — audio, and scene
+identity (T101). A cron that cleared it would destroy the only property it has.
+It reports whether one is owed; it cannot satisfy it.
+
+### HOW IT OBEYS T151 WITHOUT BEING NEUTERED
+
+T151 (the user's rule): *nothing recurring on this project may accumulate; a day
+with no work owes nothing.* This job is **calendar-gated** — it fires at 6am
+whether or not anyone works — which is normally the forbidden shape.
+
+It is allowed because **it bills nobody**: no notification, no nag, no debt. Its
+output is a file read only if someone comes to work. **The split that makes this
+legal is that the JOB is calendar-gated while its DETECTOR is activity-gated** —
+`check_ledger.py` reads the state file, and `check_ledger` only runs when work is
+happening. An idle fortnight produces silence. **If this ever grows a
+notification it breaks the rule**, and a control asserts it has none.
+
+### THE DETECTOR, AND WHY IT IS NOT A LOG FILE
+
+BL17 exists because every scheduled job here reported into a log nobody read.
+So the detector lives in `check_ledger.py`: it reads `.morning-state.json` and
+speaks if the job **reported failures** or **has not run today**. There is
+deliberately **no `else` branch** for a missing file — that means the cron was
+never installed on this machine, which is not a fault to nag about.
+
+**It earned itself on the first real run.** The job wrote malformed JSON —
+`grep -c` prints its zero *and* exits 1, so `|| echo 0` appended a second line
+and `observed_today` came out as `"0\n0"` — and the detector said **"morning
+state unreadable"** rather than the bug sitting unnoticed in a log until an
+audit happened to print the last line. That is the entire argument for the
+detector not being a log file, demonstrated within a minute of shipping it.
+**The correct idiom is `|| true`**: it swallows the exit status and keeps the
+printed zero.
+
+### CONTROLS — 5, with two breaks verified to fail
+
+1. never launches the game or the observed run
+2. does not attempt the publish it cannot do headless
+3. **the state file records FAILURE, not only that it ran** — an always-ok
+   detector detects nothing
+4. sends no notification (T151)
+5. `--dry-run` writes nothing (asserted by running it and comparing mtimes)
+
+Breaks verified: adding a notification fails 4; making it launch the game
+fails 1.
+
+### THE INCIDENT THAT MOTIVATED THE CONTROL STYLE — the fifth self-referential check
+
+**Control 4 initially failed on a fully compliant script.** It grepped for
+`notify-send|mail |curl -X POST` written literally — so the pattern **matched
+its own line**. This is the fifth self-referential control in this codebase
+(`audit_l2` records two, `lint_tools` and `audit_l3` one each, plus
+`observed_run.sh` control 6, which produced a false *pass* and is the worse
+shape). It was caught here one line after a comment in *this same file*
+explaining the fix for control 2.
+
+**Writing the rule down is not the same as applying it.** Assemble the needle
+from parts by default:
+
+```bash
+_n1="noti""fy-send"; _n2="cu""rl -X POST"
+! grep -qE "($_n1|$_n2)" "$0"
+```

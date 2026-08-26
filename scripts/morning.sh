@@ -48,6 +48,17 @@ REPORT="$ROOT/docs/MORNING.md"
 TODAY="$(date +%Y-%m-%d)"
 EVID="${SNP_EVIDENCE_DIR:-/media/joh/extra/sin-punishment-archive/evidence/$TODAY}"
 
+usage() { sed -n '/^# Usage:/,/^set -/p' "$0" | sed 's/^# \{0,1\}//;$d'; }
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+    # REFUSE AN UNKNOWN ARGUMENT rather than silently doing a full run. This
+    # fires on cron, unattended -- a typo'd flag that ran the real thing anyway
+    # would be indistinguishable from the intended behaviour in the log.
+    -*) if [[ "$1" != "--dry-run" && "$1" != "--self-check" ]]; then
+            echo "[morning] unknown option: $1" >&2; usage >&2; exit 2
+        fi ;;
+esac
+
 DRY=0; [[ "${1:-}" == "--dry-run" ]] && DRY=1
 
 if [[ "${1:-}" == "--self-check" ]]; then
