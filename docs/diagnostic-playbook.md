@@ -4520,8 +4520,13 @@ tutorial pause, and only the working game can say.**
 
 * **Scope: CPU stores only.** DMA writes bypass the choke point — deliberate:
   the question is which CODE writes scene state, not which DMA loads over it.
-* **The dynarec does NOT bypass the hook** — measured, not assumed: the
-  positive control logged 754 writes at full speed.
+* **COVERAGE IS PARTIAL — the dynarec DOES bypass the hook once blocks are
+  warm (A477, corrected same day it was claimed otherwise).** What the hook
+  sees is FRESH, STILL-INTERPRETED code — which makes it excellent for
+  freshly-loaded overlay code and worthless for absences anywhere else. **An
+  absence in a watch log means NOTHING under partial coverage.** For complete
+  coverage, force ares's CPU interpreter (unexplored) before trusting any
+  negative.
 * **Controls (A470, run before first use):** positive — the display-list
   append pointer, written every frame: 754 hits with PCs. negative — a
   top-of-RAM word: exactly one boot-time zeroing write (data 0, boot-library
