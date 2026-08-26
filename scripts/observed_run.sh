@@ -178,6 +178,23 @@ if [[ "${1:-}" == "--self-check" ]]; then
     chk "video AND sound paths reach the permanent record (T150)" "$got" \
         "the annotator gets a text log and is told to go find the recording"
 
+    # EVERY ANSWER ASKED FOR MUST REACH THE RECORD. The prompts and the stanza
+    # are two halves with nothing connecting them but matching variable names,
+    # and this project has now been bitten FIVE times by state that lives in two
+    # places with no check that they agree (T185/T187/T193/T194/T195/T200).
+    # Rename a variable in one half and the user answers a question whose answer
+    # is silently dropped -- the worst possible failure for a procedure whose
+    # entire cost is THEIR time. Added 2026-08-26 when the prompts were re-aimed.
+    asked=$(grep -oE '^A_[A-Z]+=\$\(ans ' "$0" | sed 's/=\$(ans //')
+    missing=""
+    for v in $asked; do
+        grep -q "\$$v" <(sed -n '/^cat >> "\$LOG" <<EOF/,/^EOF$/p' "$0") || missing="$missing $v"
+    done
+    nasked=$(printf '%s\n' $asked | grep -c . )
+    chk "every prompt's answer reaches the stanza ($nasked asked)" \
+        "$([[ -z "$missing" ]] && echo 1)" \
+        "DROPPED ON THE FLOOR:$missing — the user would answer and it would vanish"
+
     echo; echo "$((n-fails))/$n controls pass"
     [[ $fails -eq 0 ]] || exit 1
     exit 0
@@ -264,11 +281,20 @@ echo "=== run finished — run log says rc=$RC ($VERDICT). Recording the outcome
 echo "=== run with no recorded outcome did not happen, including 'as expected'."
 echo
 ans() { read -r -p "$1 " REPLY; printf '%s' "${REPLY:-(no answer)}"; }
-A_AUDIO=$(ans "1. AUDIO — any sound at all? describe:")
-A_SCENE=$(ans "2. Last ~10s before it died — what was on screen?")
-A_TITLE=$(ans "3. Title screen (if seen) — correct, or wrong how?")
-A_DEATH=$(ans "4. Did it vanish / freeze / exit tidily, and roughly when?")
-A_FEEL=$(ans  "5. Frame rate, input, anything else that looked wrong:")
+# THE PROMPTS TRACK THE OPEN QUESTIONS AND MUST BE RE-AIMED WHEN THOSE CHANGE
+# (2026-08-26, at the user's direction). The previous six were written during
+# the SILENCE era and had gone stale in a way that wastes the one resource this
+# whole procedure exists to spend: "AUDIO — any sound at all?" when the sound
+# has worked since A447, and "before it DIED" when A450/A451 established that
+# nothing dies — the picture freezes while the engine and the audio run on.
+# **A stale prompt does not just miss an answer, it aims the user's attention
+# at a question that is already closed.** Keep #6 verbatim whatever else moves:
+# it is the standing disagreement channel (T101) and nothing else collects it.
+A_MUSIC=$(ans   "1. Is it the RIGHT MUSIC? (same tunes/moments as the real game) —")
+A_TEXTURE=$(ans "2. Does the sound have any STUTTER, BUZZ or GRAIN — or is it smooth? —")
+A_AFTER=$(ans   "3. When the PICTURE FREEZES, does the SOUND keep going? how long? —")
+A_FREEZE=$(ans  "4. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
+A_SCENERY=$(ans "5. Tutorial background — still black/empty, or is any scenery there? —")
 A_DISAGREE=$(ans "6. ANYTHING that contradicts what I have claimed:")
 
 [[ -f "$LOG" ]] || cat > "$LOG" <<'HDR'
@@ -286,11 +312,11 @@ cat >> "$LOG" <<EOF
 - run log: \`$(basename "$RUNLOG")\`
 - **video:** ${VIDEO:-\*\*NOT RECORDED\*\* — nothing to annotate}
 - **sound:** ${SOUND:-\*\*NOT CAPTURED\*\* — A97 cannot be answered from this run}
-- **audio:** $A_AUDIO
-- **last 10s / scene:** $A_SCENE
-- **title screen:** $A_TITLE
-- **how it died:** $A_DEATH
-- **feel:** $A_FEEL
+- **right music (A97):** $A_MUSIC
+- **sound texture / stutter (A460):** $A_TEXTURE
+- **audio past the freeze (A450):** $A_AFTER
+- **freeze: waiting or locked (A451):** $A_FREEZE
+- **tutorial scenery (A218):** $A_SCENERY
 - **CONTRADICTS MY CLAIMS:** $A_DISAGREE
 
 EOF
