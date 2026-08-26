@@ -316,3 +316,4 @@ A gap in the numbering means a roll was skipped.
 - roll #297: **EXPLOIT** (drew 0.508 vs eps 0.3) -> `A219` [witness `118112`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #298: **EXPLOIT** (drew 0.575 vs eps 0.3) -> `A218` [witness `f14dae`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #299: **EXPLORE** (drew 0.175 vs eps 0.3) -> `A463` [witness `670efb`] — OPENED 2026-08-26 at the user's direction ("pop it on the ledger to be looked into again later")
+- roll #300: **EXPLOIT** (drew 0.845 vs eps 0.3) -> `T211` [witness `f0da12`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
