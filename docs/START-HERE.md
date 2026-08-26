@@ -11,8 +11,7 @@ file whose reader is least able to notice it has.
 
 **Keep it under a screen.** Exactly two things go stale, and both are marked
 with **`«…»`** so they can be found and checked: **the handoff filename** and
-**the one-line blocker**. The guillemets stay; only what is *inside* them is
-replaced. P7 step 5 refreshes both at clear time.
+**the one-line blocker**. The guillemets stay in THIS FILE; only what is *inside* them is replaced, and P7 step 5 refreshes both at clear time. **They are STRIPPED when the block is pasted into chat** — a maintenance mark for this file, not part of the message. Stripping is a deterministic transform, not a second copy.
 
 > **Why they are marked at all.** This file used to say "update the two
 > bracketed bits" with nothing bracketed — so there was no way to locate them
