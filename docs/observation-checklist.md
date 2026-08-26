@@ -60,10 +60,23 @@ recompilation layout error, it is fixed, and you already heard sound and said
   tutorial (the paced ares reference, A436). Same tunes, same moments?
 * **Sound effects and menu blips** — present, and matching what the reference
   had at the same points?
-* **CLIPPING — the one measured worry.** The capture peaks at full scale
-  (A447), which can mean audible crackle/distortion on loud passages. Listen
-  for harshness where the music gets busy. "Loud but clean" and "crackles when
-  loud" are different findings; say which.
+* ~~**CLIPPING — the one measured worry.**~~ **DROPPED 2026-08-25 (A459) — DO
+  NOT SPEND ATTENTION ON THIS.** The capture does peak at full scale, but so
+  does the real game's, to six identical digits, and **the reference hits full
+  scale nearly twice as often as we do** (1,041 against 568). Peaking was a
+  property of the capture path, not of our mixer. Loudness matches the real
+  game within **0.09 dB**.
+* **WHAT REPLACED IT, and it is a genuinely open question (A460).** After
+  fixing the recorder's sample rate, one statistic still disagrees with the
+  reference by 2.3x — a measure of repeated/held samples. It could be a real
+  defect or it could just be that our attract and the reference's are not the
+  same performance. **What it would SOUND like if real: a faint stutter,
+  buzz, graininess, or notes that seem to "stick" or repeat.** Listen for
+  texture rather than volume. **If it all sounds smooth, say so — that is the
+  answer that makes the number a content artefact and closes it.**
+* **THIS IS THE FIRST RUN RECORDED AT THE CORRECT RATE.** Every previous
+  capture went through two resamples (A460). If something sounds different
+  from last time, that may be why — and it is worth saying.
 * **Stutter, dropouts, wrong pitch, one channel only** — any of the classic
   stream failures.
 * **Does it survive the whole run** — through the attract, past START, into
@@ -73,17 +86,33 @@ recompilation layout error, it is fixed, and you already heard sound and said
 > throughout" closes a 25-day investigation; any defect you can name becomes
 > its first sharp follow-up. Either answer is a real result.
 
-## 2. THE LAST TEN SECONDS BEFORE IT DIES — the scene is formally unidentified
+## 2. ⚑ THE MOMENT IT STOPS — REWRITTEN 2026-08-25/26. IT IS NOT A CRASH.
 
-* **What is on screen in the final ~10 seconds?** Name it in your own words.
-* **Does the screen go FULLY black before the crash?** For roughly how long?
-* Is it a **static screen, an animation, or a transition** between two things?
-* Does anything visibly glitch, tear, or freeze *before* the death?
+**This section used to ask about "the crash at 158 s". That framing is dead.**
+A450/A451 measured it: **nothing crashes and nothing blocks.** The picture
+freezes at around **205–213 s**, the task engine keeps dispatching tens of
+thousands of handlers, and the audio keeps playing. The old text would have
+sent you looking a minute early at the wrong thing.
 
-> Why it matters: A164 says ~10s of title screen ends at 157.2s, the screen goes
-> fully black, and the crash lands at 158.2s — **but the scene at the fault is
-> formally NOT ESTABLISHED**, and I have twice mislabelled scenes from samples.
-> A name from you closes it.
+**The single most valuable observation you can make this run:**
+
+* **When the picture freezes — does the SOUND keep going?** For how long?
+  Does it keep going right to the end, loop, or fade? *(I measure that it
+  does, but a measurement of amplitude is not hearing it.)*
+* **What is frozen on screen at that moment?** Name it in your own words.
+* **⚑ THE LIVE QUESTION (A451).** The real game's tutorial constantly pauses
+  on instruction cards and then **resumes**. Ours enters one of those pauses
+  and **never leaves**. So: **does the freeze look like the game waiting
+  mid-instruction — a text card up, character posed, as if expecting
+  something — or like a hard lock mid-motion?** Those point at different
+  faults and nothing but your eyes distinguishes them.
+* Does anything visibly glitch, tear, or stutter in the ~10 s *before* it
+  stops, or does it stop cleanly from full motion?
+* Does the screen ever go **fully black** at any point near it?
+
+> Why it matters: for twenty-odd checkpoints this was hunted as a thing that
+> JAMS. Nothing jams. The question is now what should have started the next
+> scene and did not — and "was it waiting, or was it stuck" is the fork.
 
 ## 3. THE TITLE SCREEN — I claim it is frame-for-frame correct
 
