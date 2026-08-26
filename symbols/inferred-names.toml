@@ -200,3 +200,21 @@
 # word-at-a-time compare, and TWO exits returning 0 or 1 rather than a signed
 # difference, which is what makes it bcmp and not memcmp.
 0x80043CA0 = "bcmp"                 # EVIDENCE CLASS: reading, not byte-match
+
+# --- READ, NOT MATCHED (A493, entered A510). No byte-match exists or is
+# possible: guMtxIdentF is SCANNED by the oracle and differs (20 words vs our
+# 18 -- a real build difference no exact matcher bridges, A496); the other two
+# never matched in either target. All three were identified instruction-by-
+# instruction in A493, quotes in that entry; the blind sub-agent independently
+# proposed the same roles at its two highest confidences (A495). Evidence
+# class: reading. Ranked by the strength of the fingerprint:
+0x800488E0 = "guMtxIdentF"          # READING, strong: 1.0f at 0x00/14/28/3C
+                                    # of a 64B block, zeros elsewhere; 142
+                                    # direct callers
+0x800489C0 = "guMtxCatF"            # READING, strong: 4x4 float row-by-column
+                                    # multiply, (dst,src) walked 0x40/0x10
+0x80048940 = "guMtxF2L"             # READING, WEAKEST of the three (A493's own
+                                    # ranking): float matrix scaled by 65536.0
+                                    # -- the float-to-fixed shape; treat as
+                                    # provisional until a byte-match or a
+                                    # caller-context read confirms
