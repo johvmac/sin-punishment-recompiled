@@ -371,3 +371,23 @@ third is the one that should have stopped it.
 The cheap discriminator existed the whole time and cost one grep: does the
 *generator's source* build these buttons in Python or in JavaScript? Asking
 what the instrument can see, before reading its zero.
+## Audit #26 — since e59e5cce
+- ledger: 688 entries (+22 this window), 42 withdrawn
+- rolls: 10 this window; runs: 22 (4 exited early, 0 contaminated)
+- **1 thing(s) to look at:**
+  - A461: created and withdrawn within one audit window. What made it look right?
+- suppressed as superseded (2): A467 (single-run, justified in the entry); A458 (single-run, justified in the entry)
+
+
+**A461, answered by pointer rather than re-derived — the post-mortem already
+exists and became a standing rule.** What made it look right: a global
+cross-correlator returned a precise number (+0.9 s) from a real computation,
+and precision read as correctness. The instrument ASSUMED A CONSTANT LAG, so a
+drifting lag was outside its vocabulary — it locked onto the early in-sync
+stretch and reported that alignment for the whole file. No control asked what
+the instrument would have shown if the answer were different; the user's ears
+on a muxed replay fired the falsifier the same day (A462). The full account is
+T209 — the rule it produced ("state what the instrument would have shown if
+the answer were different") is now in `CLAUDE.md`, promoted WITHOUT a checker
+after two checker designs failed their own controls. Nothing new to extract
+here that T209 does not already carry.
