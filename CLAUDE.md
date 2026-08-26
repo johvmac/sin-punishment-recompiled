@@ -173,6 +173,17 @@ ask at a time. Never start a background task that will need them mid-flight.
 
 ## Method rules that were paid for
 
+* **STATE WHAT THE INSTRUMENT WOULD HAVE SHOWN IF THE ANSWER WERE DIFFERENT —
+  before believing it (T209).** Not "before reading a zero": **A461 was a
+  POSITIVE claim** ("the capture is in sync") from a correlator that assumed a
+  constant lag and so could not see a drifting one. Three confident wrong
+  numbers in two days, all the same shape — T207 (a grep that could not see
+  client-side buttons), A455 (a pattern that could not see `main_func_`), A461.
+  **None was caught by a control; two were caught by the USER.** Ad-hoc analysis
+  scripts are TOOLS and T71's gates apply to them — that is the hole all three
+  fell through. **This rule has NO CHECKER and two designs failed their own
+  controls** (one fired on 36% of entries, one caught none of the three); the
+  failure is written up in T209 so nobody rebuilds it blindly.
 * **Name the composing step.** When an entry stitches verified parts into a
   story, say which step is the stitch and mark it unverified (T57).
 * **Measure a new tool before trusting it.** Three shipped confident wrong
