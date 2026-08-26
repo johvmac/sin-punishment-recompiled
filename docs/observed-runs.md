@@ -79,3 +79,14 @@ correction.
 - **feel:** NA
 - **CONTRADICTS MY CLAIMS:** no
 
+## 2026-08-26T14:00:26+10:00 — build `596d1aee412245de`, 180s requested, rc=0 (CLEAN)
+- run log: `observed-140026.log`
+- **video:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-26/run_game-140030.mp4
+- **sound:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-26/observed-140028.flac
+- **right music (A97):** audio had desynced (both music and dialogue) - by the time the tutorial crashes, the audio for the attract is just finishing up, resulting in ~30 seconds of difference between the two - the interesting thing was that the tutorial crashed at the exact point the audio was about to reach the title screen audio - perhaps that transition crashes the tutorial?
+- **sound texture / stutter (A460):** smooth
+- **audio past the freeze (A450):** both stop at the same moment, but for more details see above
+- **freeze: waiting or locked (A451):** hard lock
+- **tutorial scenery (A218):** still black
+- **CONTRADICTS MY CLAIMS:** no
+

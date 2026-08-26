@@ -206,3 +206,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-25T20:17:56+10:00	245	245	0	0	0	6169	0	STALLED	swap-gates-watch.log	SNP_HEARTBEAT=1 SNP_WATCH=0x800681BE,0x80068A92,0x80068A97
 2026-08-25T20:27:16+10:00	45	45	0	0	0	1294	30	CLEAN	mute-independence-check.log	none
 2026-08-25T21:38:47+10:00	250	250	0	0	0	6169	0	STALLED	a460-rate22050.log	none
+2026-08-26T14:03:32+10:00	180	180	0	0	0	5379	30	CLEAN	observed-140026.log	none

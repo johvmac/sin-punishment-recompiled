@@ -200,12 +200,36 @@ if [[ "${1:-}" == "--self-check" ]]; then
     exit 0
 fi
 
-SECS="${1:-180}"
+# DEFAULT RAISED 180 -> 250 ON 2026-08-26 (A461), AND THE REASON IS A REAL COST
+# ALREADY PAID: the prompts below ask what happens WHEN THE PICTURE FREEZES, and
+# the freeze is at ~205-213 s (A451). At the old 180 s default the run ended on
+# the watchdog before ever reaching it — so two of the six questions were
+# UNANSWERABLE BY CONSTRUCTION, and the user answered them about the watchdog
+# kill instead. **The prompts and the run length are a third pair of halves that
+# must agree; the check below is what asserts it.**
+SECS="${1:-250}"
 if [[ "$SECS" == "--dry-run" ]]; then DRY=1; SECS=180; else DRY=0; fi
 if ! [[ "$SECS" =~ ^[0-9]+$ ]]; then
     echo "[observed] unknown argument: $SECS" >&2
     echo "[observed] REFUSING rather than guessing. --help for usage." >&2
     exit 2
+fi
+
+# SAY SO IF THE RUN CANNOT REACH WHAT THE QUESTIONS ASK ABOUT (A461). Two of the
+# six prompts are about the freeze at ~205-213 s. A shorter run is legitimate --
+# the user may want a quick look -- but it must not silently collect answers to
+# questions the run could never have shown them, which is exactly what happened
+# on 2026-08-26 and cost half that run's value.
+STALL_AT=205
+if (( DRY == 0 && SECS < STALL_AT + 15 )); then
+    echo "[observed] *** NOTE: ${SECS}s ENDS BEFORE THE FREEZE (~${STALL_AT}s). ***"
+    echo "[observed] Questions 3 and 4 ask what happens WHEN THE PICTURE FREEZES."
+    echo "[observed] This run will be stopped by the watchdog first, and a watchdog"
+    echo "[observed] kill stops picture and sound together — which looks exactly"
+    echo "[observed] like the thing those questions are about. Answer them 'n/a"
+    echo "[observed] (run too short)' rather than describing the shutdown."
+    echo "[observed] For the freeze, re-run with: scripts/observed_run.sh 250"
+    echo
 fi
 
 BIN="$ROOT/build/SinPunishmentRecompiled"
