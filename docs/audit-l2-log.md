@@ -99,3 +99,32 @@ Daily digests. Each reads ONLY the L1 blocks in `audit-log.md`. The weekly L3 re
 - quiet: yes (streak 1; at 2, drop L2 to weekly)
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #12 — covering L1 audits 24..25
+- L1 blocks digested: 2
+- **defects by class (raised this window / all prior / FIXED this window / still open):**
+  - `single-run` (T22): 0 / 37 / 0 / 0 — **quiet**
+  - `no-control` (I1/I13): 0 / 50 / 0 / 0 — **quiet**
+  - `churn` (I14): 2 / 40 / 0 / 0 — **recurs**
+  - `no-evidence` (A24/B35): 0 / 25 / 0 / 0 — **quiet**
+- quiet: no (streak 0; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+
+
+**ANSWER to #12's question — yes, `churn` IS the broader-than-evidence class
+this window, and it is already diagnosed rather than merely counted.** Both
+churn entries trace to one root: **an absence read from an instrument that could
+not have seen a presence.** T207 (created and withdrawn inside an hour) claimed
+the user's status page had no input controls, from a grep of static HTML for
+buttons that are built client-side. A455's coverage script reported `.main` as
+100% named because its pattern missed `main_func_`; that one was caught by the
+number being implausible, which is luck, not a control.
+
+**The mechanical trace L2 says this failure does not leave — it partly does, and
+it is this class recurring.** The candidate rule, logged in
+`docs/protocols-draft.md` rather than promoted: *a checkpoint reporting an
+ABSENCE must name the instrument and state what a positive would have looked
+like, inside the entry.* Both would have been caught by it before writing.
+
+Not proposing a checker yet: the rule has been applied deliberately exactly once
+(the status-page publish, where the positive control failed and stopped a
+mistake before it happened). One success is not grounds for automation.
