@@ -861,3 +861,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-27T05:32:38+10:00	215	215	0	0	0	6169	0	STALLED	a492-avstamp-run1.log	SNP_AV_STAMP=1
 2026-08-27T05:36:28+10:00	215	215	0	0	0	6169	0	STALLED	a492-avstamp-run2.log	SNP_AV_STAMP=1
 2026-08-27T08:42:45+10:00	250	250	0	0	0	6169	0	STALLED	observed-083830.log	none
+2026-08-27T09:22:33+10:00	60	60	0	0	0	1746	30	CLEAN	a506-aitrace.log	SNP_AI_TRACE=1 SNP_REC=0
