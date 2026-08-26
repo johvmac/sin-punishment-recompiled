@@ -299,8 +299,10 @@ than trusting tone.
 
 **TRIGGER.** `/clear`, or ending the session. `IMPROVISED 2026-08-25`
 
-**A CLEAR IS A COMPACT WITH NOTHING RETAINED, so P6 applies IN FULL and this
-adds what only matters when there is no summary at all.**
+**A CLEAR IS A COMPACT WITH NOTHING RETAINED. P6 STEPS 1-7 APPLY IN FULL;
+**P6.8 — the message for the compactor — IS REPLACED BY P7.5**, because a
+clear leaves no summary to argue with. Everything below is what only matters
+when there is no summary at all.** `AMENDED 2026-08-26 on P7's first real run.`
 
 1. **The handoff's `[ONCE]` steps are CURRENT**, because they are the entire
    entry point. Check each still describes reality: the observed-run line, the
@@ -502,6 +504,8 @@ the defect is a relationship between a tool and a phenomenon, and entry text
 does not encode it. **A rule can be worth stating and not be worth automating;
 pretending otherwise would have shipped a check that fired on a third of the
 ledger.**
+
+| 2026-08-26 | P7, first real execution | **"P6 applies IN FULL" is not quite true and the first run exposed it: P6.8 is *leave a message for the COMPACTOR*, which is meaningless in a clear — there is no summary to argue with.** Ran P6.1-P6.7 and substituted P7.5 (the seed) for P6.8. **P7.1 also earned its place immediately: it caught a stale `[ONCE]` step — STEP 0a said "six of sixteen are already labelled" when the authoritative file holds TEN.** | **Both worth fixing in the text.** P7 should say *P6.1-P6.7 apply in full; P6.8 is REPLACED by P7.5*, rather than "in full" plus a footnote at the bottom that the two messages differ — the footnote is 40 lines below the step and nobody reading top-to-bottom joins them. **The stale-count catch is the protocol working exactly as designed and needs no change.** |
 
 **WHEN TO SET ONE IN STONE.** When it has run the same way across several
 sessions and its `CHECKER WOULD ASSERT` line still describes something worth

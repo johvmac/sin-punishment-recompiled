@@ -25,7 +25,7 @@ replaced. P7 step 5 refreshes both at clear time.
 ---
 
 ```
-Sin & Punishment recomp session. Start by reading «HANDOFF-2026-08-25.md» in
+Sin & Punishment recomp session. Start by reading «HANDOFF-2026-08-26.md» in
 the repo root — it is gitignored so it will not appear in any repo listing;
 open it by path. Run its [ONCE] steps in order before anything else, and do
 not skip them because you think you know the state:
@@ -40,10 +40,12 @@ not skip them because you think you know the state:
 Then read docs/protocols-draft.md — it is how we run recurring work, it is a
 draft, and it has a deviations log you should add to rather than work around.
 
-Where we left off: «the real game's tutorial frame is captured at
-<archive>/evidence/2026-08-25/REFERENCE-tutorial-real-game.png and shows the
-walkway, buildings and sky that our build leaves black. The next checkpoint is
-one blocker wide — see T201.»
+Where we left off: «the sound works and is the right music, but it slides ~23
+seconds behind the picture over three minutes — measured, and neither slow
+playback nor dropouts. That is A463, open at cost 2, and its cheapest next
+step needs no knowledge of our audio code: run a DIFFERENT recompiled N64 game
+through the same capture and measure ITS drift. Drifts too, the fault is ours
+generally; doesn't, it is this build.»
 
 Report the state in a few plain sentences and stop there; I'll say when to
 take the first roll.
