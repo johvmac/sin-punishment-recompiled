@@ -623,6 +623,38 @@ def main():
         except Exception:
             reminders.append(f"{_lvl} audit state unreadable — run {_script}.")
 
+    # 4a1b. THE 6AM CRON'S DETECTOR (2026-08-27, the user's request for the
+    # morning chores to be done before they arrive).
+    #
+    # WHY IT IS HERE AND NOT A LOG FILE. T194: the nightly push failed silently
+    # FOR THREE DAYS AND 182 COMMITS, into a log nobody read, and the only thing
+    # that ever surfaced it was an audit happening to print the last line. BL17
+    # is open precisely to give every scheduled job a detector that is not "a
+    # line in a log file". This is that detector for `scripts/morning.sh`.
+    #
+    # AND IT KEEPS T151 INTACT. The cron is CALENDAR-gated -- it fires at 6am
+    # whether or not anyone works. This check is ACTIVITY-gated: it only speaks
+    # when someone runs check_ledger, i.e. when work is actually happening. So
+    # an idle week produces no nagging and no debt, which is the user's rule.
+    # A day the job did not run is only worth mentioning to someone who came in.
+    try:
+        _mp = LEDGER.parent / ".morning-state.json"
+        if _mp.exists():
+            _m = json.loads(_mp.read_text())
+            if not _m.get("ok", True):
+                reminders.append(
+                    f"MORNING JOB REPORTED FAILURES on {_m.get('last_date','?')}: "
+                    f"{_m.get('failures','?')} — read docs/MORNING.md. This is the "
+                    f"detector T194 wanted; do not let it become a log line.")
+            elif _m.get("last_date") != _today:
+                reminders.append(
+                    f"morning job has not run today (last: {_m.get('last_date','never')}) "
+                    f"— cron may be broken. `scripts/morning.sh` does it by hand.")
+        # NO `else` BRANCH ON PURPOSE: a missing state file means the cron was
+        # never installed on this machine, which is not a fault to nag about.
+    except Exception:
+        reminders.append("morning state unreadable — scripts/morning.sh --self-check.")
+
     # 4a2. THE COMPOSING STEP, CHECKED (T112).
     #
     # T57 ("when an entry stitches verified parts into a story, say which step is
