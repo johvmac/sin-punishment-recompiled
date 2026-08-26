@@ -90,3 +90,14 @@ correction.
 - **tutorial scenery (A218):** still black
 - **CONTRADICTS MY CLAIMS:** no
 
+## 2026-08-27T08:38:30+10:00 — build `db79cd11fdde499c`, 250s requested, rc=0 (STALLED)
+- run log: `observed-083830.log`
+- **video:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-27/run_game-083832.mp4
+- **sound:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-27/observed-083830.flac
+- **right music (A97):** correct music but unsynced
+- **sound texture / stutter (A460):** smooth
+- **sound vs picture, early then late (A498):** in actual game, sound is supposed to start SLIGHTLY prior to the attract mode starting (just after the logos) whereas in recomp the audio starts slightly later than attract visuals, and continues to desync - game crashed froze in normal spot during tutorial, and by then audio was severely desynced by then, and visuals remained frozen while audio continued to play, until it caughtt up seemingly, then whole thing went black/silent and closed '
+- **freeze: waiting or locked (A451):** hard lock I think
+- **tutorial scenery (A218):** still black
+- **CONTRADICTS MY CLAIMS:** no
+

@@ -860,3 +860,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-27T05:28:35+10:00	45	45	0	0	0	1301	30	CLEAN	ablate-0x800d4060-052746.log	SNP_REC=0 SNP_ABLATE=0x800d4060 SNP_DL_CENSUS=1 SNP_DL_GEOM=900,1100 SNP_AUDIO_DUMP=/media/joh/extra/sin-punishment-archive/evidence/2026-08-26/ablate-screen/ablate-0x800d4060-052746.raw
 2026-08-27T05:32:38+10:00	215	215	0	0	0	6169	0	STALLED	a492-avstamp-run1.log	SNP_AV_STAMP=1
 2026-08-27T05:36:28+10:00	215	215	0	0	0	6169	0	STALLED	a492-avstamp-run2.log	SNP_AV_STAMP=1
+2026-08-27T08:42:45+10:00	250	250	0	0	0	6169	0	STALLED	observed-083830.log	none
