@@ -326,9 +326,18 @@ def _fallback_labels(labels):
     """
     if not labels:
         return '<p class="empty">Nothing to label.</p>'
+    # MATCHES THE RUNTIME: already-labelled rows are not rendered. Without this
+    # the no-JS view and the drawn view disagree, and a reader with the runtime
+    # would see the list flicker from sixteen rows down to six. The DATA still
+    # carries every label -- see the note in labelsHTML about why filtering the
+    # state instead of the view would wipe the user's clicks.
+    todo = [x for x in labels if not x.get("label")]
+    if not todo:
+        return (f'<p class="empty">All {len(labels)} labelled &mdash; nothing '
+                f'left to do here.</p>')
     return "".join(
         f'<div class="idea"><div class="head"><span class="rid">{_esc(x["id"])}</span>'
-        f'<span class="what">{_esc(x["claim"])}</span></div></div>' for x in labels)
+        f'<span class="what">{_esc(x["claim"])}</span></div></div>' for x in todo)
 
 
 def _fallback(ideas):
@@ -756,15 +765,41 @@ page &mdash; it cannot refresh itself.
   var CATS = [["GAME", "the game"], ["NOT-GAME", "not the game"],
               ["STACK", "· stack"], ["METHOD", "· method"]];
 
+  // ALREADY-DONE ROWS ARE HIDDEN, AND THE SET IS FROZEN AT LOAD (user request,
+  // 2026-08-27). Two things this must NOT do, both of which the obvious
+  // implementation gets wrong:
+  //
+  //   1. IT MUST NOT FILTER `S.labels`. The state has to keep every label the
+  //      user ever gave, or republishing emits a page missing them and wipes
+  //      the clicks -- T193, the defect this whole file was hardened against.
+  //      `--mark-published` REFUSES such a page, so filtering the data would
+  //      turn a silent data loss into a blocked publish. Hiding is a VIEW
+  //      concern and lives here, in the renderer, only.
+  //   2. IT MUST NOT HIDE A ROW THE MOMENT IT IS CLICKED. Clicking a category
+  //      again is how you UNDO a misclick; a row that vanishes on click takes
+  //      the undo with it. So the hidden set is computed ONCE, from the labels
+  //      that arrived with the page, and never recomputed.
+  var PRELABELLED = {{}};
+  (S.labels || []).forEach(function (x) {{ if (x.label) PRELABELLED[x.id] = true; }});
+
   function labelsHTML() {{
     if (!S.labels || !S.labels.length) return '<p class="empty">Nothing to label.</p>';
     var done = S.labels.filter(function (x) {{ return x.label; }}).length;
+    var shown = S.labels.filter(function (x) {{ return !PRELABELLED[x.id]; }});
+    var hidden = S.labels.length - shown.length;
+    if (!shown.length) return '<p class="empty">All ' + S.labels.length
+      + ' labelled &mdash; nothing left to do here.</p>';
     // PROGRESS IS STATED, because "partial is fine" is only credible if the
-    // page shows partial as a real state rather than an unfinished one.
+    // page shows partial as a real state rather than an unfinished one. The
+    // hidden count is stated too: a list that quietly drops rows is
+    // indistinguishable from a list that never had them.
     var head = '<p class="lede"><b>' + done + " of " + S.labels.length
-      + " labelled.</b> " + (done ? "Saved as you go; stop whenever you like."
-                                  : "Nothing yet &mdash; A99 is the one to do first.") + "</p>";
-    return head + S.labels.map(function (it) {{
+      + " labelled"
+      + (hidden ? ", and those " + hidden + " are hidden &mdash; <b>"
+                  + shown.length + " left below</b>" : "")
+      + ".</b> " + (done ? "Saved as you go; stop whenever you like."
+                         : "Nothing yet &mdash; A99 is the one to do first.") + "</p>";
+    return head + shown.map(function (it) {{
       var v = it.label || "";
       return '<div class="idea"><div class="head">'
         + '<span class="rid">' + esc(it.id) + '</span>'
@@ -1110,6 +1145,26 @@ def self_check():
     chk("labels are UNSET until the user sets one",
         all(not x.get("label") for x in st.get("labels", [])),
         "a pre-filled label is an answer key by another name (fixture has no given file)")
+    # HIDING DONE ROWS IS A VIEW CONCERN, AND THIS IS THE CONTROL THAT KEEPS IT
+    # ONE (user request, 2026-08-27). The obvious way to hide a labelled row is
+    # to drop it from the data -- which would emit a page missing labels the
+    # user gave, and that is exactly the T193 data loss the rest of this file
+    # exists to prevent. So: a labelled row must be ABSENT FROM THE RENDERED
+    # LIST and PRESENT IN THE STATE, and both halves are asserted. Filtering at
+    # the data layer fails the second half; not hiding at all fails the first.
+    _lab = [{"id": "A1", "claim": "c1", "secs": [], "label": "GAME"},
+            {"id": "A4", "claim": "c4", "secs": []}]
+    _fb = _fallback_labels(_lab)
+    chk("an already-labelled row is NOT rendered in the no-JS list",
+        "A4" in _fb and "A1" not in _fb,
+        "the done ones are what the user asked to stop seeing")
+    chk("...and hiding is done in the VIEW, never by dropping it from the state",
+        any(x.get("label") == "GAME" and x["id"] == "A1" for x in _lab),
+        "filtering the data would republish a page missing their clicks (T193)")
+    chk("a fully-labelled list says so instead of rendering empty",
+        "nothing left to do" in _fallback_labels(
+            [{"id": "A1", "claim": "c", "secs": [], "label": "GAME"}]).lower(),
+        "an empty section reads as a broken page, not a finished task")
     # THE DEFECT T193 RECORDS: regenerating used to blank every label the user had
     # given, because the generator reads project files and a click lives on the
     # page. Their labels are now written back to the archive and read from there.
