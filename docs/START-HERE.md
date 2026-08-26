@@ -9,13 +9,23 @@ kept current. If you find yourself adding facts here, they belong in the
 handoff instead — a second copy is a copy that goes stale, and this is the one
 file whose reader is least able to notice it has.
 
-**Keep it under a screen.** Update the two bracketed bits when they change:
-the handoff's date, and the one-line blocker.
+**Keep it under a screen.** Exactly two things go stale, and both are marked
+with **`«…»`** so they can be found and checked: **the handoff filename** and
+**the one-line blocker**. The guillemets stay; only what is *inside* them is
+replaced. P7 step 5 refreshes both at clear time.
+
+> **Why they are marked at all.** This file used to say "update the two
+> bracketed bits" with nothing bracketed — so there was no way to locate them
+> and no way to check them. On 2026-08-26 the handoff was renamed
+> `HANDOFF-2026-08-25.md` → `HANDOFF-2026-08-26.md` and **this file went on
+> naming a file that no longer existed**: a first message pointing at nothing,
+> handed to the one session least able to work out why. The marks exist so a
+> checker can read the filename out and `stat` it.
 
 ---
 
 ```
-Sin & Punishment recomp session. Start by reading HANDOFF-2026-08-25.md in
+Sin & Punishment recomp session. Start by reading «HANDOFF-2026-08-25.md» in
 the repo root — it is gitignored so it will not appear in any repo listing;
 open it by path. Run its [ONCE] steps in order before anything else, and do
 not skip them because you think you know the state:
@@ -30,10 +40,10 @@ not skip them because you think you know the state:
 Then read docs/protocols-draft.md — it is how we run recurring work, it is a
 draft, and it has a deviations log you should add to rather than work around.
 
-Where we left off: the real game's tutorial frame is captured at
+Where we left off: «the real game's tutorial frame is captured at
 <archive>/evidence/2026-08-25/REFERENCE-tutorial-real-game.png and shows the
 walkway, buildings and sky that our build leaves black. The next checkpoint is
-one blocker wide — see T201.
+one blocker wide — see T201.»
 
 Report the state in a few plain sentences and stop there; I'll say when to
 take the first roll.
@@ -56,3 +66,19 @@ take the first roll.
   gets nowhere; a blocker with an entry ID gets read.
 * **"stop there"** — the user opens the rotation. Every session so far has
   started with them deciding what it is for.
+* **the `«…»` marks** — they are not decoration and they are not for the reader
+  of the pasted message, who never sees this file. They exist so that the two
+  things which go stale can be *found* and *machine-checked*. A file that says
+  "update the bits that change" without saying which bits is a file that will
+  be pasted stale, and after a clear there is nobody left who knows.
+
+## What this file is NOT
+
+**It is not a state summary and must never become one.** The handoff is the
+state; this is the pointer to it. Every fact added here is a second copy with a
+reader uniquely unable to notice it has gone stale — which is `CLAUDE.md`'s
+standing rule, aimed at its worst case.
+
+**It is not a shortcut past the `[ONCE]` gates.** A seed reading "carry on with
+the audio work" invites skipping the observed-run gate and the visited-set
+check. **Its job is to get those run, not to get past them.**

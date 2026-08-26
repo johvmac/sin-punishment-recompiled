@@ -307,11 +307,33 @@ adds what only matters when there is no summary at all.**
    status-page URL and click state, the visited-set rule.
 2. **Nothing is mid-flight.** Either finished, or written as a resumable
    blocker with its evidence paths. "I was part-way through X" is unrecoverable.
-3. **The dashboard is published if the queue or frontier moved**, since it is
-   the user's only view that does not depend on this conversation.
+3. **The dashboard is published if the queue or frontier moved — OR the reason
+   it was NOT is written into the handoff.** `REVISED 2026-08-26`: the original
+   step said only "publish", and on 2026-08-26 publishing was the wrong move —
+   the click-reader could not be shown able to see the user's ten recorded
+   labels, so a publish risked destroying them (T193). **An unpublished stale
+   dashboard is survivable; an unpublished stale dashboard that nobody
+   remembers is stale is not, because after a clear there is no conversation
+   left to remember it.** Publish, or say in the handoff that you did not and
+   what has to be true before anyone does.
 4. **The handoff supersedes cleanly** — one file, dated, saying which it
    replaces. Two live handoffs is the two-halves failure with the session's
    entry point as the victim.
+
+4a. **EVERY WITHDRAWAL AND CORRECTION FROM THIS SESSION IS IN THE HANDOFF, BY
+   ID.** `ADDED 2026-08-26.` Three entries were withdrawn or overturned in two
+   days (T207 in full, A461 in part, A455's count). **A cleared session reads
+   the ledger as flat: a withdrawn entry looks exactly like a live one unless
+   the handoff says otherwise**, and the reader who picks one up has no
+   conversation to correct them. `ledger.py --wd` exists; the handoff is what
+   makes anyone run it.
+
+4b. **ANYTHING "TO LOOK AT LATER" IS AN OPEN, COST-PRICED FRONTIER ROW — not a
+   sentence in the handoff.** `ADDED 2026-08-26`, the day A463 was opened for
+   exactly this reason. **The router draws from `ledger.py --open`. An
+   investigation parked in prose is invisible to it and will simply not
+   happen.** If it is worth resuming, it is worth a cost and a NEXT; if it is
+   not worth a row, it is not parked, it is dropped — say so.
 
 5. **LEAVE THE MESSAGE THAT STARTS THE NEXT SESSION.** The user's addition,
    2026-08-25, and the mirror of P6's compactor message: **after a clear there
@@ -335,6 +357,19 @@ adds what only matters when there is no summary at all.**
    text must be offered in the chat at clear time, because the user is not
    going to open a file to find the message that opens the session.**
 
+   **ITS TWO VARIABLE SLOTS ARE MARKED `«…»` AND BOTH MUST BE REFRESHED.**
+   `ADDED 2026-08-26.` The file said "update the two bracketed bits" and nothing
+   was bracketed, so there was no way to find them and no way to check.
+   **The failure this prevents is not hypothetical: on 2026-08-26 the handoff
+   was renamed 2026-08-25 → 2026-08-26 and the seed went on naming a file that
+   no longer existed** — a first message pointing at nothing, in the one session
+   least able to work out why.
+
+6. **THE SEED MUST NAME A HANDOFF THAT EXISTS.** The only fully mechanical check
+   in this protocol, and the one worth building first: read the filename out of
+   `START-HERE.md` and stat it. Everything else here needs judgement; this needs
+   a file test.
+
 **WHAT NEITHER PROTOCOL CAN DO, stated so it is not assumed:** neither recovers
 a claim I never wrote down. The test for both is not "did I summarise well" but
 **"if the conversation vanished right now, would the files alone be enough?"**
@@ -342,6 +377,32 @@ a claim I never wrote down. The test for both is not "did I summarise well" but
 **AND THE TWO MESSAGES ARE NOT INTERCHANGEABLE**, which is why they are separate
 steps: the compactor message argues with a summary that will exist; the seed
 message replaces a conversation that will not.
+
+**CHECKER WOULD ASSERT** *(designed, then RUN BY HAND — which caught two bugs in
+the design, so it is written here in its corrected form)*:
+
+* **The handoff named in `START-HERE.md` exists on disk**, and **is the
+  newest-dated `HANDOFF-*.md` present.** The first draft said "exactly one
+  handoff is not superseded" — unworkable, because seven dated files sit in the
+  root and supersession is prose. Newest-dated-and-named is crisp and captures
+  the actual intent: one live entry point, correctly pointed at.
+* **Exactly two `«…»` slots, counted ONLY INSIDE THE FENCED BLOCK.** The first
+  draft counted them file-wide and found four — the marks appear in the prose
+  that explains them. **A check that counts its own documentation is measuring
+  the wrong file.**
+* **`ledger.py --open` is non-empty**, since a clear with an empty frontier
+  leaves the router nothing to draw and the next session no way to start
+  without the user.
+
+**IT WOULD NOT ASSERT THAT THE HANDOFF IS ACCURATE OR THAT NOTHING IS
+MID-FLIGHT.** Those are judgements. T209 is this project's evidence that
+dressing a judgement as a check yields a detector that fires on a third of
+everything or on none of it — and the three assertions above are the ones that
+survived asking, of each, *what would a wrong answer look like?*
+
+**RUN ON 2026-08-26 IT FIRED CORRECTLY**, on the real staleness it was designed
+for: the seed named `HANDOFF-2026-08-25.md`, which had been renamed that
+morning and no longer existed.
 
 ## P8 — A TIMED AUTONOMOUS STRETCH
 
