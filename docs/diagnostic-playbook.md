@@ -4792,3 +4792,41 @@ ceiling column caught it.
   can read removal at all**, which is precisely what an "added and never removed"
   claim needs and what A247 never had.
 * **C3 SATURATION** — the ceiling table above. The only one that failed.
+
+## `gdb_hangdump.sh` + `SNP_RDRAM_DUMP` — game memory at a HANG (added 2026-08-27, A580)
+
+**Purpose.** A211's freeze is a hang, and until now nothing captured RDRAM at
+one: `gdb_fault.sh` dumps memory but needs a crash signal; the hang script
+caught the freeze but recorded thread backtraces only (A577 named the gap).
+Now `SNP_RDRAM_DUMP=<path> scripts/gdb_hangdump.sh <settle_s> <out.txt>` also
+snapshots the first `SNP_RDRAM_MB` (default 8) MB at the interrupt, readable
+with `scripts/rdram_peek.py`.
+
+**Mechanism, and why it transfers.** The fault script's snapshot is pure gdb —
+`dump binary memory` off the global `g_rdram_base` — not a fault handler, so
+it fires at ANY stop, including the hang script's SIGINT. Transplanted
+verbatim with **one deliberate difference**: the `.ctx` register file is
+guarded separately, because at an arbitrary interrupt the stopped frame is
+usually not recompiled code and `ctx` does not resolve (A122's trap). A
+missing `.ctx` prints its reason and does NOT discredit the memory dump.
+
+**Controls (T71), run 2026-08-27 on the healthy debug binary, 25 s settle:**
+* dump exists at exactly 8,388,608 B; the thread dump still produced 57
+  sections, so the addition broke nothing it sits beside;
+* `.ctx` correctly absent with the guard's message ("No symbol ctx in current
+  context"), which is the A122 case firing as designed, not a failure;
+* content read back sanely: the matrix-stack top (`0x80068A84`) read
+  `0x80068284` — its own base, which held the identity matrix. That is also an
+  independent confirmation of A572's hand-derived base on a fresh run.
+* without `SNP_RDRAM_DUMP` the block prints "RDRAM skipped", so silence is
+  distinguishable (T65).
+
+**The measurement it exists for:** run with settle ≈ 215 s to land past the
+212.87 s freeze (A452), then read `0x80068A84` from the snapshot. Far above
+`0x80068284` revives the runaway-stack story for t=207 (A566); at/near base
+kills it everywhere and sends A211 after a different writer. Two-sided either
+way (A573/A577).
+
+**Incident that motivated it:** A573 could refute the runaway story only at
+the A99 crash, because that was the sole moment with a snapshot; the t=207
+hang had none.

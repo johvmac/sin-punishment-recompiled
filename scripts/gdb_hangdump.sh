@@ -22,6 +22,16 @@
 #   * The dump REFUSES to report success if the backtrace contains no thread
 #     matching the RSP/task path -- an empty dump is an instrument failure,
 #     not evidence of health (T65: silence must be distinguishable).
+#
+# RDRAM AT A HANG (2026-08-27, A577/A580): set SNP_RDRAM_DUMP=<path> and the
+# interrupt also snapshots the first SNP_RDRAM_MB (default 8) MB of game
+# memory, readable with scripts/rdram_peek.py. This is the SAME pure-gdb
+# mechanism gdb_fault.sh carries -- `dump binary memory` off g_rdram_base, no
+# fault handler involved, so it fires at any stop. ONE DELIBERATE DIFFERENCE:
+# the .ctx register file is guarded SEPARATELY, because at an arbitrary
+# interrupt the stopped frame may not be recompiled code and `ctx` may not
+# resolve (A122). A missing .ctx is reported and does NOT discredit the
+# memory dump, which needs only the global g_rdram_base.
 set -uo pipefail
 case "${1:-}" in -h|--help) sed -n '2,/^set -/p' "$0" | sed '$d; s/^#\( \|$\)//'; exit 0;; esac
 
@@ -41,6 +51,36 @@ SP_AUTOSTART=1 SDL_VIDEODRIVER=x11 \
     setsid stdbuf -oL -eL gdb -batch \
     -ex 'set pagination off' \
     -ex 'run' \
+    -ex "python
+import gdb, os, struct
+path = os.environ.get('SNP_RDRAM_DUMP', '')
+if path:
+    try:
+        base = int(gdb.parse_and_eval('*(unsigned long long *)&g_rdram_base'))
+        size = int(os.environ.get('SNP_RDRAM_MB', '8')) * 1024 * 1024
+        gdb.execute('dump binary memory %s %d %d' % (path, base, base + size))
+        print('  wrote %s (%.1f MB)' % (path, os.path.getsize(path) / 1e6))
+        print('  read it with:  scripts/rdram_peek.py %s 0x80068A84' % path)
+    except Exception as e:
+        print('  RDRAM snapshot FAILED: %s' % e)
+    else:
+        # ctx is guarded SEPARATELY (A122): at a hang interrupt the stopped
+        # frame may not be recompiled code. The memory dump above stands
+        # either way.
+        try:
+            regs = []
+            for i in range(32):
+                regs.append(int(gdb.parse_and_eval('(unsigned long long)ctx->r%d' % i)) & 0xFFFFFFFFFFFFFFFF)
+            with open(path + '.ctx', 'wb') as f:
+                f.write(struct.pack('<Q', base))
+                for v in regs:
+                    f.write(struct.pack('<Q', v))
+            print('  wrote %s.ctx' % path)
+        except Exception as e:
+            print('  no .ctx (ctx not in scope at the interrupt point: %s) -- the memory dump is still valid' % e)
+else:
+    print('  RDRAM skipped -- set SNP_RDRAM_DUMP=<path> (8MB)')
+end" \
     -ex 'thread apply all bt 16' \
     -ex 'info threads' \
     --args "$BIN" > "$OUT" 2>&1 &
