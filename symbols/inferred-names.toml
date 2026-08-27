@@ -241,3 +241,17 @@
 # throughout -- there is no caller-supplied fill value anywhere in the body.
 0x800440D0 = "bzero"                # READING, strong: fill is always $zero,
                                     # $a1 is length; 17 callers
+
+# A532 (2026-08-27, roll #312). A527 characterised this pair as an
+# acquire/release lock over a 1-deep message queue and DELIBERATELY LEFT IT
+# UNNAMED, because the lock body cannot distinguish __osSi* from __osPi* --
+# the difference is what calls them, and all five callers were anonymous.
+# SETTLED HERE BY READING ONE CALLER: boot_func_8003D180 calls
+# __osPackEepReadData, __osEepStatus and __osSiRawStartDma with this pair
+# wrapped around them. EEPROM goes over the SERIAL interface, so the lock is
+# the SI access queue. 800470E4 self-initialises the queue, primes it with one
+# token and BLOCKS receiving it (acquire); 80047150 sends the token back
+# (release). Queue at 0x800A6ED0, init flag at 0x80060BC0. 5 callers each.
+0x800470E4 = "__osSiGetAccess"      # READING, strong: blocks on the 1-deep
+                                    # queue; caller does SI EEPROM DMA
+0x80047150 = "__osSiRelAccess"      # READING, strong: returns the token
