@@ -211,14 +211,53 @@ RESOLVABLE = {
 }
 
 
+def self_check():
+    """L1 had NO self-check at all until A588 — the only ladder level without one.
+
+    It is added with exactly ONE control, and deliberately the one that was
+    missing everywhere: audit_l3.py crashed on every real invocation for a week
+    while its own suite reported 8/8, because all eight controls tested helpers
+    and none ever ran the report. L2 had the same blind spot. A component
+    control cannot see a bug in the WIRING between a helper and its consumer.
+
+    Adding a broad suite here retroactively would be inventing controls for code
+    whose failures I have not observed (T100: a checker whose first run finds
+    nothing should be suspected). One control that fires on the failure mode
+    actually seen three times this week is worth more than six invented ones.
+    """
+    checks = []
+    import io as _io, contextlib as _cl
+    try:
+        _argv = sys.argv[:]
+        sys.argv = [_argv[0], "--dry-run"]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()), _cl.redirect_stderr(_io.StringIO()):
+                _rc = main()
+        finally:
+            sys.argv = _argv
+        ok, why = _rc in (0, 1), f"main() returned {_rc}"
+    except Exception as e:
+        ok, why = False, f"main() RAISED {type(e).__name__}: {e}"
+    checks.append(("the audit itself RUNS end to end", ok, why))
+
+    bad = 0
+    for name, k, detail in checks:
+        bad += not k
+        print(f"{'ok  ' if k else 'FAIL'}  {name:48} — {detail}")
+    print(f"\n{len(checks)-bad}/{len(checks)} controls pass")
+    return 1 if bad else 0
+
+
 def main():
     if "--help" in sys.argv or "-h" in sys.argv:
         print(__doc__)
         return 0
+    if "--self-check" in sys.argv:
+        return self_check()
 
     # T37: audit.py appends to docs/audit-log.md, so an unrecognised flag must
     # not fall through to the default (writing) action.
-    KNOWN = {"--dry-run", "--since", "--help", "-h"}
+    KNOWN = {"--dry-run", "--since", "--self-check", "--help", "-h"}
     unknown = [a for a in sys.argv[1:]
                if a.startswith("-") and a not in KNOWN]
     if unknown:

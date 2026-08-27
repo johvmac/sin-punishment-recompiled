@@ -222,6 +222,27 @@ def self_check():
                    cls == {"single-run": 1, "no-evidence": 1},
                    f"got {cls} — must see the 2 findings only, not the 3 resolutions"))
 
+    # END-TO-END (A588, after A587). Every control above tests a PARSER or a
+    # classifier; none ever ran the report. That is precisely how audit_l3.py
+    # crashed on every real invocation for a week while its own suite reported
+    # 8/8 — the defect lived in the WIRING between a helper and its consumer,
+    # and a component control cannot see wiring. Runs the whole thing in
+    # dry-run and asserts it RETURNS rather than RAISES.
+    import io as _io, contextlib as _cl
+    try:
+        _argv = sys.argv[:]
+        sys.argv = [_argv[0], "--dry-run"]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()), _cl.redirect_stderr(_io.StringIO()):
+                _rc = main()
+        finally:
+            sys.argv = _argv
+        _ok, _why = _rc in (0, 1), f"main() returned {_rc}"
+    except Exception as _e:
+        _ok, _why = False, f"main() RAISED {type(_e).__name__}: {_e}"
+    checks.append(("the digest itself RUNS end to end (not just the parsers)",
+                   _ok, _why))
+
     bad = 0
     for name, ok, detail in checks:
         bad += not ok
