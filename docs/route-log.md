@@ -358,3 +358,20 @@ A gap in the numbering means a roll was skipped.
 - roll #339: **EXPLOIT** (drew 0.326 vs eps 0.3) -> `T197` [witness `a1dbd6`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #340: **EXPLORE** (drew 0.096 vs eps 0.3) -> `T150` [witness `ed0fff`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
 - roll #341: **EXPLORE** (drew 0.032 vs eps 0.3) -> `A211` [witness `589d86`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #342: **EXPLORE** (drew 0.073 vs eps 0.3) -> `A218` [witness `7fe694`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #343: **EXPLOIT** (drew 0.668 vs eps 0.3) -> `A219` [witness `8aad11`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #344: **EXPLOIT** (drew 0.998 vs eps 0.3) -> `A225` [witness `280720`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #345: **EXPLOIT** (drew 0.630 vs eps 0.3) -> `T211` [witness `4e931d`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #346: **EXPLOIT** (drew 0.488 vs eps 0.3) -> `T197` [witness `b314dc`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #347: **EXPLOIT** (drew 0.769 vs eps 0.3) -> `A211` [witness `c233eb`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #348: **EXPLOIT** (drew 0.547 vs eps 0.3) -> `A218` [witness `528b4d`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #349: **EXPLORE** (drew 0.241 vs eps 0.3) -> `A225` [witness `d5c6b7`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #350: **EXPLOIT** (drew 0.575 vs eps 0.3) -> `A219` [witness `f0ed74`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #351: **EXPLOIT** (drew 0.545 vs eps 0.3) -> `T211` [witness `a3ab43`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #352: **EXPLOIT** (drew 0.819 vs eps 0.3) -> `T197` [witness `7e1180`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #353: **EXPLOIT** (drew 0.849 vs eps 0.3) -> `A211` [witness `9c27e0`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #354: **EXPLOIT** (drew 0.610 vs eps 0.3) -> `A218` [witness `82beee`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #355: **EXPLOIT** (drew 0.440 vs eps 0.3) -> `A225` [witness `913a49`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #356: **EXPLOIT** (drew 0.817 vs eps 0.3) -> `A219` [witness `d28e9a`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #357: **EXPLOIT** (drew 0.811 vs eps 0.3) -> `T211` [witness `360e73`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #358: **EXPLORE** (drew 0.064 vs eps 0.3) -> `A211` [witness `239bf1`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
