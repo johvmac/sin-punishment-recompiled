@@ -1,11 +1,11 @@
 {
- "start": 1787866011.477446,
- "deadline": 1787869911.477446,
+ "start": 1787872846.0277212,
+ "deadline": 1787876746.0277212,
  "requested": 3600,
- "task": "spend the unspent roll #367, then roll through checkpoints",
+ "task": "look at the frozen frame from A601's corruption snapshot, then roll through checkpoints",
  "shelf": [],
  "blocks": [],
- "roll_at_start": 367,
+ "roll_at_start": 379,
  "entries_at_start": [
   "A1",
   "A10",
@@ -522,7 +522,22 @@
   "A584",
   "A585",
   "A586",
+  "A587",
+  "A588",
+  "A589",
+  "A590",
+  "A591",
+  "A592",
+  "A593",
+  "A594",
+  "A595",
+  "A596",
+  "A597",
+  "A598",
+  "A599",
   "A6",
+  "A600",
+  "A601",
   "A61",
   "A62",
   "A64",
@@ -839,5 +854,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }

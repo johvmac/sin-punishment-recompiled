@@ -441,3 +441,8 @@ here that T209 does not already carry.
 - rolls: 24 this window; runs: 0 (0 exited early, 0 contaminated)
 - nothing flagged (quiet streak 1; at 3, halve the frequency)
 
+## Audit #34 — since 979d5fea
+- ledger: 830 entries (+23 this window), 42 withdrawn
+- rolls: 20 this window; runs: 1 (0 exited early, 0 contaminated)
+- nothing flagged (quiet streak 2; at 3, halve the frequency)
+
