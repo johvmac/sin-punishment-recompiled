@@ -410,3 +410,9 @@
 # which is ordinary for linked-but-unused library accessors.
 0x80046180 = "__osSpGetStatus"      # READING, strong: reads SP_STATUS_REG
 0x80046190 = "__osSpSetStatus"      # READING, strong: writes SP_STATUS_REG
+
+[[name]]
+addr = 0x8002AD54
+name = "snp_set_view_context"
+evidence = "DESCRIBED"
+why = "A570 (2026-08-27, roll #351): three instructions -- sw $a0 to the global 0x80068180, then jr $ra. That global is the view/camera context pointer through which the frustum clip planes at +0x4AC..+0x4C4 are read (A566/A567); 9 writers, 1157 reads across 223 functions. NOT the original name -- named by reading, and the confidence comes from the body having room for nothing else."
