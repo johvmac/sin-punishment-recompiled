@@ -1,6 +1,25 @@
-# Inferred names, transplanted from the Mischief Makers port's map.
-# EVERY ROW IS AN INFERENCE (T197): skeleton-exact, unique both ways.
-# This file is a VIEW for readers and tools. RecompiledFuncs is never edited.
+# Inferred names (T197). This file is a VIEW for readers. RecompiledFuncs is
+# never edited.
+#
+# TWO EVIDENCE CLASSES SINCE 2026-08-27 (A544), and the distinction is load-
+# bearing -- do not let a row's shape hide which kind it is:
+#
+#   BORROWED  a library symbol transplanted by skeleton-exact, unique-both-ways
+#             matching (libultra, libaudio al*, gu_*, bcopy/bzero). The name is
+#             the REAL name the original code had. Everything emitted by
+#             ultralib_oracle.py is this class, as is every row written before
+#             2026-08-27.
+#   DESCRIBED a name I chose after READING the function, for engine code that
+#             no donor can ever name (A440/A443: Treasure's engine has no
+#             counterpart). **THE NAME IS NOT THE ORIGINAL NAME.** It is a
+#             label for what the code was measured to do. Marked `# DESCRIBED`
+#             on the row and prefixed `snp_` so it can never be mistaken for a
+#             recovered symbol.
+#
+# Why this file can carry both (MEASURED, A544): NOTHING consumes it
+# programmatically -- the only two references in the tree are WRITERS
+# (ultralib_oracle.py --emit-into, symbol_transplant.py --emit), and the oracle
+# APPENDS (`s = p.read_text(); s += ...`) so hand-added rows survive a re-emit.
 # holdout at emit time: 2/57 recovered, 1 disagreements
 
 0x8003E330 = "osSetIntMask"  # our map already names this osSetIntMask
@@ -326,3 +345,22 @@
 #   0x80061F30 = __OSGlobalIntMask
 0x8003E114 = "__osDispatchThread"   # READING, strong: pops the run queue and
                                     # writes CP0 Status; 2 callers
+
+# --- DESCRIBED (A544, 2026-08-27) -----------------------------------------
+# Engine code, named from READING, not transplanted. See the header: these are
+# NOT the original symbol names. All four were read whole during roll #314-#320
+# while measuring A211, and all four are load-bearing for it.
+0x80025E44 = "snp_main_scene_loop"   # DESCRIBED (A534,A539): installs the tick
+                                     # callback, SPINS on the scene-request
+                                     # byte, clears it, handles the transition
+0x800261FC = "snp_frame_tick"        # DESCRIBED (A531,A537,A539): the per-frame
+                                     # tick, invoked via the callback slot;
+                                     # returns early on three gate bytes
+0x8004D500 = "snp_set_frame_callback" # DESCRIBED (A537,A539): stores a function
+                                     # pointer to 0x8007AF0C under osSetIntMask;
+                                     # arg 0 deregisters
+0x80026288 = "snp_walk_all_lists"    # DESCRIBED (A534): calls the six-list
+                                     # walker once per list
+# DATUM, recorded as a comment because this file is keyed by address and a data
+# row would read as a function: 0x8007AF0C = the frame-tick callback slot,
+# whose corruption A540 measured as A211's mechanism.
