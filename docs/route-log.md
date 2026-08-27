@@ -376,3 +376,10 @@ A gap in the numbering means a roll was skipped.
 - roll #357: **EXPLOIT** (drew 0.811 vs eps 0.3) -> `T211` [witness `360e73`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
 - roll #358: **EXPLORE** (drew 0.064 vs eps 0.3) -> `A211` [witness `239bf1`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #359: **EXPLOIT** (drew 0.960 vs eps 0.3) -> `T197` [witness `b0d5cd`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #360: **EXPLORE** (drew 0.002 vs eps 0.3) -> `T150` [witness `f20f74`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
+- roll #361: **EXPLORE** (drew 0.168 vs eps 0.3) -> `A211` [witness `af77d5`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #362: **EXPLORE** (drew 0.180 vs eps 0.3) -> `T211` [witness `c04c7d`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #363: **EXPLOIT** (drew 0.506 vs eps 0.3) -> `A218` [witness `218a89`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #364: **EXPLORE** (drew 0.237 vs eps 0.3) -> `A219` [witness `fec759`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #365: **EXPLOIT** (drew 0.627 vs eps 0.3) -> `A225` [witness `d85607`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #366: **EXPLORE** (drew 0.129 vs eps 0.3) -> `A211` [witness `211afa`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
