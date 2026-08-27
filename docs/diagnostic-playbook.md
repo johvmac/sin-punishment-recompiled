@@ -4535,6 +4535,11 @@ tutorial pause, and only the working game can say.**
   (`snp_isolate_display`), then `timeout N ./build/desktop-ui/ares --system
   "Nintendo 64" <ABSOLUTE rom path>` with the env set. The isolation wrapper
   auto-records — expect a ~2 MB/s .mkv rider beside the log.
+* **EPOCH BOUNDARY 2026-08-27 (A515): the checkout's VI output filtering is
+  HARD-FORCED OFF at the register write** (AA mode 2, divot/dither/gamma-dither
+  cleared) — every capture from this date is sharp-epoch and NOT
+  pixel-comparable to real-console output or to earlier captures. The CPU is
+  also interpreter-forced (A505). Both diffs live in `probe-patches/`.
 * Rebuild after touching the patch: `ninja -C build desktop-ui` (NOT
   `cmake --build` — guard false positive, known).
 * **The attract needs NO input** (A436) — the tutorial arrives by itself at
