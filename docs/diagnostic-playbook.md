@@ -4535,6 +4535,14 @@ tutorial pause, and only the working game can say.**
   (`snp_isolate_display`), then `timeout N ./build/desktop-ui/ares --system
   "Nintendo 64" <ABSOLUTE rom path>` with the env set. The isolation wrapper
   auto-records — expect a ~2 MB/s .mkv rider beside the log.
+* **THE CAPTURES CARRY ARES'S OWN UI, AND `cropdetect` FINDS THE WRONG BOX
+  (user-caught, 2026-08-27): the game renders inside a floating "Output"
+  panel, so black-border detection returns the panel surround (1024x720),
+  not the picture. Measure the game rectangle from PIXEL CONTENT per capture
+  and verify one cropped frame by eye before using it — for the current
+  window layout it measured `crop=564:424:225:74` (565x425, 4:3 to three
+  decimals), but the panel can move, so the offset must not be reused
+  blindly across runs.**
 * **EPOCH BOUNDARY 2026-08-27 (A515): the checkout's VI output filtering is
   HARD-FORCED OFF at the register write** (AA mode 2, divot/dither/gamma-dither
   cleared) — every capture from this date is sharp-epoch and NOT
