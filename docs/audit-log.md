@@ -436,3 +436,8 @@ here that T209 does not already carry.
 - **1 thing(s) to look at:**
   - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 178 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
 
+## Audit #33 — since 708a6af5
+- ledger: 807 entries (+24 this window), 42 withdrawn
+- rolls: 24 this window; runs: 0 (0 exited early, 0 contaminated)
+- nothing flagged (quiet streak 1; at 3, halve the frequency)
+

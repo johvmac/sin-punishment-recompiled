@@ -1,16 +1,11 @@
 {
- "start": 1787814119.8151526,
- "deadline": 1787818019.8151526,
- "requested": 3600,
+ "start": 1787830329.0884066,
+ "deadline": 1787832429.0884066,
+ "requested": 1800,
  "task": "roll through checkpoints",
- "shelf": [
-  {
-   "what": "A367's 3-divisible sampling-interval defect \u2014 census samples every 300 and every 15, both multiples of 3, so a three-frame cycle is invisible by construction and the probe does not warn",
-   "why": "could not locate the sampling knob in the checkpoint's budget; it is not an SNP_ env var. Everything else on the frontier proceeds \u2014 this voids universals in entries built on those intervals but blocks nothing"
-  }
- ],
+ "shelf": [],
  "blocks": [],
- "roll_at_start": 341,
+ "roll_at_start": 359,
  "entries_at_start": [
   "A1",
   "A10",
@@ -500,7 +495,25 @@
   "A559",
   "A56",
   "A560",
+  "A561",
+  "A562",
+  "A563",
+  "A564",
+  "A565",
+  "A566",
+  "A567",
+  "A568",
+  "A569",
   "A57",
+  "A570",
+  "A571",
+  "A572",
+  "A573",
+  "A574",
+  "A575",
+  "A576",
+  "A577",
+  "A578",
   "A6",
   "A61",
   "A62",
@@ -818,5 +831,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
