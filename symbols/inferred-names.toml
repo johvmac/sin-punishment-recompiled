@@ -43,8 +43,12 @@
 # studio, so only the precompiled-SDK tier can cross; each row is skeleton-
 # exact and unique both ways against all 6,295 of our functions.
 # Confidence varies with size and is per-row, not uniform.
-0x80041630 = "alFilterNew"          # 7 words; first name ever in our audio band
-0x80042EA0 = "alSynDelete"          # 2 words -- LOW confidence, uniqueness only
+# DUPLICATE KEY, neutralised by A578 (2026-08-27, roll #359) so the file parses as TOML.
+# Same name as the later row; kept verbatim for the record, not deleted:
+# 0x80041630 = "alFilterNew"          # 7 words; first name ever in our audio band
+# DUPLICATE KEY, neutralised by A578 (2026-08-27, roll #359) so the file parses as TOML.
+# Same name as the later row; kept verbatim for the record, not deleted:
+# 0x80042EA0 = "alSynDelete"          # 2 words -- LOW confidence, uniqueness only
 0x80043720 = "gu_sqrtf"             # 2 words -- LOW confidence, uniqueness only
 0x80047D20 = "boot_osMapTLBRdb"     # 22 words
 # @80046120 __osSetCompare -- already above from MM; Banjo agrees (2 sources)
@@ -54,12 +58,18 @@
 # --- FROM THE ULTRALIB 2.0K ORACLE, IDO -O2 _FINALROM (A444) -- compiled at
 # our build kind from public libultra source; era chosen by vote (36/57
 # of our named functions recovered). Skeleton-exact, unique both ways.
-0x8003D180 = "osEepromRead"               # 102 words
+# DUPLICATE KEY, neutralised by A578 (2026-08-27, roll #359) so the file parses as TOML.
+# Same name as the later row; kept verbatim for the record, not deleted:
+# 0x8003D180 = "osEepromRead"               # 102 words
 0x8003D318 = "__osPackEepReadData"        # 34 words
-0x8003D3A0 = "osEepromWrite"              # 90 words
+# DUPLICATE KEY, neutralised by A578 (2026-08-27, roll #359) so the file parses as TOML.
+# Same name as the later row; kept verbatim for the record, not deleted:
+# 0x8003D3A0 = "osEepromWrite"              # 90 words
 0x8003D508 = "__osPackEepWriteData"       # 42 words
 0x8003D5B0 = "__osEepStatus"              # 103 words
-0x8003D750 = "osEepromProbe"              # 29 words
+# DUPLICATE KEY, neutralised by A578 (2026-08-27, roll #359) so the file parses as TOML.
+# Same name as the later row; kept verbatim for the record, not deleted:
+# 0x8003D750 = "osEepromProbe"              # 29 words
 0x8003D7D0 = "osEepromLongWrite"          # 57 words
 0x8003D8C0 = "osEepromLongRead"           # 28 words
 0x8003E3D0 = "__osSetGlobalIntMask"       # 16 words
@@ -437,5 +447,6 @@
 # NOT added here -- it was ALREADY named guMtxCatF (line ~233, BORROWED). A560 derived
 # "clean 4x4 multiply, 16 words to a caller-supplied destination" by reading, which is
 # guMtxCatF exactly: two independent derivations agreeing, and the BORROWED name wins.
+0x8003719C = "snp_tile_blit"         # READING: emits one TEXRECT per tile over a
                                     # nested loop, from the 10-field descriptor
                                     # A529 recovered and A553 confirmed
