@@ -255,3 +255,29 @@
 0x800470E4 = "__osSiGetAccess"      # READING, strong: blocks on the 1-deep
                                     # queue; caller does SI EEPROM DMA
 0x80047150 = "__osSiRelAccess"      # READING, strong: returns the token
+
+# A535 (2026-08-27, roll #315). The EEPROM trio A532 named as the next step and
+# deliberately did NOT guess at. Each row's discriminator, verified by my own
+# callee census before entry:
+#   8003D180 packs a READ  (__osPackEepReadData)  + 2x __osSiRawStartDma
+#   8003D3A0 packs a WRITE (__osPackEepWriteData) + 2x __osSiRawStartDma
+#   8003D750 packs NOTHING and does no DMA -- 95 lines, __osEepStatus only
+# all three under __osSiGetAccess/__osSiRelAccess (A532).
+#
+# READ AND WRITE ARE OVER-DETERMINED, not merely inferred: the oracle had
+# ALREADY named their callers `osEepromLongRead` (0x8003D8C0) and
+# `osEepromLongWrite` (0x8003D7D0) independently, and in libultra the Long
+# variants loop over the single-block ones. The wrapper confirms the wrapped.
+# THIS IS WHY A532's read-vs-longread worry is settled rather than argued: the
+# long variants exist separately and were named before this checkpoint existed.
+#
+# PROBE IS THE WEAKER OF THE THREE and is marked so: no wrapper confirms it.
+# It rests on shape (takes the SI lock, queries status, returns -- no pack, no
+# DMA) plus ELIMINATION, the SI EEPROM API being exactly Probe/Read/Write/
+# LongRead/LongWrite with the other four now accounted for.
+0x8003D180 = "osEepromRead"         # READING + wrapper-confirmed by
+                                    # osEepromLongRead calling it
+0x8003D3A0 = "osEepromWrite"        # READING + wrapper-confirmed by
+                                    # osEepromLongWrite calling it
+0x8003D750 = "osEepromProbe"        # READING, shape + elimination; NO wrapper
+                                    # confirmation -- weakest of the three
