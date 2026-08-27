@@ -364,3 +364,40 @@
 # DATUM, recorded as a comment because this file is keyed by address and a data
 # row would read as a function: 0x8007AF0C = the frame-tick callback slot,
 # whose corruption A540 measured as A211's mechanism.
+
+# A546 (2026-08-27, roll #327). THREE THREAD MAINS AND THE GETTER A538 DECLINED.
+# Found by ranking the remaining band by ANCHOR PRESENCE (A545's named next
+# step) rather than by caller count, then reading the top of that ranking.
+#
+# ALL THREE MAINS HAVE ZERO DIRECT CALLERS, which CORROBORATES rather than
+# undermines: a thread entry point is passed to osCreateThread as a POINTER and
+# is never called by name. Three independent zero-caller results all landing on
+# thread mains is the pattern, not a gap.
+#
+#   80046748  loads 0x29A/0x29B/0x29C/0x29D = 666/667/668/669, which are the
+#             SDK's OS_SC_RETRACE_MSG / DONE_MSG / RDP_DONE_MSG / PRE_NMI_MSG,
+#             blocks on a queue at +0x40 and dispatches on them; the anchor
+#             scan had already found it calling __scHandleRetrace/RSP/RDP.
+#             ==> __scMain.  The four constants are SDK-fixed, not build-fixed.
+#   8003EDD0  receives an I/O request from a queue, brackets a raw PI write with
+#             __osSetGlobalIntMask/__osResetGlobalIntMask, yields on retry.
+#             ==> __osDevMgrMain.
+#   80048110  zero-caller loop calling __osViSwapContext AND __osTimerInterrupt
+#             ==> __osViMgrMain.
+#
+# AND THE CHAIN THAT RESOLVED A538's DECLINE: 80047EE0 is a bare getter for the
+# global at 0x80060C60. That global is WRITTEN by __osViInit and READ+WRITTEN by
+# __osViSwapContext -- both already named -- so it is __osViCurr, and a getter
+# for it whose only caller is the VI manager is __osViGetCurrentContext.
+# A538 declined this for want of an anchor; the anchor was the GLOBAL's other
+# users, which is the discriminator A545 said to look for.
+#   DATUM (comment, not a row -- this file is keyed by address and a data row
+#   would read as a function): 0x80060C60 = __osViCurr
+0x80046748 = "__scMain"             # READING, strong: SDK message constants
+                                    # 666-669 + __scHandle* dispatch
+0x8003EDD0 = "__osDevMgrMain"       # READING, strong: int-mask-bracketed raw PI
+                                    # write off a request queue
+0x80048110 = "__osViMgrMain"        # READING, strong: __osViSwapContext +
+                                    # __osTimerInterrupt in a thread loop
+0x80047EE0 = "__osViGetCurrentContext"  # READING, strong: getter for __osViCurr,
+                                    # pinned by __osViInit/__osViSwapContext
