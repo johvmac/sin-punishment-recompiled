@@ -101,3 +101,6 @@ correction.
 - **tutorial scenery (A218):** still black
 - **CONTRADICTS MY CLAIMS:** no
 
+## DEFERRED 2026-08-28 — user away (away from the PC today (user, 2026-08-28))
+- no observed run today; deferred deliberately, not skipped.
+

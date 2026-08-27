@@ -143,3 +143,15 @@ mistake before it happened). One success is not grounds for automation.
 - quiet: **n/a — NOTHING WAS DIGESTED, so this is not evidence of calm.** Streak HELD at 0. L1 is behind; run `scripts/audit.py`.
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #15 — covering L1 audits 28..33
+- L1 blocks digested: 6
+- **defects by class (raised this window / all prior / FIXED this window / still open):**
+  - `single-run` (T22): 0 / 37 / 0 / 0 — **quiet**
+  - `no-control` (I1/I13): 2 / 50 / 2 / 2 — **UNRESOLVED**
+  - `churn` (I14): 0 / 43 / 0 / 0 — **quiet**
+  - `no-evidence` (A24/B35): 1 / 25 / 1 / 0 — **raised, all fixed**
+  - `under-explore` (T14): 1 / 0 / 0 / 0 — **NEW**
+- **DID THE FIX HOLD? These classes have instances STILL OPEN: `no-control`.** A class that stays open after a fix means the fix addressed an instance, not the class.
+- quiet: no (streak 0; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+
