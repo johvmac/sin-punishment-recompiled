@@ -74,6 +74,33 @@ case "${1:-}" in
         echo "[observed] deferral recorded for $(date +%Y-%m-%d): $REASON"
         echo "[observed] route.py will now roll. The debt is visible in docs/observed-runs.md."
         exit 0 ;;
+    --recorded)
+        # T150's cheapest-to-write, most-dangerous-to-get-wrong piece.
+        #
+        # A capture I made MYSELF is PREPARATION, not an observation: nobody
+        # watched it and nobody heard it. So it is recorded with a stanza that
+        # DOES NOT clear the daily gate -- `## RECORDED <date>`, which A559
+        # measured non-clearing and A579 made a permanent assertion in
+        # test_route.py (six cases, including the timestamped form that is the
+        # only one with a plausible bypass). **The gate still wants a real run
+        # or an explicit deferral.** If this stanza ever cleared the gate I
+        # could tick off the user's check alone, which is the single thing
+        # T101 exists to deny.
+        #
+        # THE WORD ORDER IS LOad-BEARING (A559): the gate matches `^## <date>T`,
+        # and this stanza is safe only because RECORDED comes FIRST. Do not
+        # reformat it to put the date after `## `.
+        shift
+        NOTE="${*:-unattended capture, awaiting annotation}"
+        [[ -f "$LOG" ]] || printf '# User-observed runs\n\n' > "$LOG"
+        {
+            printf '## RECORDED %s — %s\n' "$(date +%Y-%m-%d)" "$NOTE"
+            printf -- '- **NOT an observed run.** Nobody watched or listened; this clears NOTHING.\n'
+            printf -- '- annotation is OWED: the daily gate still wants a real run or a deferral.\n\n'
+        } >> "$LOG"
+        echo "[observed] RECORDED stanza written for $(date +%Y-%m-%d)."
+        echo "[observed] This does NOT clear the daily gate — by design (T101/T150)."
+        exit 0 ;;
 esac
 
 # --self-check: controls that DISCRIMINATE. Each can fail (T65/T71).
