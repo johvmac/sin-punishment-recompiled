@@ -422,6 +422,28 @@ def _roll_of(row):
     return (int(m.group(1)) if m else -1, d.group(1) if d else "", ident)
 
 
+CIRCLE_WIN = 15
+
+def _circles(n_recent, n_corrections):
+    """Is a chain's recent window dense enough with corrections to be a circle?
+
+    Factored out of `cmd_chain` ON PURPOSE (T220). The self-check used to test
+    this by asserting the warning FIRED on A99's live chain and stayed SILENT on
+    A97's -- a fixture that pinned a MOVING quantity (A99's recent correction
+    density) as a permanent expectation. A99 then healed from its third circle's
+    density down to 26%, drifted under the threshold, and the control stopped
+    discriminating. **It did not fail in any way that pointed at the tool**, and
+    it went unnoticed until a routine self-check run.
+
+    Synthetic inputs cannot go stale, so the discrimination check now runs here.
+    The live end-to-end path is still checked, but by asserting the printed
+    warning AGREES WITH THE COUNTS THE TOOL ITSELF PRINTED -- a consistency
+    claim, not a verdict that drifts with the ledger's health.
+
+    `n_recent >= 6` because a window of five cannot show a rate worth reading.
+    """
+    return n_recent >= 6 and n_corrections * 3 >= n_recent
+
 def cmd_chain(rows, target):
     """Chronological correction/citation chain for one entry.
 
@@ -500,18 +522,19 @@ def cmd_chain(rows, target):
         mark = "  <-- corrected/withdrawn" if corrected else ""
         rl = f"#{roll}" if roll >= 0 else "--"
         print(f"{r[0]:6} roll {rl:>5}  {date:10}  {tag:20}{mark}")
+    # THE THRESHOLD LIVES IN `_circles` SO THE SELF-CHECK CAN EXERCISE IT ON
+    # SYNTHETIC WINDOWS -- see T220 for why it had to move.
     # A LIFETIME AVERAGE HIDES A CIRCLE. Circles are LOCAL: A99's whole chain
     # averages ~26% corrections, while its third circle (rolls #84-#103) was far
     # denser. Averaging over three days dilutes exactly the signal that matters,
     # so the recent window is reported separately and is what triggers the
     # warning. "Am I circling?" is a question about now, not about the mean.
-    WIN = 15
-    recent = chain[-WIN:] if len(chain) > WIN else chain
+    recent = chain[-CIRCLE_WIN:] if len(chain) > CIRCLE_WIN else chain
     rc = sum(1 for r in recent if verb.search(r[1]))
     print(f"\n# {corrections} of {len(chain)} entries carry a correction verb "
           f"({100*corrections//max(len(chain),1)}% lifetime).")
     print(f"# Last {len(recent)}: {rc} corrections ({100*rc//max(len(recent),1)}% recent).")
-    if len(recent) >= 6 and rc * 3 >= len(recent):
+    if _circles(len(recent), rc):
         print("#\n# **A THIRD OR MORE OF THE RECENT WINDOW IS CORRECTIONS. That is the shape "
               "of a circle.**\n# Apply the IMPOSSIBLE-RESULT RULE before the next experiment: "
               "enumerate the premises\n# under the disagreement and attack the least-verified "
@@ -630,14 +653,31 @@ def self_check():
                    "reaches the latest rolls" if ("roll  #10" in out_c or "roll  #9" in out_c)
                    else "stops before the latest rolls"))
 
-    # DISCRIMINATION, both directions: the circle warning must fire on a dense
-    # chain and stay silent on a sparse one. A warning that always fires is
-    # noise, and noise is how a discipline stops being read (T29).
-    _, out_a97 = _chain("A97")
-    fires99 = "shape of a circle" in out_c
-    fires97 = "shape of a circle" in out_a97
-    checks.append(("circle warning fires on A99, silent on A97 (discriminates)",
-                   fires99 and not fires97, f"A99={fires99}, A97={fires97}"))
+    # DISCRIMINATION, both directions, ON SYNTHETIC WINDOWS. A warning that
+    # always fires is noise, and noise is how a discipline stops being read
+    # (T29). This used to assert the warning fired on A99's LIVE chain and
+    # stayed silent on A97's -- and A99 healed to 26%, drifted under the
+    # threshold, and the control silently stopped discriminating (T220). A
+    # fixture that is a MOVING QUANTITY is not a fixture.
+    _dense = _circles(CIRCLE_WIN, 5)   # 33% -- must fire
+    _sparse = _circles(CIRCLE_WIN, 1)  #  7% -- must stay silent
+    _short = _circles(5, 5)            # window too short to judge -- silent
+    checks.append(("circle predicate discriminates dense from sparse (synthetic)",
+                   _dense and not _sparse and not _short,
+                   f"dense(15,5)={_dense}, sparse(15,1)={_sparse}, short(5,5)={_short}"))
+
+    # END-TO-END, WITHOUT PINNING A VERDICT: whatever the tool PRINTS as its
+    # recent counts, the presence of the warning must agree with the predicate
+    # applied to those same numbers. This catches the printer drifting away from
+    # the threshold it claims to use, and stays valid however healthy or sick
+    # the ledger becomes. Needle assembled from parts, file not exempted (T100).
+    _m = re.search(r"# Last (\d+): (\d+) corrections", out_c)
+    _n, _k = (int(_m.group(1)), int(_m.group(2))) if _m else (-1, -1)
+    _agrees = bool(_m) and (("shape of a circle" in out_c) == _circles(_n, _k))
+    checks.append(("circle warning agrees with the counts it printed (live)",
+                   _agrees,
+                   f"printed Last {_n}: {_k}; warning={'shape of a circle' in out_c}; "
+                   f"predicate={_circles(_n, _k) if _m else 'counts line MISSING'}"))
 
     # DETERMINISM. `--chain`'s verdict must not depend on PYTHONHASHSEED. It did:
     # 271 of 302 entries shared a (roll, date) key, `sorted` left them in
