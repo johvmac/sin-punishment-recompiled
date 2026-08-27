@@ -4864,3 +4864,51 @@ a distinctive store discriminates.
 **Result it enabled:** `ovlfile23` IS resident at t=6 s, inside A225's 4.0–8.5 s
 logo window, and is NOT at t=12 s, t=190 s or t=215 s. So the logo overlay loads;
 its globals are legitimately readable at t=6 s and nowhere else tested.
+
+## `ares --dump-log` — the reference's draw commands, headless, one command (added 2026-08-28, A607, user's question)
+
+**It already exists and has already been used.** A454 joined the real game's
+logo frame to ours using dumps produced this way; they are on the archive from
+2026-08-25 (`rdp-f60/f120/f150/f200/f240/f250/f360/f480.txt`).
+
+```
+ares --system "Nintendo 64" <rom> --dump-log <rsp|rdp|rsp+rdp>:<after-frames>[:<count>]
+```
+
+Dumps to **stdout after N presented frames, then quits** — no GUI, no debugger
+panel, works under `display_isolate.sh` like any other run. Verified 2026-08-28:
+`--dump-log rdp:120:1` returned 192 RDP commands and **reproduced A454's
+eighteen-Tex-Rect logo grid exactly** (6 wide x 3 tall, x from 64, y 80/112/144
+after the /4 conversion).
+
+**FORMAT:** `RDP <index> <CommandName> <decoded operands> <raw hex>`, grouped by
+`=== frame N (R RSP + D RDP commands) ===`. Coordinates are **raw 10.2 fixed
+point — divide by 4** (A454 confirmed this against four border fills on eight
+distinct coordinates, so it is data-confirmed, not documentation-assumed).
+
+**IT IS NOT THE SAME LEVEL AS OUR `[dlgeom]` PROBE, AND THE DIFFERENCE MATTERS:**
+
+| | our recomp probe | `ares --dump-log rdp` |
+|---|---|---|
+| level | F3DEX2 **display list** — what the game submits | **RDP command stream** — what the RSP emits |
+| geometry | `G_VTX`/`G_TRI`, object space, pre-cull | screen-space triangles, **post-transform, post-cull** |
+| rects | `G_TEXRECT`/fills | `Tex-Rect`/`Fill-Rect`, near 1:1 with the above |
+
+* **Rectangles join almost directly** — that is why A454 worked.
+* **Geometry does not join directly**, and that is a *feature*: the RDP stream is
+  downstream of the RSP's clipping and culling, so geometry present in a display
+  list but absent from the RDP stream was **culled**, which our DL census
+  structurally cannot see.
+* **CAVEAT: our build has no RDP stream at all.** RT64 interprets the display
+  list; the F3DEX2 microcode never runs. So this gives the REFERENCE side only,
+  and cross-build comparison is DL-vs-RDP unless the rect subset is used.
+
+**The `rsp` half is unavailable for our ROM:** that capture is libdragon RSPQ
+(needs an ELF with `rspq_overlay_ucodes` plus `rspq-libdragon.json`) and reports
+`RSPQ/F3DEX2 command capture disabled` on every retail run. Do not expect a
+display-list-level dump from ares by that route.
+
+**WHY THIS MATTERS:** the "reference tutorial draw-command dump" named as the
+decisive next step by A551, A552 and A600 — the answer to far-vs-late (A598),
+centre-vs-composition (A600) and the A218/A219 merge (A512) — is this command
+with a bigger frame number.
