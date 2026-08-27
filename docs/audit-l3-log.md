@@ -37,3 +37,12 @@ Weekly reviews. Each reads ONLY the L2 digests in `audit-l2-log.md`.
 - quiet: no (streak 0)
 - **L3 asks whether the METHOD is improving, not whether any finding is right.** If a class recurs after a fix, the fix was aimed at an instance.
 
+## L3 #5 — covering L2 digests 8..15
+- L2 digests reviewed: 8
+- **defects per digest: 0.5 -> 1.8 — RISING** (over 8 digests)
+- **THIS DIRECTION IS CONFOUNDED — do not read it as progress.** A falling count cannot be told apart from having stopped noticing, and better discipline RAISES the count first (self-correction and error are the same signal). Only a fall in USER-CAUGHT defects would be unambiguous, and the ladder does not yet separate those (T100).
+- **classes with instances STILL OPEN — a fix that addressed an instance, not the class:**
+  - `no-control`: still open at L2 #15
+- quiet: no (streak 0)
+- **L3 asks whether the METHOD is improving, not whether any finding is right.** If a class recurs after a fix, the fix was aimed at an instance.
+

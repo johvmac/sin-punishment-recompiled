@@ -209,6 +209,29 @@ def self_check():
     _dirline = 'f"- **defects per ' + 'digest:'
     emitted = _emit in src
     ordered = emitted and _dirline in src and src.index(_emit) > src.index(_dirline)
+    # END-TO-END, AND IT IS THE ONE THAT WAS MISSING (A587). Every control
+    # above tests the PARSER; none ever ran the CONSUMER. So on 2026-08-21 the
+    # class tuple grew from 2 fields to 4, the trend line at the top of main()
+    # kept unpacking two, and this file crashed on every real invocation for a
+    # week while `--self-check` reported 8/8. A parser control cannot see a
+    # consumer bug. This runs the whole report in dry-run and asserts it
+    # RETURNS rather than raises.
+    import io as _io, contextlib as _cl
+    try:
+        _buf = _io.StringIO()
+        _argv = sys.argv[:]
+        sys.argv = [_argv[0], "--dry-run"]
+        try:
+            with _cl.redirect_stdout(_buf), _cl.redirect_stderr(_io.StringIO()):
+                _rc = main()
+        finally:
+            sys.argv = _argv
+        _ok, _why = _rc in (0, 1), f"main() returned {_rc}"
+    except Exception as _e:
+        _ok, _why = False, f"main() RAISED {type(_e).__name__}: {_e}"
+    checks.append(("the report itself RUNS end to end (not just the parser)",
+                   _ok, _why))
+
     checks.append(("the direction claim carries its confound note", emitted and ordered,
                    "emitted directly after the direction line" if emitted and ordered else
                    f"defined={('CONFOUND_NOTE =' in src)}, emitted={emitted}, ordered={ordered}"))
@@ -247,7 +270,10 @@ def main():
         lines.append("- no new L2 digests since the last L3. Nothing to review.")
     else:
         # Is the rate falling? Compare defects-per-digest, first half vs second.
-        totals = [(n, sum(c for c, _p in class_counts(b).values())) for n, b in new]
+        # The tuple is (this_window, prior, fixed, still_open) since 2026-08-21.
+        # This unpacked TWO for a week and crashed every run (A587). Indexed
+        # rather than unpacked so a fifth column cannot break it the same way.
+        totals = [(n, sum(v[0] for v in class_counts(b).values())) for n, b in new]
         lines.append(f"- L2 digests reviewed: {len(new)}")
         # A DIRECTION NEEDS AT LEAST TWO POINTS. The first version split the
         # window in half regardless, so a single digest gave

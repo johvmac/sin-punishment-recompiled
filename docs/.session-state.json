@@ -1,11 +1,11 @@
 {
- "start": 1787830329.0884066,
- "deadline": 1787832429.0884066,
- "requested": 1800,
- "task": "roll through checkpoints",
+ "start": 1787866011.477446,
+ "deadline": 1787869911.477446,
+ "requested": 3600,
+ "task": "spend the unspent roll #367, then roll through checkpoints",
  "shelf": [],
  "blocks": [],
- "roll_at_start": 359,
+ "roll_at_start": 367,
  "entries_at_start": [
   "A1",
   "A10",
@@ -514,6 +514,14 @@
   "A576",
   "A577",
   "A578",
+  "A579",
+  "A580",
+  "A581",
+  "A582",
+  "A583",
+  "A584",
+  "A585",
+  "A586",
   "A6",
   "A61",
   "A62",
@@ -831,5 +839,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
