@@ -307,3 +307,22 @@
                                     # LOAD; 0 callers
 0x80046F90 = "__osSiRawWriteIo"     # READING, strong: busy-check then uncached
                                     # STORE; 0 callers
+
+# A541 (2026-08-27, roll #321). THE THREAD DISPATCHER, and it is the highest-
+# value name in this band -- everything the kernel does passes through it.
+# Read whole before entry; the sequence is unmistakable and matches no other
+# libultra function:
+#   __osPopThread(0x80060BD8)      -- pop the run queue (callee already named)
+#   store result -> 0x80060BE0     -- the running-thread global
+#   sh 4, 0x10(thread)             -- state = OS_STATE_RUNNING
+#   $k0 = thread                   -- the kernel register, by convention
+#   mask thread SR (0x118) against 0x80061F30 (the global interrupt mask)
+#   mtc0 $k1, Status               -- install it in CP0
+# Nothing else pops the run queue AND writes CP0 Status.
+#
+# DATA SYMBOLS THIS EXPOSES, recorded here in a comment rather than as rows,
+# because this file is keyed by address and a data row would read as a function:
+#   0x80060BD8 = __osRunQueue      0x80060BE0 = __osRunningThread
+#   0x80061F30 = __OSGlobalIntMask
+0x8003E114 = "__osDispatchThread"   # READING, strong: pops the run queue and
+                                    # writes CP0 Status; 2 callers
