@@ -4535,6 +4535,15 @@ tutorial pause, and only the working game can say.**
   (`snp_isolate_display`), then `timeout N ./build/desktop-ui/ares --system
   "Nintendo 64" <ABSOLUTE rom path>` with the env set. The isolation wrapper
   auto-records — expect a ~2 MB/s .mkv rider beside the log.
+* **THAT RIDER STOPS AT 400 SECONDS AND THE RUN DOES NOT (A536, 2026-08-27).**
+  `display_isolate.sh` records with `-t ${SNP_REC_MAX:-400}`, a deliberate
+  anti-runaway cap. A 701-second watch run therefore leaves a 400-second
+  recording, and **sampling the video past 400 s returns NOTHING, which was
+  read as the emulation freezing (A514) and reported to the user as such
+  (A517).** Five archived captures sit at exactly 400.000 s for this reason.
+  **SET `SNP_REC_MAX` EXPLICITLY for any run meant to exceed 400 s**, and treat
+  a duration of exactly 400.000 as truncated until checked. The check is two
+  timestamps: start time from the filename, last write from `stat`.
 * **THE CAPTURES CARRY ARES'S OWN UI, AND `cropdetect` FINDS THE WRONG BOX
   (user-caught, 2026-08-27): the game renders inside a floating "Output"
   panel, so black-border detection returns the panel surround (1024x720),
