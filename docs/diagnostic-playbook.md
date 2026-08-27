@@ -4745,3 +4745,50 @@ from parts by default:
 _n1="noti""fy-send"; _n2="cu""rl -X POST"
 ! grep -qE "($_n1|$_n2)" "$0"
 ```
+
+## Cross-build PIXEL comparisons are contaminated by A218 — check saturation first (added 2026-08-27, A562)
+
+**Do not compare lit-pixel counts between our build and the ares reference without
+first computing how much dark area each side had to fill.** A562 built exactly that
+comparison to give A247's "the overlay region is never cleared" the negative control
+it never had, and the comparison does not work.
+
+The raw numbers looked decisive: our overlay strip grows 2.10x over 40 s, the
+reference's 1.23x. **The saturation correction destroys it.** Growth is bounded by
+the dark area available, and the two sides start nothing like each other:
+
+| source | strip lit at start (thr>80) | ceiling | measured | headroom used |
+|---|---|---|---|---|
+| ours-161403 | 14.3% | 7.01x | 2.10x | **18.3%** |
+| ours-102150 | 17.5% | 5.70x | 1.81x | **17.2%** |
+| reference   | 38.6% | 2.59x | 1.23x | **14.5%** |
+
+18.3% against 14.5% is not a discrimination. **At a lower threshold it is actively
+misleading:** the reference's strip is 86.4% lit, its ceiling is 1.16x, and its
+measured 1.11x is pinned against that ceiling — a column that reads as a crisp
+confirmation and means nothing.
+
+**THE CAUSE IS STRUCTURAL AND WILL NOT GO AWAY.** The reference's overlay strip is
+far more lit because it contains the backdrop A561 established is *missing* from
+ours. **A218's fault lives inside the region A219's metric counts.** No threshold
+escapes it: a high one trades the ceiling problem for a small-sample one.
+
+This retro-justifies a scoping decision A247 made without giving this reason — it
+compared frame N against frame N+3 *within* one recording. That was not caution;
+within-run was the only comparison available.
+
+**WHAT TO DO INSTEAD:** stay within one recording, or find a region where the two
+builds have comparable baseline lit area (A562's falsifier — nobody has looked).
+**AND ALWAYS PRINT THE CEILING NEXT TO THE MEASUREMENT.** A562's C1 and C2 both
+passed and would have shipped a confident wrong conclusion on their own; only the
+ceiling column caught it.
+
+**Controls worth copying for any lit-area metric:**
+* **C1 FLAT** — feed N identical frames; growth must be exactly 1.000 each time.
+  Catches counting code that carries state between samples, which would manufacture
+  an accumulation result out of nothing.
+* **C2 DECREASING** — feed a genuinely shrinking lit set (same frame at rising
+  thresholds); growth must fall below 1. **This is the one that proves the metric
+  can read removal at all**, which is precisely what an "added and never removed"
+  claim needs and what A247 never had.
+* **C3 SATURATION** — the ceiling table above. The only one that failed.
