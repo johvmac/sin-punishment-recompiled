@@ -324,3 +324,4 @@ A gap in the numbering means a roll was skipped.
 - roll #305: **EXPLOIT** (drew 0.827 vs eps 0.3) -> `A225` [witness `fd6739`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #306: **EXPLOIT** (drew 0.410 vs eps 0.3) -> `A211` [witness `4b653a`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #307: **EXPLOIT** (drew 0.814 vs eps 0.3) -> `T197` [witness `e20593`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #308: **EXPLOIT** (drew 0.494 vs eps 0.3) -> `T211` [witness `83c6c5`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
