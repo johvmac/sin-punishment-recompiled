@@ -348,3 +348,4 @@ A gap in the numbering means a roll was skipped.
 - roll #329: **EXPLOIT** (drew 0.673 vs eps 0.3) -> `T197` [witness `4dda0c`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #330: **EXPLOIT** (drew 0.821 vs eps 0.3) -> `T197` [witness `3806f1`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #331: **EXPLORE** (drew 0.135 vs eps 0.3) -> `T150` [witness `bed1c5`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
+- roll #332: **EXPLOIT** (drew 0.899 vs eps 0.3) -> `A219` [witness `c7891c`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
