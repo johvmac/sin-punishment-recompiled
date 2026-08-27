@@ -228,3 +228,16 @@
 # than memcpy. THE MOST-CALLED UNNAMED FUNCTION IN THE BAND: 133 direct callers.
 0x80043DB0 = "bcopy"                # READING, strong: overlap direction test
                                     # + backwards copy loop; 133 callers
+
+# A527 (2026-08-27, roll #307). NOT from the oracle -- from READING, which is
+# the mode A522 argued was worth keeping the item open for. The most-called
+# unnamed function left in the donor band after bcopy: 17 direct callers, and
+# it sits immediately after bcopy, the classic BSD pair.
+# Verified by my own read of all 21 instructions before entry: aligns the
+# destination with `swl $zero`, zeroes 32 bytes per iteration (8 x sw $zero),
+# then a word loop, then a byte tail with `sb $zero`; lengths under 12 skip
+# straight to the byte tail. IT IS bzero AND NOT memset: $a1 is the LENGTH
+# (compared against 0xC and decremented), and the fill is the $zero REGISTER
+# throughout -- there is no caller-supplied fill value anywhere in the body.
+0x800440D0 = "bzero"                # READING, strong: fill is always $zero,
+                                    # $a1 is length; 17 callers
