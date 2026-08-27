@@ -281,3 +281,29 @@
                                     # osEepromLongWrite calling it
 0x8003D750 = "osEepromProbe"        # READING, shape + elimination; NO wrapper
                                     # confirmation -- weakest of the three
+
+# A538 (2026-08-27, roll #318). The SI low-level trio, anchored on a HARDWARE
+# REGISTER ADDRESS rather than on shape alone -- the strongest anchor available
+# to a static read, because the address is fixed by the console, not the build.
+#   80046F20  reads 0xA4800018 (SI_STATUS), masks & 3 (DMA_BUSY | RD_BUSY),
+#             returns sltu $zero,$v0 -- a boolean. That IS __osSiDeviceBusy.
+#   80046F40  calls it, returns -1 when busy, else ORs 0xA0000000 (uncached)
+#             onto the device address and LOADS  -> __osSiRawReadIo
+#   80046F90  identical but STORES                -> __osSiRawWriteIo
+# Corroborates A532's SI identification of the access lock from a second,
+# independent direction: this band really is the serial-interface layer.
+#
+# HONEST NOTE ON A FAILED PREDICTION: I expected __osSiRawStartDma (0x80046FE0)
+# to call the busy-check as a control. It does NOT -- its only callers are the
+# two Raw*Io functions here. The expectation was mine, not a libultra guarantee,
+# and none of these three identifications depends on it.
+#
+# The two Raw*Io functions have ZERO callers in this ROM -- linked library code
+# that is present but unused. Named anyway: a name costs nothing and an unnamed
+# function is re-derived every time someone walks past it.
+0x80046F20 = "__osSiDeviceBusy"     # READING, strong: SI_STATUS 0xA4800018,
+                                    # mask 3, boolean return; 2 callers
+0x80046F40 = "__osSiRawReadIo"      # READING, strong: busy-check then uncached
+                                    # LOAD; 0 callers
+0x80046F90 = "__osSiRawWriteIo"     # READING, strong: busy-check then uncached
+                                    # STORE; 0 callers
