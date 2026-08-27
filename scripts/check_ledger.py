@@ -436,6 +436,27 @@ def main():
         problems.append((0, f"could not run the index check ({e.__class__.__name__}: {e}); "
                             f"scripts/ledger.py may be broken"))
 
+    # 3c. THE NAME MAP MUST STILL LOAD.
+    #
+    # symbols/inferred-names.toml is named `.toml`, is meant to be machine-read,
+    # and had NEVER parsed (A571): five duplicate keys accumulated across
+    # sessions because every check on it was a grep, and a grep cannot see a
+    # duplicate key. A578 made it parse; A589 stopped `--emit` from writing an
+    # unloadable one. NEITHER guards a HAND EDIT, which is how all five got
+    # there. This is that guard: cheap, runs on every ledger edit, and fails
+    # towards reporting.
+    _map = Path(__file__).resolve().parent.parent / "symbols" / "inferred-names.toml"
+    if _map.exists():
+        try:
+            import tomllib
+            tomllib.loads(_map.read_text())
+        except Exception as e:
+            problems.append(
+                (0, f"symbols/inferred-names.toml does NOT parse as TOML "
+                    f"({e.__class__.__name__}: {e}). A duplicate address is the usual "
+                    f"cause and a grep cannot see one (A571). Every consumer that "
+                    f"loads it is broken until this is fixed."))
+
     # 4. routing decision overdue. This is what makes the explore/exploit roll
     # actually happen: findings accumulate constantly, so the nag surfaces on
     # its own rather than depending on remembering to roll.
