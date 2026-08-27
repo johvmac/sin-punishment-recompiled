@@ -1,24 +1,8 @@
 {
- "audits": 29,
- "last_rev": "053003e03cce2a27d67b0607ec0d9edf0644e94c",
- "last_roll": 305,
+ "audits": 30,
+ "last_rev": "16a5918a078d51c9c58d04cf89adb82cd8a5d789",
+ "last_roll": 315,
  "quiet_streak": 0,
  "last_runs": 868,
- "open": {
-  "no-control:A503": {
-   "cls": "no-control",
-   "eid": "A503",
-   "since": 28
-  },
-  "no-control:A498": {
-   "cls": "no-control",
-   "eid": "A498",
-   "since": 28
-  },
-  "no-evidence:A517": {
-   "cls": "no-evidence",
-   "eid": "A517",
-   "since": 29
-  }
- }
+ "open": {}
 }

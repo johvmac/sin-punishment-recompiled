@@ -415,3 +415,10 @@ here that T209 does not already carry.
 - **STILL OPEN from earlier audits (2):** A498 (no-control, open since #28, 1 audit(s)); A503 (no-control, open since #28, 1 audit(s))
 - suppressed as superseded (3): A524 (single-run, justified in the entry); A521 (single-run, justified in the entry); A520 (single-run, justified in the entry)
 
+## Audit #30 — since 053003e0
+- ledger: 762 entries (+13 this window), 42 withdrawn
+- rolls: 10 this window; runs: 0 (0 exited early, 0 contaminated)
+- **1 thing(s) to look at:**
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 150 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+- **resolved since last audit (3):** A498 (no-control, open since #28); A503 (no-control, open since #28); A517 (no-evidence, open since #29)
+
