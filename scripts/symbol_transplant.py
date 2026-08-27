@@ -235,8 +235,25 @@ def run(dry=False, emit=None, rom_path=OUR_ROM):
             marker = by_vram.get(vram, "")
             lines.append(f'0x{vram:08X} = "{mm_name}"'
                          + (f"  # our map already names this {marker}" if marker else ""))
-        Path(emit).write_text("\n".join(lines) + "\n")
-        print(f"[transplant] wrote {emit} ({len(exact)} row(s))")
+        text = "\n".join(lines) + "\n"
+        # THE MAP MUST LOAD, AND IT IS CHECKED BEFORE THE WRITE (A589, closing
+        # the gap A571 named). symbols/inferred-names.toml had NEVER parsed as
+        # TOML -- five duplicate keys accumulated across sessions, and nobody
+        # noticed because every check on it was a grep and a grep cannot see a
+        # duplicate key. This file is `.toml` and is meant to be machine-read,
+        # so emitting one that no TOML parser can load is emitting nothing.
+        # Verified BEFORE writing so the failure direction is REFUSING rather
+        # than shipping a broken map over a working one.
+        try:
+            import tomllib
+            tomllib.loads(text)
+        except Exception as e:
+            print(f"[transplant] REFUSING to write {emit}: the emitted map does "
+                  f"not parse as TOML -- {type(e).__name__}: {e}")
+            print("[transplant] nothing written; the existing file is untouched.")
+            return 2
+        Path(emit).write_text(text)
+        print(f"[transplant] wrote {emit} ({len(exact)} row(s)), verified to parse as TOML")
     return 0
 
 
@@ -305,6 +322,31 @@ def self_check():
     chk("C5 two sections at one vram extract from their OWN rom bases",
         len(secs) == 2 and len(e) == 2 and e["f1"][1] != e["f2"][1],
         f"secs={len(secs)} funcs={list(e)}")
+
+    # C6/C7: THE EMITTED MAP MUST LOAD, and the guard must REFUSE when it does
+    # not (A589, closing A571's gap). C1-C5 all test the MATCHER; none ever
+    # touched the file this script exists to produce -- the same
+    # component-versus-wiring blind spot that let audit_l3 crash for a week
+    # behind an 8/8 suite (A587/A588).
+    import tomllib as _tl
+    good = ('# header\n0x80001000 = "alpha"\n0x80002000 = "beta"  # note\n')
+    try:
+        _tl.loads(good)
+        c6 = True
+    except Exception:
+        c6 = False
+    chk("C6 a well-formed emitted map parses as TOML", c6)
+
+    # THE DISCRIMINATING ONE: the exact defect that sat in the real file for
+    # weeks -- the same address twice. A grep cannot see it; a parser must.
+    dup = ('0x80001000 = "alpha"\n0x80001000 = "alpha"\n')
+    try:
+        _tl.loads(dup)
+        c7 = False          # parsed a duplicate key: the guard would not fire
+    except Exception:
+        c7 = True
+    chk("C7 a DUPLICATE-KEY map is rejected, so the guard can fire", c7,
+        "this is the defect that sat unnoticed in the real map (A571)")
 
     print(f"[selfcheck] {'ALL PASS' if ok else 'FAILURES ABOVE'}")
     return 0 if ok else 1
