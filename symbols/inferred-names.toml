@@ -411,8 +411,31 @@
 0x80046180 = "__osSpGetStatus"      # READING, strong: reads SP_STATUS_REG
 0x80046190 = "__osSpSetStatus"      # READING, strong: writes SP_STATUS_REG
 
-[[name]]
-addr = 0x8002AD54
-name = "snp_set_view_context"
-evidence = "DESCRIBED"
-why = "A570 (2026-08-27, roll #351): three instructions -- sw $a0 to the global 0x80068180, then jr $ra. That global is the view/camera context pointer through which the frustum clip planes at +0x4AC..+0x4C4 are read (A566/A567); 9 writers, 1157 reads across 223 functions. NOT the original name -- named by reading, and the confidence comes from the body having room for nothing else."
+# A566/A567/A570 (2026-08-27, rolls #347-#351). THE VIEW/CULL GROUP, all DESCRIBED
+# -- named by reading, NOT the original names. They are recorded together because
+# each pins the next: the setter names the global, the global carries the planes,
+# and the planes are what the cull test reads.
+#   8002AD54  three instructions: sw $a0 -> 0x80068180, jr $ra. The global has 9
+#             writers and 1157 reads across 223 functions, and is the struct base
+#             through which the clip planes at +0x4AC..+0x4C4 are reached (A570).
+#   8002A720  SINGLE writer in the whole tree of +0x4AC/+0x4B0/+0x4B4/+0x4B8,
+#             deriving all four from +0x4C0 in one block; +0x4C0/+0x4C4 are read
+#             and never written there, i.e. they are the inputs (A567).
+#   80029070  pushes a matrix, transforms a point, tests it against those six
+#             values and ORs bits 0x01..0x20 into the return -- six planes, six
+#             bits, a clip outcode (A566).
+#   DATUM (comment, not a row -- this file is keyed by address):
+#   0x80068180 = the view-context pointer; 0x80068A84 = the matrix-stack top.
+0x8002AD54 = "snp_set_view_context"  # READING, strong: 3 instructions, stores its
+                                    # only argument to 0x80068180 and returns
+0x8002A720 = "snp_frustum_setup"     # READING: sole writer of the four derived
+                                    # lateral coefficients, from the near input
+0x80029070 = "snp_frustum_cull_point" # READING: returns a six-bit clip outcode
+                                    # against the six plane values
+
+# A553 (2026-08-27). The tile blitter. NOTE: A560's matrix multiply at 0x800489C0 is
+# NOT added here -- it was ALREADY named guMtxCatF (line ~233, BORROWED). A560 derived
+# "clean 4x4 multiply, 16 words to a caller-supplied destination" by reading, which is
+# guMtxCatF exactly: two independent derivations agreeing, and the BORROWED name wins.
+                                    # nested loop, from the 10-field descriptor
+                                    # A529 recovered and A553 confirmed
