@@ -401,3 +401,12 @@
                                     # __osTimerInterrupt in a thread loop
 0x80047EE0 = "__osViGetCurrentContext"  # READING, strong: getter for __osViCurr,
                                     # pinned by __osViInit/__osViSwapContext
+
+# A547 (2026-08-27, roll #328). The SP status pair, anchored on SP_STATUS_REG.
+#   80046180  lui 0xA404 / ori 0x10 / lw   -> reads  0xA4040010 (phys 0x04040010
+#             = SP_STATUS_REG) and returns it        ==> __osSpGetStatus
+#   80046190  same address, sw $a0          ==> __osSpSetStatus
+# Both are 4 instructions with no frame; both have ZERO callers in this ROM,
+# which is ordinary for linked-but-unused library accessors.
+0x80046180 = "__osSpGetStatus"      # READING, strong: reads SP_STATUS_REG
+0x80046190 = "__osSpSetStatus"      # READING, strong: writes SP_STATUS_REG
