@@ -318,3 +318,4 @@ A gap in the numbering means a roll was skipped.
 - roll #299: **EXPLORE** (drew 0.175 vs eps 0.3) -> `A463` [witness `670efb`] — OPENED 2026-08-26 at the user's direction ("pop it on the ledger to be looked into again later")
 - roll #300: **EXPLOIT** (drew 0.845 vs eps 0.3) -> `T211` [witness `f0da12`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
 - roll #301: **EXPLOIT** (drew 0.641 vs eps 0.3) -> `A225` [witness `f39d34`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #302: **EXPLOIT** (drew 0.900 vs eps 0.3) -> `A211` [witness `643756`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
