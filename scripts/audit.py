@@ -314,9 +314,24 @@ def main():
         r"probe (?:at|on|in|fired|printed|logged|reported|caught|is live)|"
         r"(?:scratch |toml |a |new |walker-entry )hook on|hooks? fired|"
         r"instrumented|\bSNP_[A-Z]", re.I)
+    # `\bcontrols?\b` IS ANCHORED ON PURPOSE. It used to be a bare `control`,
+    # which matches "controller" -- and this game's tutorial is full of the N64
+    # CONTROLLER GRAPHIC (A436, A428), so any entry describing that screen
+    # counted as having a control and was never flagged. A false NEGATIVE, and
+    # the silent kind.
+    #
+    # REPLICATION IS A CONTROL and was missing entirely. T22 is this project's
+    # three-runs-per-arm rule, so "2 x 215 s runs ... slope identical in BOTH"
+    # (A498) is a controlled measurement by the project's own standard. So is
+    # exercising a fix BOTH DIRECTIONS (A503). Both were flagged across three
+    # consecutive audits, and in a 40-commit window they were the detector's
+    # ONLY two outputs -- a 0% true-positive rate. A check whose every finding
+    # is a false positive is how a discipline stops being read (T29).
     CONTROL = re.compile(
-        r"control|ARM |heartbeat|positive|independent(?:ly)? (?:confirm|verif|source)|"
-        r"cross-check|OBSERVED, not assumed|exact match|two independent", re.I)
+        r"\bcontrols?\b|ARM |heartbeat|positive|independent(?:ly)? (?:confirm|verif|source)|"
+        r"cross-check|OBSERVED, not assumed|exact match|two independent|"
+        r"replicat|both runs|across runs|both directions|"
+        r"\b(?:two|three|four|2|3|4)\s*(?:[x×]\s*)?(?:\d+\s*s\s+)?runs\b", re.I)
     # AN ENTRY THAT RAN NOTHING DEPLOYED NOTHING (audit #13, 2026-08-21).
     # `\bSNP_[A-Z]` fires on a probe's NAME, so a source survey saying "the
     # probe ACCEPTS a queue address" was read as a probe that had been run.
@@ -347,7 +362,12 @@ def main():
     def _nc(status, body, ev):
         if ZERO_RUNS.search(status + body + ev) or POINTER.match(status.strip()):
             return False
-        return bool(DEPLOYED.search(body) and not CONTROL.search(body + ev))
+        # STATUS IS SEARCHED FOR THE CONTROL TOO, for exactly the reason the
+        # ZERO_RUNS comment above gives for run counts: this project declares
+        # both in the status cell by convention -- "MEASURED (... fix applied
+        # and exercised both directions)" is A503, whose control sat in the
+        # status cell and was invisible to a body+ev search for three audits.
+        return bool(DEPLOYED.search(body) and not CONTROL.search(status + body + ev))
     _no_control_pred = _nc
 
     for eid, (status, body, ev) in added.items():

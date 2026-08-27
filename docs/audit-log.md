@@ -406,3 +406,12 @@ here that T209 does not already carry.
   - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 112 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
 - suppressed as superseded (8): A507 (single-run, justified in the entry); A501 (single-run, justified in the entry); A493 (single-run, justified in the entry); A491 (single-run, justified in the entry); A490 (single-run, justified in the entry); A489 (single-run, justified in the entry); A481 (single-run, justified in the entry); A480 (single-run, justified in the entry)
 
+## Audit #29 — since fcc9975e
+- ledger: 749 entries (+21 this window), 42 withdrawn
+- rolls: 12 this window; runs: 5 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - A517: no evidence recorded. Say what was observed and when.
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 136 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+- **STILL OPEN from earlier audits (2):** A498 (no-control, open since #28, 1 audit(s)); A503 (no-control, open since #28, 1 audit(s))
+- suppressed as superseded (3): A524 (single-run, justified in the entry); A521 (single-run, justified in the entry); A520 (single-run, justified in the entry)
+
