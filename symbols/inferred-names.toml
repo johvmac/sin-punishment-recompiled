@@ -218,3 +218,13 @@
                                     # -- the float-to-fixed shape; treat as
                                     # provisional until a byte-match or a
                                     # caller-context read confirms
+
+# --- READ, NOT MATCHED (A493's fifth identification; entered A522 after A510
+# claimed "all five" and silently substituted bcmp — a DIFFERENT function from
+# a different entry — leaving the band's most-called function nameless for a
+# day). Verified by my own read before entry: zero-length and same-pointer
+# early exits, a source-vs-destination comparison selecting copy DIRECTION, and
+# a descending word loop at the tail. Overlap-aware, so bcopy/memmove rather
+# than memcpy. THE MOST-CALLED UNNAMED FUNCTION IN THE BAND: 133 direct callers.
+0x80043DB0 = "bcopy"                # READING, strong: overlap direction test
+                                    # + backwards copy loop; 133 callers
