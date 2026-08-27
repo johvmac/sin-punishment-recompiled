@@ -339,3 +339,4 @@ A gap in the numbering means a roll was skipped.
 - roll #320: **EXPLOIT** (drew 0.420 vs eps 0.3) -> `A211` [witness `889b16`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #321: **EXPLOIT** (drew 0.571 vs eps 0.3) -> `T197` [witness `4d1a01`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #322: **EXPLOIT** (drew 0.610 vs eps 0.3) -> `T211` [witness `f999c8`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
+- roll #323: **EXPLOIT** (drew 0.321 vs eps 0.3) -> `T197` [witness `f38398`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
