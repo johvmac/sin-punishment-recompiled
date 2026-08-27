@@ -167,6 +167,17 @@ def main():
              today, False, "a RECORDED-only stanza must NOT clear it (T101/T150)"),
             (f"## RECORDED {today} — capture\n## {today}T10:00:00+10:00 — build abc\n",
              today, True,  "a RECORDED stanza must not BLOCK a real run the same day"),
+            # A559 (roll #340): the TIMESTAMPED RECORDED stanza is the case with
+            # a real bypass mechanism — `## RECORDED 2026-08-20T14:00` CONTAINS
+            # `<date>T`, and fails only because the gate anchors the date
+            # IMMEDIATELY after `## `. The safety is on WORD ORDER, not on the
+            # word RECORDED; loosen the anchor and this case breaks FIRST.
+            (f"## RECORDED {today}T14:00 — unattended capture\n",
+             today, False, "a TIMESTAMPED RECORDED stanza must NOT clear it (A559)"),
+            (f"## recorded {today} — capture\n",
+             today, False, "lowercase recorded must NOT clear it (A559)"),
+            (f"prose mentioning {today} in passing, no stanza\n",
+             today, False, "prose containing the date must NOT clear it (A559)"),
         ]
         for text, day, want, why in cases:
             if ot(text, day) != want:
