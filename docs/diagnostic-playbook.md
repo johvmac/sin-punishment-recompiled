@@ -4830,3 +4830,37 @@ way (A573/A577).
 **Incident that motivated it:** A573 could refute the runaway story only at
 the A99 crash, because that was the sole moment with a snapshot; the t=207
 hang had none.
+
+## Overlay RESIDENCY must be checked before reading any overlay global (added 2026-08-28, A604, after A594)
+
+**The trap.** Overlays share the window at `0x800E4780`, so an address there names
+a LOCATION, not a function. A594 read four words believing they were
+`ovlfile23`'s state; they were another overlay's INSTRUCTIONS — one of them
+decoded as `jal 0x8002AD54`. It was one plausible-looking integer away from a
+false finding, and what caught it was decoding the words as MIPS, not judging
+whether they looked reasonable.
+
+**The check.** `ovl_resident.py <snapshot> <function>` takes the overlay's first
+four instructions from the generated C — ground truth for what that overlay
+contains — encodes them, and compares against the snapshot at the same vram.
+
+**Four words, not two, and this is measured.** `addiu $sp,$sp,-N; sw $ra,0x10($sp)`
+is the prologue of nearly every function. At t=12 s A594's snapshot holds exactly
+that pair at `0x800E6B58` — one word offset, then a *different* `lui` immediate.
+**A two-word fingerprint would have false-positived there.** Four words including
+a distinctive store discriminates.
+
+**Controls (A604):**
+* **POSITIVE** — a function OUTSIDE the overlay window is always mapped and must
+  read resident. `boot_func_800271F8` reads True in all three snapshots tested.
+  **Use one whose first four instructions are `addiu`/`sw`/`lui` only:** the
+  encoder handles that subset and REFUSES (returns `None`) on anything else. A
+  first attempt used `boot_func_80029070`, whose prologue contains `sdc1`/`mov.s`,
+  and the control returned `None` — *a control that did not run is not a control*,
+  and the refusal is only correct because it is loud.
+* The encoder never guesses: an unencodable instruction returns `None` and the
+  verdict is withheld, rather than comparing a partial fingerprint.
+
+**Result it enabled:** `ovlfile23` IS resident at t=6 s, inside A225's 4.0–8.5 s
+logo window, and is NOT at t=12 s, t=190 s or t=215 s. So the logo overlay loads;
+its globals are legitimately readable at t=6 s and nowhere else tested.
