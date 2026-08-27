@@ -74,7 +74,21 @@ ROW_RE = re.compile(r"^\|\s*([A-Z]+\d+[a-z]?)\s*\|")
 # a test that could not distinguish the tag from the word cannot have been
 # evidence for either. Anchoring is what makes it discriminate; `test_route.py`
 # asserts the discrimination, using A124's literal status string as the negative.
-OPEN_RE = re.compile(r"\s*\**OPEN\b", re.I)
+#
+# LEADING `>>> ... <<<` ANNOTATION BLOCKS ARE SKIPPED BEFORE THE ANCHOR (A550).
+# This project's standing convention for recording a correction is to PREFIX the
+# status cell with `>>> what changed <<<`. Anchoring at position zero meant that
+# every open item so annotated SILENTLY LEFT THE ROUTABLE FRONTIER -- the dice
+# could never select it again, and nothing said so. Five items were lost this
+# way (A211, A225, T211, A218, A219), including one with a measured result and a
+# four-minute next step. The frontier had collapsed from seven items to two.
+#
+# The skip is deliberately NARROW: it consumes only complete `>>>...<<<` blocks
+# at the START, then applies the SAME anchored test to what remains. A status
+# that is genuinely closed still fails -- `>>> ... <<< MEASURED (...)` anchors on
+# MEASURED, and `CLOSED ... Was: OPEN [cost=2]` still never matches, which a
+# looser "OPEN anywhere" rule would have got wrong on three real entries.
+OPEN_RE = re.compile(r"\s*(?:>>>.*?<<<\s*)*\**OPEN\b", re.I)
 
 # Same anchoring, same reason, for the WITHDRAWN tag. `"WD" in tag` marked T72
 # withdrawn because its status explains that A138 is "the WD entry" -- and
