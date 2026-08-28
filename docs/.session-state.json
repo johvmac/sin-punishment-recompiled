@@ -3,7 +3,12 @@
  "deadline": 1787876746.0277212,
  "requested": 3600,
  "task": "look at the frozen frame from A601's corruption snapshot, then roll through checkpoints",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "Patch ares's RDP capture to retain triangle continuation words, rebuild, re-dump, then build the reference stepper",
+   "why": "USER'S DECISION this session: patch first, build once. ares prints one 64-bit word per command (render.cpp:232 passes 'op, 0'), so triangle X coordinates are discarded and only Y extents survive. Rectangles are already complete. Needs a capture-struct change plus a full ares rebuild plus a ~6 min re-dump \u2014 its own session. Nothing else is blocked; A608's dump already answers the count question."
+  }
+ ],
  "blocks": [],
  "roll_at_start": 379,
  "entries_at_start": [
@@ -854,5 +859,5 @@
   "U8",
   "U9"
  ],
- "ended": false
+ "ended": true
 }
