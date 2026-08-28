@@ -39,14 +39,10 @@ not skip them because you think you know the state:
 Then read docs/protocols-draft.md — it is how we run recurring work, it is a
 draft, and it has a deviations log you should add to rather than work around.
 
-Where we left off: «we know what kills the picture 200s in — the frustum-cull
-test, boot_func_80029070, writes five words over a per-frame callback pointer.
-Three runs, two builds, and the last hole (an untapped 64-bit store) is closed
-(A636/A639). NEXT: read that function and work out WHY it writes there. A566
-says the matrix-stack push path has no bound check and that the overrun was
-never actually shown — that is the candidate. Static read, no run needed.
-Separately: the audio is COMPLETELY finished, all of it — do not re-open it,
-check ledger.py --grep audio before saying otherwise.»
+The one blocker, so you know which way to read the handoff: «find out WHY
+boot_func_80029070 writes five words at 0x8007AF00. A static read; no run.»
+Everything else — what is settled, what is ruled out, what not to re-open —
+is in the handoff. Take it from there, not from this message.
 
 Report the state in a few plain sentences and stop there; I'll say when to
 take the first roll.
@@ -65,8 +61,16 @@ take the first roll.
   refuses to roll without it. The seed asks rather than assumes.
 * **the protocols pointer** — otherwise the next session re-improvises P1–P7,
   which is the thing the draft exists to stop.
-* **one blocker, named by entry** — not a topic. "Continue the clears work"
-  gets nowhere; a blocker with an entry ID gets read.
+* **one blocker, named as a QUESTION, and nothing else about the state** — not
+  a topic ("continue the clears work" gets nowhere), and **not a précis of
+  where we got to.** On 2026-08-28 this slot grew to five facts — run counts,
+  build counts, a closed caveat, a cited entry's claim, a warning not to
+  re-open the audio — every one of which was already in the handoff. **That is
+  the second-copy failure this file's own rules forbid, committed while
+  editing this file.** The blocker exists to tell the reader which way to read
+  the handoff. If it is doing more than that, it has become the thing it is
+  supposed to point at. **"Take it from there, not from this message"** is the
+  line that keeps it honest.
 * **"stop there"** — the user opens the rotation. Every session so far has
   started with them deciding what it is for.
 * **the `«…»` marks** — they are not decoration and they are not for the reader
