@@ -186,9 +186,12 @@ def self_check(path):
 
 
 def main(argv):
-    if len(argv) < 2:
+    # T37: a script that reads arguments must have an EXPLICIT help path.
+    # route.py silently ignored `--help` and fell through to a state-mutating
+    # default; lint_tools.py caught this one in the checkpoint that added it.
+    if len(argv) < 2 or argv[1] in ("-h", "--help", "help"):
         print(__doc__)
-        return 2
+        return 0 if len(argv) > 1 else 2
     if argv[1] == "--self-check":
         if len(argv) < 3:
             print("[yaz0] --self-check needs a ROM path", file=sys.stderr)
