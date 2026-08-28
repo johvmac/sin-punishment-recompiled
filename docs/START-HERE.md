@@ -24,7 +24,7 @@ with **`«…»`** so they can be found and checked: **the handoff filename** an
 ---
 
 ```
-Sin & Punishment recomp session. Start by reading «HANDOFF-2026-08-26.md» in
+Sin & Punishment recomp session. Start by reading «HANDOFF-2026-08-28.md» in
 the repo root — it is gitignored so it will not appear in any repo listing;
 open it by path. Run its [ONCE] steps in order before anything else, and do
 not skip them because you think you know the state:
@@ -39,12 +39,13 @@ not skip them because you think you know the state:
 Then read docs/protocols-draft.md — it is how we run recurring work, it is a
 draft, and it has a deviations log you should add to rather than work around.
 
-Where we left off: «the sound works and is the right music, but it slides ~23
-seconds behind the picture over three minutes — measured, and neither slow
-playback nor dropouts. That is A463, open at cost 2, and its cheapest next
-step needs no knowledge of our audio code: run a DIFFERENT recompiled N64 game
-through the same capture and measure ITS drift. Drifts too, the fault is ours
-generally; doesn't, it is this build.»
+Where we left off: «we now know what kills the picture 200s in — the
+frustum-cull test, boot_func_80029070, writes five words over a callback
+pointer (A636). ONE hole is left in that: the 64-bit store macro SD in
+lib/N64ModernRuntime/N64Recomp/include/recomp.h has NO tap, so a store I
+cannot see could be the real writer. Tap SD, rebuild, one 220s run. One line
+and four minutes. Separately: the audio is COMPLETELY finished, all of it —
+do not re-open it, check ledger.py --grep audio before saying otherwise.»
 
 Report the state in a few plain sentences and stop there; I'll say when to
 take the first roll.
