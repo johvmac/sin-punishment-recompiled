@@ -404,3 +404,6 @@ A gap in the numbering means a roll was skipped.
 - roll #385: **EXPLOIT** (drew 0.994 vs eps 0.3) -> `A219` [witness `3cad6a`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #386: **EXPLOIT** (drew 0.984 vs eps 0.3) -> `A211` [witness `10e05c`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #387: **EXPLOIT** (drew 0.960 vs eps 0.3) -> `T226` [witness `29ae88`] — THE OBSERVATION (A631, 2026-08-28). A compile error in lib/N64ModernRuntime/ultramodern/src/even
+- roll #388: **EXPLOIT** (drew 0.866 vs eps 0.3) -> `T197` [witness `ecc6b9`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #389: **EXPLOIT** (drew 0.797 vs eps 0.3) -> `A225` [witness `751ab0`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #390: **EXPLOIT** (drew 0.863 vs eps 0.3) -> `A218` [witness `5fc1fb`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis

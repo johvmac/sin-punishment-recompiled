@@ -446,3 +446,9 @@ here that T209 does not already carry.
 - rolls: 20 this window; runs: 1 (0 exited early, 0 contaminated)
 - nothing flagged (quiet streak 2; at 3, halve the frequency)
 
+## Audit #35 — since f3f840fa
+- ledger: 873 entries (+43 this window), 42 withdrawn
+- rolls: 11 this window; runs: 15 (0 exited early, 0 contaminated)
+- suppressed as superseded (7): A639 (single-run, justified in the entry); A635 (single-run, justified in the entry); A631 (single-run, justified in the entry); A630 (single-run, justified in the entry); A628 (single-run, justified in the entry); A627 (single-run, justified in the entry); A623 (single-run, justified in the entry)
+- nothing flagged (quiet streak 3; at 3, halve the frequency)
+
