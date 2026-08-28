@@ -5024,3 +5024,44 @@ same region and got 86.3% vs 67.4% — too close to call, because that region is
 densely populated. The right control is **the textures the build demonstrably
 DOES bind**: same region, same kind of data, guaranteed live. Against that the
 answer was immediate — 86.1% vs 86.5%, indistinguishable, so the data is there.
+
+## A read-watch on game globals — DESIGNED, NOT BUILT (added 2026-08-28, A620's shelf)
+
+**The question it answers:** A619 found three tables in the game's globals
+(0x8006C044, 0x80070700, 0x800712C4) fully populated with pointers into the
+missing texture bank by tutorial time. **Are they ever consulted?** Nothing we
+have can say. `SNP_WATCH` is a 1 Hz sampler reporting CHANGES; `ARES_WATCH` logs
+STORES and is reference-side; A620's static scan cannot see computed addressing.
+
+**Why it was shelved rather than attempted on 2026-08-28:** `recomp.h` is
+included by all 140 `RecompiledFuncs/*.c`, so any change is a full rebuild, and
+the tap fires on EVERY memory access in the game. **Both the build time and the
+instrumented run's speed are unknown**, and a run too slow to reach the tutorial
+(~168 s native) produces nothing. Do not start this with less than an hour.
+
+**The design, so the next attempt is short.** The macros are plain lvalue
+expressions (`recomp.h:95`):
+
+    #define MEM_W(offset, reg) \
+        (*(int32_t*)(rdram + ((((reg) + (offset))) - 0xFFFFFFFF80000000)))
+
+so a tap goes on the computed OFFSET without disturbing lvalue-ness:
+
+    (*(int32_t*)(rdram + SNP_TAP((((reg) + (offset))) - 0xFFFFFFFF80000000)))
+
+with `SNP_TAP` a no-op unless a build flag is set, and the range test INLINE so
+the common path is a predictable branch and never a call.
+
+**THREE THINGS THAT WILL BITE:**
+* **Reads and writes are indistinguishable here.** `MEM_W(reg, offset)` (read)
+  and `MEM_W(offset, reg)` (write) both reach the same macro and addition is
+  symmetric. **That is fine for the actual question** — "is this table touched
+  at all after it is filled" — but do not report it as a read-watch.
+* **`recomp.h` is included from `.c` files**, so the hook must be C-compatible;
+  declare the callback `extern "C"` on the runtime side.
+* **Only instrument MEM_W.** The tables are word arrays; tapping every width
+  multiplies the cost for nothing.
+
+**The control:** watch a known-hot global as well — the matrix-stack top
+0x80068A84, which A566/A620 put at 733 access sites in 293 functions. If that
+reports zero the tap is not wired in, and the tables' silence means nothing.
