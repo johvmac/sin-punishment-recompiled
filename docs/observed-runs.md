@@ -107,3 +107,14 @@ correction.
 ## DEFERRED 2026-08-28 — user recorded AWAY from the PC today (2026-08-28 alarm, eyes-needed flags suppressed until 2026-08-29); an observed run needs their eyes and ears, so it cannot happen today
 - no observed run today; deferred deliberately, not skipped.
 
+## 2026-08-28T20:13:40+10:00 — build `ffb55f01d78f1829`, 250s requested, rc=0 (STALLED)
+- run log: `observed-201340.log`
+- **video:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-28/run_game-201345.mp4
+- **sound:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-28/observed-201343.flac
+- **right music (A97):** yes
+- **sound texture / stutter (A460):** smooth
+- **sound vs picture, early then late (A498):** lines up
+- **freeze: waiting or locked (A451):** hard lock mid motion
+- **tutorial scenery (A218):** still black
+- **CONTRADICTS MY CLAIMS:** no
+

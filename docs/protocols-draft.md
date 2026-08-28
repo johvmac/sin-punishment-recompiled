@@ -75,7 +75,10 @@ side.** It needs the user's own terminal. `IMPROVISED 2026-08-25`
    * the stanza appended to `docs/observed-runs.md`
    * `docs/run-log.tsv`'s last row for rc and verdict (the script already
      prefers this over the exit status, and the reason is written in it)
-   * the audio capture's amplitude
+   * ~~the audio capture's amplitude~~ — **REMOVED 2026-08-28 (A667). The
+     audio is CLOSED (A447/A461/A499/A509/A518) and reading the amplitude
+     into every entry is one of the two things that kept re-raising it.
+     Read it ONLY if the user reports a regression.**
    * **the instrument's own self-check, before trusting a zero** — an absence
      has two causes that look identical (instrument off vs. nothing there), so
      prove the instrument could have seen a nonzero
@@ -88,10 +91,14 @@ a `.flac`, a row in `run-log.tsv`, and a ledger entry.
 **A DISAGREEMENT BECOMES ITS OWN ENTRY, never a quiet correction.** `WRITTEN`
 
 **CHECKER WOULD ASSERT** *(designed, not built)*: that the newest stanza in
-`observed-runs.md` has a matching ledger entry citing its run log by name; and
-that any run whose stanza names a `sound:` file has that file's amplitude read
-somewhere in the entry. Both are the "evidence gathered but never looked at"
-failure, which is the one this protocol exists to prevent.
+`observed-runs.md` has a matching ledger entry citing its run log by name.
+~~and that any run whose stanza names a `sound:` file has that file's amplitude
+read somewhere in the entry~~ — **THE SECOND ASSERTION IS WITHDRAWN, 2026-08-28
+(A667).** It was designed against "evidence gathered but never looked at", which
+is a real failure — but the audio closed (A509/A518) and the assertion then
+REQUIRED me to write about a settled question in every entry. **A checker that
+compels commentary on a closed item manufactures the noise it was meant to
+prevent.** The first assertion stands and is the one worth building.
 
 ## P2 — Publishing the status page
 

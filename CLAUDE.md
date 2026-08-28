@@ -119,17 +119,31 @@ one that bills them for days they were not here is one they will abandon, and
 then the safeguard is gone. **Any new recurring check is activity-gated, not
 calendar-gated** — and check the code before claiming an existing one already is.
 
-Two things I cannot check: **I cannot HEAR audio** — but it is CAPTURED on
-observed runs (T102) and **amplitude is measurable, which is not the same as
-hearing**. ~~A265: another recompiled N64 game reads −24 dB while ours reads a
-flat −91 dB, so the silence is the game~~ — **STALE, AND IT MISLED ME ON
-2026-08-28 (A637): THE GAME HAS HAD SOUND SINCE A447.** A499's watched,
-LISTENED run returned "correct music" and "smooth", and **A97 CLOSED 2026-08-27
-(A509)**. A capture reading ~−15 dB is now the CORRECT state; **flat −91 dB
-would be the regression.** What remains open is the DRIFT only (A463). Do not
-read a healthy sound level as a contradiction. ~~the recorder captures video
-only, so A97 rests entirely on reading source~~ — that was true of
-`run_game.sh` only, and the conclusion never followed. And **scene identity has
+## THE AUDIO IS CLOSED. DO NOT ANALYSE IT, MENTION IT, OR CHECK IT (A667)
+
+**Every audio question on this project is ANSWERED and the user has now said so
+THREE TIMES.** Silence fixed **A447**; "correct music", "smooth" from their own
+listening **A499**; A97 **CLOSED 2026-08-27 (A509)**; the desync **SOLVED
+2026-08-27 (A518)** — their words, *"audio seems perfect now - audio desync
+solved"*; stutter closed **A461**; sync confirmed by ear **A499**.
+
+**THIS PARAGRAPH USED TO END "what remains open is the DRIFT only (A463)". THAT
+WAS FALSE AND IT IS WHY THIS KEPT HAPPENING.** A638 corrected that claim in
+`START-HERE.md` and not here, so the file loaded every session went on
+re-opening the question three paragraphs after warning against it. Three
+sessions re-raised it (A637, A638, 2026-08-28 evening) — **a fourth warning
+would have been the fourth failure. The prompts and this paragraph were the
+mechanism; both are fixed (A667).**
+
+**SO: say nothing about the sound.** Not the amplitude, not the sync, not "the
+audio still sounds healthy". A ~−15 dB capture is normal and is NOT worth a
+sentence. **The ONLY audio event that matters is the user reporting a
+REGRESSION**, and `observed_run.sh` asks them exactly one blank-if-fine question
+to catch it. If they leave it blank, there is nothing to report.
+
+The one thing I still cannot check: **I cannot HEAR audio** — but that no longer
+licenses commenting on it, because nothing is open to comment on. And **scene
+identity has
 been wrong twice from sampling** (A93, A161 — the observation right, the
 quantifier wrong). **A disagreement from the user becomes its own ledger entry,
 never a quiet correction.**

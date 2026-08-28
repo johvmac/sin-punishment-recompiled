@@ -373,12 +373,27 @@ ans() { read -r -p "$1 " REPLY; printf '%s' "${REPLY:-(no answer)}"; }
 # ASKED NEUTRALLY, AND SPLIT EARLY-VS-LATE ON PURPOSE: a single "is it in sync"
 # invites a yes, and a drift that grows is invisible unless the question makes
 # you compare two moments. No expected value is stated, here or in the banner.
-A_MUSIC=$(ans   "1. Is it the RIGHT MUSIC? (same tunes/moments as the real game) —")
-A_TEXTURE=$(ans "2. Does the sound have any STUTTER, BUZZ or GRAIN — or is it smooth? —")
-A_SYNC=$(ans    "3. Sound vs picture: does it line up EARLY? and still near the END, or behind? —")
-A_FREEZE=$(ans  "4. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
-A_SCENERY=$(ans "5. Tutorial background — still black/empty, or is any scenery there? —")
-A_DISAGREE=$(ans "6. ANYTHING that contradicts what I have claimed:")
+# THREE AUDIO PROMPTS COLLAPSED TO ONE, 2026-08-28 (A667), AT THE USER'S
+# INSTRUCTION — "we've already been over the whole audio thing twice".
+#
+# THE PROMPTS WERE THE MECHANISM, not my forgetfulness. Prompts 1/2/3 were keyed
+# to A97, A460 and A498 -- ALL CLOSED (A509 2026-08-27, A461, A499), with the
+# drift solved at A518. So half of every sitting was spent re-answering settled
+# questions; each answer landed in the stanza; P1.6 says READ the stanza; and
+# reading it is what put the audio back in front of me. Three sessions in a row
+# re-raised it (A637, A638, and again tonight) with CLAUDE.md's warning in plain
+# sight -- a fourth warning would have been the fourth failure of the same fix.
+#
+# WHAT REPLACES THEM. One REGRESSION-ONLY question that states the closure in
+# the question itself, so neither of us can read it as open; and the slot freed
+# goes to the ATTRACT, which the user found a real difference in tonight and
+# which A615/A657/A666 all lean on as "the scene that works".
+A_AUDIO=$(ans   "1. AUDIO IS FIXED AND CLOSED (A447/A499/A509/A518). Regression check only —
+     anything WORSE than you remember? Leave BLANK if it was fine. —")
+A_ATTRACT=$(ans "2. The ATTRACT vs the real game: anything different at all? —")
+A_FREEZE=$(ans  "3. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
+A_SCENERY=$(ans "4. Tutorial background — still black/empty, or is any scenery there? —")
+A_DISAGREE=$(ans "5. ANYTHING that contradicts what I have claimed:")
 
 [[ -f "$LOG" ]] || cat > "$LOG" <<'HDR'
 # User-observed runs
@@ -395,9 +410,8 @@ cat >> "$LOG" <<EOF
 - run log: \`$(basename "$RUNLOG")\`
 - **video:** ${VIDEO:-\*\*NOT RECORDED\*\* — nothing to annotate}
 - **sound:** ${SOUND:-\*\*NOT CAPTURED\*\* — A97 cannot be answered from this run}
-- **right music (A97):** $A_MUSIC
-- **sound texture / stutter (A460):** $A_TEXTURE
-- **sound vs picture, early then late (A498):** $A_SYNC
+- **audio REGRESSION only (closed: A447/A499/A509/A518):** $A_AUDIO
+- **attract vs the real game (A615/A667):** $A_ATTRACT
 - **freeze: waiting or locked (A451):** $A_FREEZE
 - **tutorial scenery (A218):** $A_SCENERY
 - **CONTRADICTS MY CLAIMS:** $A_DISAGREE
