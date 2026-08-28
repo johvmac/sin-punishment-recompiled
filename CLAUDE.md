@@ -121,12 +121,17 @@ calendar-gated** — and check the code before claiming an existing one already 
 
 Two things I cannot check: **I cannot HEAR audio** — but it is CAPTURED on
 observed runs (T102) and **amplitude is measurable, which is not the same as
-hearing** (A265: another recompiled N64 game run headless on this machine reads
-−24 dB while ours reads a flat −91 dB, so the silence is the game, not the
-recorder and not headlessness). ~~the recorder captures video only, so A97 rests
-entirely on reading source~~ — that was true of `run_game.sh` only, and the
-conclusion never followed. And **scene identity has been wrong twice from
-sampling** (A93, A161 — the observation right, the quantifier wrong). **A disagreement from the user becomes its own ledger entry,
+hearing**. ~~A265: another recompiled N64 game reads −24 dB while ours reads a
+flat −91 dB, so the silence is the game~~ — **STALE, AND IT MISLED ME ON
+2026-08-28 (A637): THE GAME HAS HAD SOUND SINCE A447.** A499's watched,
+LISTENED run returned "correct music" and "smooth", and **A97 CLOSED 2026-08-27
+(A509)**. A capture reading ~−15 dB is now the CORRECT state; **flat −91 dB
+would be the regression.** What remains open is the DRIFT only (A463). Do not
+read a healthy sound level as a contradiction. ~~the recorder captures video
+only, so A97 rests entirely on reading source~~ — that was true of
+`run_game.sh` only, and the conclusion never followed. And **scene identity has
+been wrong twice from sampling** (A93, A161 — the observation right, the
+quantifier wrong). **A disagreement from the user becomes its own ledger entry,
 never a quiet correction.**
 
 ## Sub-agents are sanctioned, with measured limits (T157/T158)

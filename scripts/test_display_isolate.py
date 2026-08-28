@@ -338,8 +338,23 @@ def main():
 
     # An artifact nobody measured is indistinguishable from one nobody looked at.
     add("the amplitude is REPORTED, not just the filename",
-        "volumedetect" in iso and "ABOVE THE NOISE FLOOR" in iso,
-        "a change in A97 has to be noticeable without anyone listening")
+        "volumedetect" in iso,
+        "a change in the sound has to be noticeable without anyone listening")
+
+    # POLARITY (A637). This assertion previously required the string "ABOVE THE
+    # NOISE FLOOR" to be the alarm -- which locked in the pre-A447 world where
+    # silence was normal. The game has had sound since A447 and A499 confirmed
+    # it by ear, so the alarm must fire on SILENCE. Asserted in BOTH directions,
+    # because a test that only checks the alarm exists would have passed happily
+    # on the inverted version for two days, as it did.
+    _alarms_on_silence = re.search(
+        r'-91\.0 dB.*\n?.*(GONE|REGRESSION)', iso) is not None or (
+        '-91.0 dB' in iso and 'REGRESSION' in iso.split('-91.0 dB')[1][:400])
+    _quiet_when_audible = 'as expected since A447' in iso
+    add("the audio alarm fires on SILENCE, not on sound",
+        _alarms_on_silence and _quiet_when_audible,
+        f"alarms-on-silence={_alarms_on_silence} quiet-when-audible={_quiet_when_audible}"
+        " — an alarm that fires on the healthy state trains the reader to skip it")
 
     bad = 0
     for name, ok, detail in checks:

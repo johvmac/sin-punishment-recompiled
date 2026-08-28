@@ -231,10 +231,22 @@ snp_display_cleanup() {
                 vol=$(ffmpeg -hide_banner -nostdin -i "$SNP_AUDIO_FILE" -af volumedetect \
                       -f null - 2>&1 | grep -oE 'max_volume: [-0-9.]+ dB' | head -1)
                 echo "[audio] $SNP_AUDIO_FILE ${vol:-(unmeasured)}" >&2
+                # POLARITY CORRECTED 2026-08-28 (A637, on the user's objection).
+                # This was written while the game was SILENT: it called -91 dB
+                # "consistent with A97" and alarmed on anything louder. A447
+                # FIXED the silence and A499's listened run confirmed the music
+                # is correct, so A97 CLOSED on 2026-08-27 (A509) -- and from that
+                # day the alarm fired on every HEALTHY run and would have said
+                # nothing at all about a regression to silence.
+                #
+                # An alarm that fires on the correct state is worse than none:
+                # it trains the reader to skip the line. It did exactly that to
+                # me, and I reported the game's normal sound to the user as a
+                # contradiction needing their ears.
                 case "$vol" in
-                    *"-91.0 dB"|*"-inf"*) echo "[audio] flat at the noise floor -- consistent with A97" >&2 ;;
+                    *"-91.0 dB"|*"-inf"*) echo "[audio] *** FLAT AT THE NOISE FLOOR -- the sound is GONE. A447 fixed this and A499 confirmed it by ear; silence is now a REGRESSION, not the baseline ***" >&2 ;;
                     "") : ;;
-                    *) echo "[audio] *** ABOVE THE NOISE FLOOR -- A97 may have changed, check this ***" >&2 ;;
+                    *) echo "[audio] audible, as expected since A447 (A97 closed by A509)" >&2 ;;
                 esac
             else
                 echo "[audio] $SNP_AUDIO_FILE (ffmpeg absent, unmeasured)" >&2

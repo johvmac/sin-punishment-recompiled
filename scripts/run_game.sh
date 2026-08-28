@@ -188,9 +188,12 @@ trap snp_display_cleanup EXIT INT TERM
 # wiring used `attach`, which hunts for a live sink-input and gave up after 20s
 # ("Failure: No such entity", empty file) because our game had not opened one
 # by then. Headless runs were discarding their sound on ~20 runs a day, and a
-# per-run amplitude reading is a standing regression test on A97: another
-# recompiled N64 game run headless on this machine measures -24 dB while ours
-# measures a flat -91 dB. Opt out with SNP_AUDIO=0. Never fatal.
+# per-run amplitude reading is a standing regression test on the sound.
+# ITS POLARITY WAS BACKWARDS UNTIL 2026-08-28 (A637): written when the game was
+# silent, it treated -91 dB as normal. A447 fixed the silence, A499 confirmed
+# the music by ear and A97 closed at A509 -- so an audible capture (~-15 dB) is
+# the healthy state and FLAT -91 dB is the regression. Opt out with SNP_AUDIO=0.
+# Never fatal.
 snp_start_audio run_game
 
 # `stdbuf -oL`: LINE-BUFFER STDOUT SO IT SURVIVES THE KILL (2026-08-21).
