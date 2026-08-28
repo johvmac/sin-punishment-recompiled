@@ -632,6 +632,51 @@ mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
 ./scripts/boot_screen_check.sh 60 /tmp/check.png
 ```
 
+#### `build.sh` used to exit 0 on a build that failed — fixed 2026-08-28 (T226)
+
+**THE INCIDENT (A631).** A compile error appeared in the build output, the
+executable was never relinked, and `build.sh` printed `==> built <time>` and
+returned **rc=0**. It was caught only because someone happened to grep the
+output for `error:`.
+
+**THE CAUSE, and it threw the status away twice.** The build line read
+`if ! timeout 1800 cmake --build build … | grep -E "…"; then : ; fi`. The
+pipeline reported **grep's** status rather than cmake's, and the
+`if ! …; then :; fi` swallowed even that. Control then fell to the
+`[[ -x "$BIN" ]]` test, which **passed on the STALE binary from the previous
+build** — still present, still executable.
+
+**WHY IT MATTERED HERE MORE THAN ELSEWHERE.** Every measurement on this project
+runs `build/SinPunishmentRecompiled`. A silent build failure means the next run
+measures the *previous* binary while the log says the change was applied — the
+one tool standing between every code change and every number we take, producing
+a confidently wrong answer.
+
+**THE FIX.** cmake's output goes to a **file** rather than a pipe, its real exit
+status is captured into `BUILD_RC`, and a non-zero status prints the error,
+says the on-disk binary is stale and must not be measured, **keeps the whole
+log** and exits 1. Writing to a file rather than a pipe is deliberate (T163):
+the `grep` filter still keeps normal output short, but it can no longer *drop*
+anything, because the full log survives and its path is printed.
+
+**THE CONTROL, RUN IN BOTH DIRECTIONS — a one-direction control is what let this
+survive.** Verified 2026-08-28, ~90 s total, using `--no-recomp`:
+
+* **Must FAIL:** append a bad token to `src/main/register_overlays.cpp` (22
+  lines, git-clean, compiles in seconds) → **rc=1**, the error printed, the
+  stale-binary warning printed, log kept.
+* **Must PASS:** restore and re-run → **rc=0**, `Linking CXX executable`,
+  `==> built`.
+* **And the tree is left where it started:** back the file up by **copy and
+  restore by sha256**, never `git checkout` — this tree carries uncommitted
+  probe content and a stray checkout would destroy it. The binary was confirmed
+  byte-identical (`a0db62c2…`) before and after.
+
+**KNOWN ROUGHNESS, not fixed:** on failure the `tail -30` is often dominated by
+one enormous compiler command line. The concise `error:` lines are already
+printed above it by the filter, and the full log path is given, so nothing is
+lost — but do not expect the tail alone to be readable.
+
 ### Wayland/xwd capture unreliability — root-caused and fixed, 2026-08-14
 
 **`xwd`-based capture could *intermittently* report solid black for a window

@@ -207,9 +207,37 @@ if [[ "$RECOMP" == "1" ]]; then
 fi
 
 echo "==> cmake --build"
-if ! timeout 1800 cmake --build build -j"$(nproc)" 2>&1 | grep -E "error|Linking CXX executable"; then
-    :
+# T226 (opened by A631, fixed 2026-08-28). This used to read:
+#     if ! timeout 1800 cmake --build build ... 2>&1 | grep -E "..."; then : ; fi
+# which threw cmake's exit status away TWICE. The pipeline reported grep's
+# status rather than cmake's, and the `if ! ...; then :; fi` then swallowed
+# even that. A build that failed to compile and link fell straight through to
+# the `-x $BIN` test below -- which PASSED, because the STALE binary from the
+# previous build was still sitting there and still executable. The script
+# printed "==> built <time>" and returned 0.
+#
+# Why that mattered more here than in most projects: every measurement on this
+# project runs build/SinPunishmentRecompiled. A silent build failure means the
+# next run measures the PREVIOUS binary while the log says the change was
+# applied -- a confidently wrong answer produced by the one tool standing
+# between every code change and every number we take.
+#
+# The log is written to a file rather than piped, so the filter below cannot
+# drop anything we then fail to read (T163): on failure the whole log is KEPT
+# and its path printed, and the tail is shown without being the only copy.
+BUILD_LOG=/tmp/snpbuild.$$.log
+timeout 1800 cmake --build build -j"$(nproc)" > "$BUILD_LOG" 2>&1
+BUILD_RC=$?
+grep -E "error|Linking CXX executable" "$BUILD_LOG" || true
+if [[ $BUILD_RC -ne 0 ]]; then
+    echo "[build] ERROR: cmake --build FAILED (rc=$BUILD_RC)." >&2
+    echo "[build]   $BIN on disk is STALE -- it is the PREVIOUS build, not this one." >&2
+    echo "[build]   DO NOT RUN OR MEASURE IT. Full log kept at: $BUILD_LOG" >&2
+    echo "[build] --- last 30 lines of the build log ---" >&2
+    tail -30 "$BUILD_LOG" >&2
+    exit 1
 fi
+rm -f "$BUILD_LOG"
 
 if [[ -x "$BIN" ]]; then
     echo "==> built $(date +%H:%M:%S)"
