@@ -632,6 +632,52 @@ mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
 ./scripts/boot_screen_check.sh 60 /tmp/check.png
 ```
 
+### `scripts/yaz0_extract.py` — reading the SIBLING PORT's ROM (added 2026-08-28, A658)
+
+**WHAT IT IS FOR.** T197 wants to borrow function names from the Majora's Mask
+decomp. A642 verified our MM ROM is the correct revision — its md5 matches
+zeldaret/mm's published `checksum-compressed.md5` **exactly** — and then found
+the blocker: **2,033 Yaz0 blocks starting at 0x956780, 70.8% of the image.**
+Skeleton matching needs function BYTES, and you cannot read bytes out of a
+compressed ROM by address.
+
+**THE BORROW ARM WAS CLOSED FIRST.** A650 fired A642's own falsifier across four
+independent channels — repo + submodule source, the toolchain directory,
+importable Python modules, `PATH` — and found nothing. Only then was writing one
+the right move.
+
+**DO NOT CONFUSE IT WITH `yay0_extract.py`.** *Our* game uses **Yay0** (28 blocks,
+0 Yaz0); *MM* uses **Yaz0** (2,033 blocks, 0 Yay0). Two formats, near-identical
+names, different layouts — Yay0 stores its three streams separately, Yaz0
+interleaves a flag byte with the data. The existing tool does not help here and
+reaching for it will silently produce nonsense.
+
+**THE THREE GATES, all met in the checkpoint that added it (T71):**
+* **Dry run** — `--dry-run <rom>` reports block count, first/last offset and
+  total declared size, then exits without decoding or writing.
+* **A control that CAN fail** — `--self-check <rom>` runs **both arms**:
+  15 real blocks sampled from the start, middle and end must each decode to
+  **exactly the length their own header declares**; then three deliberate
+  corruptions must each be **REJECTED** — a bad size field, a truncated image,
+  and a wrong offset. **5/5 at time of writing.** A control that only checks the
+  passing case is what let T226 survive.
+* **This write-up**, same checkpoint.
+
+**THE ONE IMPLEMENTATION TRAP.** Back-references may **overlap themselves** —
+that is how runs are encoded — so the copy must be **byte at a time**. A slice
+copy passes casual testing and gives wrong output on exactly the cases the
+format exists to compress.
+
+```bash
+scripts/yaz0_extract.py --dry-run "rom/Legend of Zelda, The - Majora's Mask (USA).z64"
+scripts/yaz0_extract.py --self-check "rom/Legend of Zelda, The - Majora's Mask (USA).z64"
+scripts/yaz0_extract.py --list <rom>                # every block + declared size
+scripts/yaz0_extract.py <rom> 0x956780 out.bin      # decode one block
+```
+
+**MEASURED:** block 0 at 0x956780 is 41,746 compressed → 84,720 bytes; the whole
+ROM declares 36,872,880 bytes uncompressed across its 2,033 blocks.
+
 #### `build.sh` used to exit 0 on a build that failed — fixed 2026-08-28 (T226)
 
 **THE INCIDENT (A631).** A compile error appeared in the build output, the
