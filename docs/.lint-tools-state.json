@@ -21,6 +21,7 @@
   "build.sh",
   "build_staleness.sh",
   "calib.py",
+  "check_clear.py",
   "check_ledger.py",
   "classify_recording.py",
   "crop_recording.py",
@@ -57,6 +58,7 @@
   "patch_si_stubs.py",
   "probe_stubs.py",
   "qty.py",
+  "rdp_to_stepper.py",
   "rdram_peek.py",
   "recompile.sh",
   "regenerate.sh",
@@ -92,9 +94,10 @@
   "user_queue.py",
   "xclick.py",
   "xtest_key.py",
-  "yay0_extract.py"
+  "yay0_extract.py",
+  "yaz0_extract.py"
  ],
- "runs": 41,
+ "runs": 43,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
