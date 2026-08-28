@@ -118,3 +118,14 @@ correction.
 - **tutorial scenery (A218):** still black
 - **CONTRADICTS MY CLAIMS:** no
 
+## 2026-08-29T09:14:44+10:00 — build `51efe3b9b4c7524d`, 220s requested, rc=0 (STALLED)
+- run log: `observed-091444.log`
+- **video:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-29/run_game-091448.mp4
+- **sound:** /media/joh/extra/sin-punishment-archive/evidence/2026-08-29/observed-091446.flac
+- **audio REGRESSION only (closed: A447/A499/A509/A518):** no, the thing I saw in the ablated run yesterday was fixed - don't exactly see how that could happen because the ablated run had something ommitted which was back in this run, I can go into more detail if you think it's important, but it was only in the attract mode so up to you whether you think that's of any importance
+- **attract vs the real game (A615/A667):** back to normal seemingly (other than the still green soldiers)
+- **freeze: waiting or locked (A451):** hard lock with music continuing to play
+- **tutorial scenery (A218):** still black
+- **scene 2, the ~12 s blank before the tutorial (A672/A679):** didn't notice anything - not 100% sure
+- **CONTRADICTS MY CLAIMS:** no
+
