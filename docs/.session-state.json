@@ -1,16 +1,11 @@
 {
- "start": 1787902080.3843725,
- "deadline": 1787905980.3843725,
+ "start": 1787905802.8013153,
+ "deadline": 1787909702.8013153,
  "requested": 3600,
- "task": "find out WHY boot_func_80029070 writes five words at 0x8007AF00 (static read, no run)",
- "shelf": [
-  {
-   "what": "T211's remaining step: a 449 s interpreter-forced ares run with SNP_REC_MAX set explicitly, to read the tutorial pause words' writers (roll #392, witness 781c1f)",
-   "why": "Setup is spent and the binary is current, so this is resumable at zero cost next session. Started now it would finish with ~20 min left and the analysis would be rushed against the deadline; and it is pause machinery, not the geometry the user asked to work on exclusively. A645's named next step is static and on that priority."
-  }
- ],
+ "task": "A648's named next step: read boot_func_80032AA0, second-place accessor of scenery tables B and C (geometry, the user's standing priority)",
+ "shelf": [],
  "blocks": [],
- "roll_at_start": 387,
+ "roll_at_start": 397,
  "entries_at_start": [
   "A1",
   "A10",
@@ -584,6 +579,19 @@
   "A638",
   "A639",
   "A64",
+  "A640",
+  "A641",
+  "A642",
+  "A643",
+  "A644",
+  "A645",
+  "A646",
+  "A647",
+  "A648",
+  "A649",
+  "A650",
+  "A651",
+  "A652",
   "A66",
   "A67",
   "A68",
@@ -898,5 +906,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
