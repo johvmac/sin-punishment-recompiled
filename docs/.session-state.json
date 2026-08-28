@@ -1,16 +1,16 @@
 {
- "start": 1787872846.0277212,
- "deadline": 1787876746.0277212,
+ "start": 1787887867.4869359,
+ "deadline": 1787891767.4869359,
  "requested": 3600,
- "task": "look at the frozen frame from A601's corruption snapshot, then roll through checkpoints",
+ "task": "extend SNP_DL_GEOM to emit texture bindings (G_SETTIMG), then work exclusively on the missing tutorial geometry",
  "shelf": [
   {
-   "what": "Patch ares's RDP capture to retain triangle continuation words, rebuild, re-dump, then build the reference stepper",
-   "why": "USER'S DECISION this session: patch first, build once. ares prints one 64-bit word per command (render.cpp:232 passes 'op, 0'), so triangle X coordinates are discarded and only Y extents survive. Rectangles are already complete. Needs a capture-struct change plus a full ares rebuild plus a ~6 min re-dump \u2014 its own session. Nothing else is blocked; A608's dump already answers the count question."
+   "what": "a READ watch on 0x8006C044 / 0x80070700 / 0x800712C4 during the tutorial \u2014 are A619's pointer tables ever consulted?",
+   "why": "no read-watch exists: SNP_WATCH samples changes at 1Hz, ARES_WATCH logs stores on the reference side. Needs a runtime addition or an ablation approach. Everything else on A218 proceeded without it."
   }
  ],
  "blocks": [],
- "roll_at_start": 379,
+ "roll_at_start": 383,
  "entries_at_start": [
   "A1",
   "A10",
@@ -543,7 +543,21 @@
   "A6",
   "A600",
   "A601",
+  "A602",
+  "A603",
+  "A604",
+  "A605",
+  "A606",
+  "A607",
+  "A608",
+  "A609",
   "A61",
+  "A610",
+  "A611",
+  "A612",
+  "A613",
+  "A614",
+  "A615",
   "A62",
   "A64",
   "A66",
