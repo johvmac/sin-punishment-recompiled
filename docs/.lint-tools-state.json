@@ -69,6 +69,7 @@
   "route.py",
   "rr_record.sh",
   "run_game.sh",
+  "scene_id.py",
   "scene_timeline.py",
   "sections.py",
   "send_key.py",
@@ -99,7 +100,7 @@
   "yay0_extract.py",
   "yaz0_extract.py"
  ],
- "runs": 45,
+ "runs": 47,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",

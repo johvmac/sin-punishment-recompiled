@@ -169,6 +169,22 @@ def self_check():
         if got != want:
             print(f"[self-check] FAIL: {name}: got {got!r}, want {want!r}"); ok = False
 
+    # (2b) A673: THE STALE-PROBE TRAP MUST BE DETECTED. A log whose [rad] lines
+    #      are all zero AND which lacks the unconditional FIRST OBSERVATION line
+    #      was recorded without the probe compiled in. Parsing must still yield
+    #      rows (so the refusal is main()'s job, not parse()'s), but a caller
+    #      relying on totals must be able to see the emptiness.
+    stale = ["[rad] task=%d n=0 neg=0 z=0 bad=0 maxexp=0 max=0 "
+             "b=0,0,0,0,0,0,0,0 tot=0" % i for i in (1100, 5100)]
+    srows, sprob = parse(stale)
+    if len(srows) != 2:
+        print("[self-check] FAIL: stale-probe lines did not parse"); ok = False
+    if sum(r["n"] for r in srows) != 0:
+        print("[self-check] FAIL: stale-probe lines should total zero"); ok = False
+    if "[rad] FIRST OBSERVATION" in "\n".join(stale):
+        print("[self-check] FAIL: the stale fixture must NOT contain the marker, "
+              "or it does not exercise the trap"); ok = False
+
     # (2) THE CONTROL MUST FIRE ON BROKEN INPUT. b= sums to 5, n says 3.
     #     If this passes silently the consistency check is decorative (T65).
     bad_syn = ["[rad] task=1100 n=3 neg=0 z=0 bad=0 maxexp=6 max=100.0 "
@@ -184,10 +200,10 @@ def self_check():
     if agg["attract"]["big"] == 999:
         print("[self-check] FAIL: comparison is vacuous"); ok = False
 
-    n_asserts = len(checks) + 3
+    n_asserts = len(checks) + 6
     print(f"[self-check] {'PASS' if ok else 'FAIL'} "
           f"({n_asserts} assertions: {len(checks)} known-answer, "
-          f"1 must-fire-on-broken-input, 2 structural)")
+          f"1 must-fire-on-broken-input, 3 stale-probe-trap, 2 structural)")
     return 0 if ok else 1
 
 
@@ -198,7 +214,27 @@ def main(argv):
     if argv[1] == "--self-check":
         return self_check()
     with open(argv[1], errors="replace") as fh:
-        rows, problems = parse(fh)
+        text = fh.read()
+    rows, problems = parse(text.splitlines())
+    # A673. THE STALE-PROBE TRAP, found by accident on a672-scene.log. The [rad]
+    # line is printed unconditionally by snp_rw_task, so a log recorded with the
+    # probe REMOVED from RecompiledFuncs/ still carries 6,169 of them -- all
+    # zeros. This tool used to print a full table of 0.0 and exit 0, which reads
+    # as "the tutorial submits no objects at any size". That is a confidently
+    # wrong answer manufactured by the analysis, which is the T65 failure class.
+    # The probe's own FIRST OBSERVATION line is unconditional and independent of
+    # both env switches, so its ABSENCE is the discriminator.
+    if rows and "[rad] FIRST OBSERVATION" not in text:
+        print("[rad_hist] REFUSING: this log has [rad] per-task lines but NO "
+              "'[rad] FIRST OBSERVATION' line.\n"
+              "  That means the probe was NOT compiled in when the log was recorded "
+              "-- the call in RecompiledFuncs/funcs_3.c is absent (it is a generated "
+              "file; recompile.sh deletes it, and it is removed after each use).\n"
+              "  The per-task lines are printed unconditionally by snp_rw_task and "
+              "are ALL ZERO. Reporting them as a distribution would say 'no objects "
+              "at any size' when the truth is 'no instrument'.\n"
+              "  Re-add the probe, build --no-recomp, and re-run.", file=sys.stderr)
+        return 2
     if not rows:
         print("[rad_hist] NO [rad] task= LINES. The run is VOID, not empty of "
               "large objects -- check for the '[rad] FIRST OBSERVATION' line: "
