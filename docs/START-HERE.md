@@ -39,13 +39,14 @@ not skip them because you think you know the state:
 Then read docs/protocols-draft.md — it is how we run recurring work, it is a
 draft, and it has a deviations log you should add to rather than work around.
 
-Where we left off: «we now know what kills the picture 200s in — the
-frustum-cull test, boot_func_80029070, writes five words over a callback
-pointer (A636). ONE hole is left in that: the 64-bit store macro SD in
-lib/N64ModernRuntime/N64Recomp/include/recomp.h has NO tap, so a store I
-cannot see could be the real writer. Tap SD, rebuild, one 220s run. One line
-and four minutes. Separately: the audio is COMPLETELY finished, all of it —
-do not re-open it, check ledger.py --grep audio before saying otherwise.»
+Where we left off: «we know what kills the picture 200s in — the frustum-cull
+test, boot_func_80029070, writes five words over a per-frame callback pointer.
+Three runs, two builds, and the last hole (an untapped 64-bit store) is closed
+(A636/A639). NEXT: read that function and work out WHY it writes there. A566
+says the matrix-stack push path has no bound check and that the overrun was
+never actually shown — that is the candidate. Static read, no run needed.
+Separately: the audio is COMPLETELY finished, all of it — do not re-open it,
+check ledger.py --grep audio before saying otherwise.»
 
 Report the state in a few plain sentences and stop there; I'll say when to
 take the first roll.
