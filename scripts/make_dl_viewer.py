@@ -26,6 +26,19 @@ some order convenient for drawing.
     scripts/dl_render.py <log> --json-all frames.json --width 640 --height 480
     scripts/make_dl_viewer.py frames.json -o viewer.html
 
+TWO SOURCES, AND THEY ARE NOT THE SAME QUANTITY (2026-08-28, the user's ask:
+"hook the dump up ... so that I can step through it similarly"). Several JSON
+files may be given; their frames are concatenated and each keeps its own `src`.
+`rdp_to_stepper.py` emits `src="reference"` frames read from the REAL emulator's
+RDP command stream -- screen space, post-transform, POST-CULL, with draw
+groupings this project constructed rather than read. Ours are the F3DEX2 display
+list replayed offline -- object space, PRE-cull, grouped by matrix set-up. The
+page labels every chip with its source and says this in the open, because A608
+already had to caveat exactly this comparison for counting.
+
+    scripts/rdp_to_stepper.py <ares-dump.txt> -o reference.json
+    scripts/make_dl_viewer.py frames.json reference.json -o viewer.html
+
 The page is SELF-CONTAINED: data is embedded, no network, no fonts fetched.
 """
 import argparse
@@ -76,6 +89,8 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
        font-weight:650; }
   .sub { color:var(--muted); font-size:0.9rem; max-width:62ch; margin:0; }
   .sub b { color:var(--ink); font-weight:600; }
+  .sub b.oursk { color:var(--trace); }
+  .sub b.refk { color:var(--amber); }
   .eyebrow { font-family:var(--mono); font-size:0.7rem; letter-spacing:0.14em;
              text-transform:uppercase; color:var(--trace); }
 
@@ -89,6 +104,15 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   .chip .ph { color:var(--muted); font-size:0.68rem; text-transform:uppercase;
               letter-spacing:0.08em; }
   .chip[aria-pressed="true"] .ph { color:var(--trace); }
+  /* Reference frames come from a different instrument measuring a different
+     quantity, so they are not allowed to look like ours. */
+  .chip.ref[aria-pressed="true"] { border-color:var(--amber); color:var(--amber); }
+  .chip.ref[aria-pressed="true"] .ph { color:var(--amber); }
+  .srcbar { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap;
+            font-family:var(--mono); font-size:0.7rem; color:var(--muted);
+            letter-spacing:0.08em; text-transform:uppercase; }
+  .srcbar .k { display:inline-flex; align-items:center; gap:5px; }
+  .srcbar .sw { width:9px; height:9px; display:inline-block; }
   .chip:focus-visible, .btn:focus-visible, input:focus-visible {
     outline:2px solid var(--trace); outline-offset:2px; }
 
@@ -122,6 +146,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   .cell.warn .v { color:var(--amber); }
   .note { color:var(--muted); font-size:0.82rem; max-width:70ch; margin:0; }
   .note b { color:var(--ink); font-weight:600; }
+  /* A filter hiding most of a frame looks exactly like missing geometry, which
+     is the bug this whole project is chasing. Never let it be silent. */
+  .hidden { margin:0; font-family:var(--mono); font-size:0.74rem;
+            color:var(--amber); min-height:1em; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
@@ -129,15 +157,26 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   <header>
     <span class="eyebrow">Display-list stepper</span>
     <h1>Every draw in the frame, laid down one at a time</h1>
-    <p class="sub">Rebuilt from the game's own display list — no emulator, no
-    renderer. Pick a frame, then scrub. Each step adds the next sub-list in the
-    order the RSP would have run it; the newest one lands in mint before settling
-    to its own colour. <b>Arrow keys step</b> — hold Shift for ten at a
-    time, Home and End for either end. Geometry splits three ways: what writes
-    depth, scenery that does not (the pylons live here), and screen-pinned
-    overlay. Dashed boxes are rectangle commands — mint for textured, amber for
-    fills — drawn as outlines because we have no textures to put in them.</p>
+    <p class="sub">Pick a frame, then scrub. Each step adds the next draw in the
+    order it was issued; the newest one lands in mint before settling to its own
+    colour. <b>Arrow keys step</b> — hold Shift for ten at a time, Home and End
+    for either end. Geometry splits three ways: what writes depth, scenery that
+    does not (the pylons live here), and screen-pinned overlay. Dashed boxes are
+    rectangle commands — mint for textured, amber for fills — drawn as outlines
+    because we have no textures to put in them.</p>
+    <p class="sub"><b>Two sources, and they do not measure the same thing.</b>
+    <b class="oursk">Ours</b> is our display list replayed offline: object space,
+    <b>before</b> culling, grouped by matrix set-up. <b class="refk">Reference</b>
+    is the real emulator's RDP command stream: screen space, <b>after</b>
+    transform and culling, with draw boundaries this project constructed rather
+    than read from the data. Compare <b>what is on screen and where</b>. Do not
+    read the two triangle counts as the same quantity.</p>
   </header>
+
+  <div class="srcbar">
+    <span class="k"><span class="sw" style="background:var(--trace)"></span>ours — display list, pre-cull</span>
+    <span class="k"><span class="sw" style="background:var(--amber)"></span>reference — ares RDP, post-cull</span>
+  </div>
 
   <div class="chips" id="chips" role="group" aria-label="Frame"></div>
 
@@ -166,6 +205,7 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       <button class="btn" id="ko" type="button" aria-pressed="false">Screen overlay</button>
       <button class="btn" id="kr" type="button" aria-pressed="true">Rects</button>
     </div>
+    <p class="hidden" id="hid"></p>
   </div>
 
   <div class="readout">
@@ -333,7 +373,11 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       byTri ? "\\u2014" : pos + " / " + g.order.length;
     document.getElementById("r2").textContent = list.length + " / " + f.tris.length;
     document.getElementById("r3").textContent = g.order.length;
-    document.getElementById("r4").textContent = f.behind;
+    // The reference stream is POST-cull: whatever was dropped was dropped
+    // upstream and never appears here. Printing 0 would read as "the reference
+    // drops nothing", which is a claim this data cannot make.
+    document.getElementById("r4").textContent =
+      (f.src === "reference") ? "\\u2014" : f.behind;
     var nr = (f.rects || []).length, nt = 0;
     (f.rects || []).forEach(function (rc) { if (rc.kind === "tex") nt++; });
     document.getElementById("r6").textContent =
@@ -342,10 +386,24 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     f.tris.forEach(function (t) { n[t.k || (t.z ? "d" : "o")]++; });
     document.getElementById("r5").textContent =
       n.d + " / " + n.s + " / " + n.o;
-    document.getElementById("foot").textContent =
-      "Task " + f.task + " \\u00b7 " + f.matrices + " matrix set-ups \\u00b7 " +
-      f.built + " triangles built, " + f.behind +
-      " dropped behind the eye. Dropped geometry is counted, never mirrored into frame.";
+    // Say out loud how much the filters are hiding. The reference frames draw
+    // ~64% of their triangles with no depth involvement at all, so landing on
+    // one with 'Screen overlay' off shows a third of the frame -- which reads
+    // as missing geometry unless the page admits what it is doing.
+    var names = { d: "depth-writing", s: "scene-no-depth", o: "screen overlay" };
+    var hid = [];
+    ["d", "s", "o"].forEach(function (k) {
+      if (!show[k] && n[k]) hid.push(n[k] + " " + names[k]);
+    });
+    document.getElementById("hid").textContent = hid.length
+      ? ("hiding " + hid.join(" + ") + " \\u2014 " +
+         hid.reduce(function (a, s) { return a + parseInt(s, 10); }, 0) +
+         " of " + f.tris.length + " triangles not drawn")
+      : "";
+    document.getElementById("foot").textContent = f.note ? f.note :
+      ("Task " + f.task + " \\u00b7 " + f.matrices + " matrix set-ups \\u00b7 " +
+       f.built + " triangles built, " + f.behind +
+       " dropped behind the eye. Dropped geometry is counted, never mirrored into frame.");
     if (age < 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       requestAnimationFrame(draw);
     }
@@ -371,8 +429,12 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
 
   frames.forEach(function (f, i) {
     var b = document.createElement("button");
-    b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", "false");
-    b.innerHTML = "<span>task " + f.task + "</span><span class='ph'>" + f.phase + "</span>";
+    b.className = "chip" + (f.src === "reference" ? " ref" : "");
+    b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.appendChild(document.createTextNode(f.label));
+    var ph = document.createElement("span");
+    ph.className = "ph"; ph.textContent = f.phase;
+    b.appendChild(ph);
     b.addEventListener("click", function () { pickFrame(i); });
     chips.appendChild(b);
   });
@@ -441,30 +503,49 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
 
 def main():
     ap = argparse.ArgumentParser(add_help=False)
-    ap.add_argument("json", nargs="?")
+    ap.add_argument("json", nargs="*")
     ap.add_argument("-o", "--out", default="dl_viewer.html")
     ap.add_argument("-h", "--help", action="store_true")
     a = ap.parse_args()
     if a.help or not a.json:
         print(__doc__)
         return 0 if a.help else 2
-    data = json.loads(Path(a.json).read_text())
-    if not data.get("frames"):
-        print("[viewer] no frames in that json", file=sys.stderr)
+
+    # Several inputs are concatenated. Each frame keeps the `src` its producer
+    # gave it; anything without one is ours, because ours predates the field.
+    frames = []
+    for path in a.json:
+        data = json.loads(Path(path).read_text())
+        if not data.get("frames"):
+            print(f"[viewer] no frames in {path}", file=sys.stderr)
+            return 1
+        for f in data["frames"]:
+            f.setdefault("src", "ours")
+            frames.append(f)
+        print(f"[viewer] {len(data['frames'])} frame(s) from {path}")
+    if not frames:
+        print("[viewer] nothing to show", file=sys.stderr)
         return 1
-    for f in data["frames"]:
-        f["phase"] = phase(f["task"])
+
+    for f in frames:
+        ref = f["src"] == "reference"
+        f["phase"] = "ares" if ref else phase(f["task"])
+        # "ares f5100" not "ref 5100": ares frame numbers and our task numbers
+        # are different clocks, and 5100 happens to occur in both. A label that
+        # let them be read as the same instant would invent an alignment.
+        f["label"] = ("ares f" if ref else "task ") + str(f["task"])
         f.pop("_g", None)
     # </script> inside embedded JSON would close the tag early. Escaped, not
     # hoped about -- a page that silently truncates its own data renders an
     # empty frame and looks like a geometry finding.
-    blob = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+    blob = json.dumps({"frames": frames}, separators=(",", ":")).replace("</", "<\\/")
     Path(a.out).write_text(PAGE.replace("__DATA__", blob))
-    n = sum(len(f["tris"]) for f in data["frames"])
-    print(f"[viewer] {len(data['frames'])} frame(s), {n} triangles -> {a.out} "
+    n = sum(len(f["tris"]) for f in frames)
+    print(f"[viewer] {len(frames)} frame(s), {n} triangles -> {a.out} "
           f"({Path(a.out).stat().st_size // 1024} KB)")
-    for f in data["frames"]:
-        print(f"  task {f['task']:<6} {f['phase']:<9} {len(f['tris']):>5} tris")
+    for f in frames:
+        print(f"  {f['label']:<12} {f['phase']:<9} {len(f['tris']):>5} tris  "
+              f"{len(f.get('rects', [])):>4} rects")
     return 0
 
 

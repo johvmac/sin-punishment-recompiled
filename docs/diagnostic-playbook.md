@@ -4912,3 +4912,78 @@ display-list-level dump from ares by that route.
 decisive next step by A551, A552 and A600 — the answer to far-vs-late (A598),
 centre-vs-composition (A600) and the A218/A219 merge (A512) — is this command
 with a bigger frame number.
+
+## `rdp_to_stepper.py` — reference draw commands INTO the stepper (added 2026-08-28, A610, user request)
+
+`--dump-log` (A607) gives the reference's RDP stream. Until 2026-08-28 that
+stream was **unusable for geometry**: ares's capture stored word 0 and nothing
+else, so a triangle could report `y:[592,585,530]` and never say where on the
+scanline it was. Rectangles survived intact (which is why A454's logo join and
+A607's verification both worked) because a rect fits in one word.
+
+**The ares patch** (`<archive>/evidence/2026-08-28/a610-ares-capture.patch`).
+`RDPCapture::Command` now holds `u64 words[22]` + a retained `wordCount`,
+mirroring `RSPCapture`'s existing idiom. **Four push sites**, not one:
+`rdp/render.cpp`, `vulkan/vulkan.cpp`, and TWO in `angrylion/angrylion.cpp`.
+**Which one runs is not obvious and it matters:** `RDP::render()` returns early
+whenever a backend renderer is enabled, and our runs print
+`angrylion-rdp-plus enabled (CPU renderer)` — so `angrylion.cpp`'s
+`captureCommands` is the site that actually feeds our dumps. Patching only the
+one named in a grep would have changed nothing observable.
+
+**`rdpCommandWordCounts` in `render.cpp` was WRONG** (`4,9,6,11,8,13,10,15`, and
+only 56 of 64 initialisers, so everything past index 24 was shifted). It never
+corrupted evidence because its one consumer stored the value in a field neither
+the dump nor either viewer printed — but the moment the capture used it to
+decide how many words to read, it would have become silently wrong DATA. Correct
+values, corroborated three ways (the decoder's own `fetch()` counts, and the
+independent copies in `vulkan.cpp` and `angrylion.cpp`): `4,6,12,14,12,14,20,22`.
+
+**The reconstruction.** An RDP triangle is three EDGES. Word 0 has YH/YM/YL in
+11.2; words 1/2/3 are the LOW, HIGH and MID edges as signed 16.16 x + dx/dy —
+that order, which is `fetchEdge`'s, not alphabetical.
+
+    v1 = (XH, YH)                     v2 = (XL, YM)
+    v3 = (XH + DxHDy*(YL-YH), YL)
+
+**CONTROLS, and one of them had to be corrected:**
+* **C1** our YL/YM/YH vs the triple ares itself prints (`decode.cpp`, an
+  independent decoder). **11848/11848.** This is what makes word 0 trustworthy.
+* **C2** XH == XM (major and mid edge share the top vertex; DIFFERENT WORDS, so
+  a wrong order breaks it). **It first read 41% failure and that number was an
+  artefact of my own check:** 45% of this game's triangles have YM==YH or
+  YM==YL, which makes an edge zero-height and XM unconstrained. Excluding those,
+  79.4% agree within 1px; the rest miss by a median 2.26px — sub-scanline
+  snapping. The WRONG premise (XL on the major edge) holds on 15%, so the check
+  still discriminates. **It is a threshold, not an equality.**
+* **C2b THE DECISIVE CONTROL IS VISUAL, because C2 is an argument and an
+  argument may flag a measurement without settling it (T107).** Rasterise it:
+  the correct mapping draws the tutorial corridor with a figure standing in it;
+  permuting words 1-3 draws sliver hash. Both panels are in
+  `a610-raster.png`, side by side, so "it looks like a picture" ships with its
+  own counterexample.
+* **`--self-check`** does the same falsification on a synthetic triangle whose
+  answer is known, and **asserts the permuted version FAILS** (T65).
+* **A control with nothing to test does NOT pass.** Run against a pre-patch
+  dump, C2's first version reported PASS on zero reconstructable triangles.
+  It now reports `FAIL (nothing to test)`.
+
+**The two sources are NOT the same quantity and the page says so.** Ours is the
+display list replayed offline — object space, PRE-cull, grouped by matrix
+set-up. The reference is the RDP stream — screen space, POST-transform,
+POST-cull, and **its draw groups are CONSTRUCTED by this script** as runs of
+primitives between state changes; the RDP stream has no draw boundaries.
+
+**Emit at 320x240, not 640x480.** Our frames are 320x240 and RDP screen space
+already is; scaling up would have drawn the reference at twice our scale in the
+same canvas and made comparison silently meaningless.
+
+    scripts/rdp_to_stepper.py --self-check
+    scripts/rdp_to_stepper.py <dump.txt> --dry-run
+    scripts/rdp_to_stepper.py <dump.txt> --frames 2 -o reference.json
+    scripts/make_dl_viewer.py ours.json reference.json -o stepper.html
+
+**A filter that hides most of a frame looks exactly like the bug we are
+chasing.** The reference draws 942 of 1481 triangles with no depth involvement
+at all, and the viewer hides that class by default — a third of the frame, and
+it would read as missing geometry. The page now states the hidden count aloud.
