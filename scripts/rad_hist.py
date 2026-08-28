@@ -27,21 +27,27 @@ THE CONTROL THAT CAN FAIL
   that only ever passes would not discriminate (T65).
 
 SCOPE
-  Task-number bands are NOT confirmed scene identity (T101: scene identity has
-  been wrong twice from sampling). They are the inherited task ranges A660
-  used, and are reported as ranges.
+  Bands are the scene boundaries A672 MEASURED by reading the scene index per
+  task -- they are no longer the inherited guesses A660 used, four of which were
+  wrong. But they come from one run: confirm on a new log with the [scene] probe
+  or scripts/scene_id.py before relying on them (T101).
 """
 import re
 import sys
 
-# A660's bands, inherited verbatim so the two measurements are comparable.
+# A672 MEASURED these boundaries by reading the scene index (0x80068A94) per
+# task. They REPLACE A660's inherited bands, four of which were mislabelled --
+# "cutscene/transition" and "transition" were both just scene 20, and "tutorial
+# onset" straddled THREE scenes and meant nothing. The two bands the headline
+# comparisons rested on (1000-2000 and 5000-6200) were each 100% single-scene,
+# so A660/A668/A669's ratios stand; only the labels were wrong.
+# Boundaries are from ONE run and are not guaranteed stable across runs -- use
+# scripts/scene_id.py, or the [scene] per-task probe, to confirm on new logs.
 BANDS = [
-    (0, 1000, "early/attract"),
-    (1000, 2000, "attract"),
-    (2000, 3000, "cutscene/transition"),
-    (3000, 4000, "transition"),
-    (4000, 5000, "tutorial onset"),
-    (5000, 6200, "STEADY TUTORIAL"),
+    (1, 167, "scene 1"),
+    (167, 4314, "scene 20 (the working one)"),
+    (4314, 4664, "scene 2 (draws nothing)"),
+    (4664, 6200, "scene 19 (THE TUTORIAL)"),
 ]
 
 LINE = re.compile(
@@ -111,7 +117,7 @@ def aggregate(rows, bands=BANDS):
 
 
 def report(agg):
-    print(f"{'task range':<13} {'scene (inherited)':<21} {'tasks':>5} "
+    print(f"{'task range':<13} {'scene (MEASURED, A672)':<21} {'tasks':>5} "
           f"{'med n':>6} {'med max':>9} {'peak max':>10} {'b5-7':>8} {'b5-7%':>6}")
     for a in agg:
         if not a["tasks"]:
@@ -136,9 +142,9 @@ def self_check():
     ok = True
 
     # (1) KNOWN ANSWER. Two tasks in "attract", one in "STEADY TUTORIAL".
-    #     attract:  b totals = [0,0,0,0,3,2,1,0] -> n_all 6, big (b5-7) = 3, 50.0%
+    #     scene 20: b totals = [0,0,0,0,3,2,1,0] -> n_all 6, big (b5-7) = 3, 50.0%
     #               med n over (3, 3) = 3; med max over (100.0, 200.0) = 150.0
-    #     tutorial: b totals = [0,0,0,0,4,0,0,0] -> n_all 4, big = 0, 0.0%
+    #     scene 19: b totals = [0,0,0,0,4,0,0,0] -> n_all 4, big = 0, 0.0%
     syn = [
         "[rad] task=1100 n=3 neg=0 z=1 bad=0 maxexp=6 max=100.0 b=0,0,0,0,2,1,0,0 tot=3",
         "[rad] task=1200 n=3 neg=0 z=0 bad=0 maxexp=9 max=200.0 b=0,0,0,0,1,1,1,0 tot=6",
@@ -153,17 +159,17 @@ def self_check():
 
     agg = {a["name"]: a for a in aggregate(rows)}
     checks = [
-        ("attract bands", agg["attract"]["bands"], [0, 0, 0, 0, 3, 2, 1, 0]),
-        ("attract big", agg["attract"]["big"], 3),
-        ("attract big_pct", round(agg["attract"]["big_pct"], 1), 50.0),
-        ("attract med n", agg["attract"]["med_n"], 3),
-        ("attract med max", agg["attract"]["med_max"], 150.0),
-        ("attract peak max", agg["attract"]["peak_max"], 200.0),
-        ("attract zero", agg["attract"]["zero"], 1),
-        ("tutorial bands", agg["STEADY TUTORIAL"]["bands"], [0, 0, 0, 0, 4, 0, 0, 0]),
-        ("tutorial big", agg["STEADY TUTORIAL"]["big"], 0),
-        ("tutorial big_pct", agg["STEADY TUTORIAL"]["big_pct"], 0.0),
-        ("empty band tasks", agg["transition"]["tasks"], 0),
+        ("scene20 bands", agg["scene 20 (the working one)"]["bands"], [0, 0, 0, 0, 3, 2, 1, 0]),
+        ("scene20 big", agg["scene 20 (the working one)"]["big"], 3),
+        ("scene20 big_pct", round(agg["scene 20 (the working one)"]["big_pct"], 1), 50.0),
+        ("scene20 med n", agg["scene 20 (the working one)"]["med_n"], 3),
+        ("scene20 med max", agg["scene 20 (the working one)"]["med_max"], 150.0),
+        ("scene20 peak max", agg["scene 20 (the working one)"]["peak_max"], 200.0),
+        ("scene20 zero", agg["scene 20 (the working one)"]["zero"], 1),
+        ("scene19 bands", agg["scene 19 (THE TUTORIAL)"]["bands"], [0, 0, 0, 0, 4, 0, 0, 0]),
+        ("scene19 big", agg["scene 19 (THE TUTORIAL)"]["big"], 0),
+        ("scene19 big_pct", agg["scene 19 (THE TUTORIAL)"]["big_pct"], 0.0),
+        ("empty band tasks", agg["scene 2 (draws nothing)"]["tasks"], 0),
     ]
     for name, got, want in checks:
         if got != want:
@@ -197,7 +203,7 @@ def self_check():
 
     # (3) A DELIBERATELY WRONG EXPECTATION MUST NOT PASS. Guards against the
     #     comparison itself being vacuous (e.g. comparing None to None).
-    if agg["attract"]["big"] == 999:
+    if agg["scene 20 (the working one)"]["big"] == 999:
         print("[self-check] FAIL: comparison is vacuous"); ok = False
 
     n_asserts = len(checks) + 6
