@@ -436,17 +436,17 @@
 #             bits, a clip outcode (A566).
 #   DATUM (comment, not a row -- this file is keyed by address):
 #   0x80068180 = the view-context pointer; 0x80068A84 = the matrix-stack top.
-0x8002AD54 = "snp_set_view_context"  # READING, strong: 3 instructions, stores its
+0x8002AD54 = "snp_set_view_context"  # DESCRIBED (READING, strong): 3 instructions, stores its
                                     # only argument to 0x80068180 and returns
-0x8002A720 = "snp_frustum_setup"     # READING: sole writer of the four derived
+0x8002A720 = "snp_frustum_setup"     # DESCRIBED (READING): sole writer of the four derived
                                     # lateral coefficients, from the near input
-0x80029070 = "snp_frustum_cull_point" # READING: returns a six-bit clip outcode
+0x80029070 = "snp_frustum_cull_point" # DESCRIBED (READING): returns a six-bit clip outcode
                                     # against the six plane values
 
 # A553 (2026-08-27). The tile blitter. NOTE: A560's matrix multiply at 0x800489C0 is
 # NOT added here -- it was ALREADY named guMtxCatF (line ~233, BORROWED). A560 derived
 # "clean 4x4 multiply, 16 words to a caller-supplied destination" by reading, which is
 # guMtxCatF exactly: two independent derivations agreeing, and the BORROWED name wins.
-0x8003719C = "snp_tile_blit"         # READING: emits one TEXRECT per tile over a
+0x8003719C = "snp_tile_blit"         # DESCRIBED (READING): emits one TEXRECT per tile over a
                                     # nested loop, from the 10-field descriptor
                                     # A529 recovered and A553 confirmed
