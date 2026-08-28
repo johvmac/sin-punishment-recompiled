@@ -38,3 +38,4 @@ Append-only. Written by `scripts/session.py end`.
 | 2026-08-28 09:20 | 53m46s / 65m00s | 4 | 7 | 1 | 0 | 0 | Took the real game's tutorial drawing commands for the first time and found it asks for about as many shapes as ours does, which rules out the simplest explanation for the missing scenery. |
 | 2026-08-28 13:31 | 48m14s / 65m00s | 0 | 7 | 1 | 0 | 0 | Chased the missing tutorial scenery from a vague area gap down to one block of memory the game loads, writes down the location of, reads over and over, and then never draws. |
 | 2026-08-28 14:28 | 44m24s / 65m00s | 0 | 6 | 0 | 0 | 0 | Nailed down that our build stops using the list holding the missing scenery's locations at one exact moment in the tutorial, and had to withdraw two claims about why when repeat runs contradicted them. |
+| 2026-08-28 15:45 | 48m40s / 65m00s | 3 | 7 | 2 | 0 | 0 | found the code that kills the picture, and proved the missing-scenery lead is real rather than a dead end |
