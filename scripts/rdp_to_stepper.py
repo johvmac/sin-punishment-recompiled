@@ -81,6 +81,11 @@ STATE_OPS = {"Set Tile", "Tex Image", "Color Combiner", "Other Modes", "Tile Siz
              "Prim Color", "Blend Color", "Fog Color", "Color Image", "Depth Image",
              "Scissor", "Prim Depth", "Key GB", "Key R", "Convert"}
 
+# The texture bank our build never binds, at any point in the run (A617/A618).
+# Triangles textured from it are tagged b=1 and are, as far as every measurement
+# to date goes, exactly the geometry missing from our tutorial.
+BANK_LO, BANK_HI = 0x00206000, 0x00234000
+
 NATIVE_W, NATIVE_H = 320, 240   # verified per frame against the Scissor command
 # OUR OWN FRAMES ARE 320x240 (dup-frames-8tasks.json, 2026-08-25), and RDP
 # screen space already IS 320x240, so the reference is emitted 1:1. Emitting it
@@ -181,7 +186,7 @@ def convert(path, verbose=True):
                    "src": "reference", "tris": [], "rects": [],
                    "matrices": 0, "built": 0, "behind": 0,
                    "_group": 0, "_dirty": False,
-                   "_scissor": None, "_zupd": True}
+                   "_scissor": None, "_zupd": True, "_timg": None}
             frames.append(cur)
             continue
         if cur is None or not line.startswith("RDP\t"):
@@ -195,6 +200,10 @@ def convert(path, verbose=True):
             continue
         w0 = words[0]
 
+        if name == "Tex Image":
+            # A617/A621: the texture image in force when a triangle is issued.
+            # Tracked in stream order because that is how the RDP resolves it.
+            cur["_timg"] = w0 & 0x3FFFFFF
         if name == "Scissor":
             cur["_scissor"] = (((w0 >> 44) & 0xFFF) / 4.0, ((w0 >> 32) & 0xFFF) / 4.0)
         if name == "Other Modes":
@@ -250,8 +259,15 @@ def convert(path, verbose=True):
                 kind = "d" if cur["_zupd"] else "s"
             else:
                 kind = "o"
-            cur["tris"].append({"p": pts, "c": cur["_group"],
-                                "z": 1 if name in ZBUF_OPS else 0, "k": kind})
+            tri = {"p": pts, "c": cur["_group"],
+                   "z": 1 if name in ZBUF_OPS else 0, "k": kind}
+            # b=1 marks a triangle textured out of the bank our build never
+            # reads (A617: 0x00206000-0x00234000; A618: zero bindings anywhere
+            # in the run). These are the surfaces that are missing on our side.
+            ti = cur.get("_timg")
+            if ti is not None and BANK_LO <= ti < BANK_HI:
+                tri["b"] = 1
+            cur["tris"].append(tri)
             cur["built"] += 1
             cur["_dirty"] = True
             continue
@@ -275,7 +291,10 @@ def convert(path, verbose=True):
                      f"{f['_group'] + 1} constructed draw groups. "
                      "Nothing is 'dropped behind the eye' here: culling already "
                      "happened upstream, invisibly to this stream.")
-        for k in ("_group", "_dirty", "_scissor", "_zupd"):
+        nb = sum(1 for x in f["tris"] if x.get("b"))
+        f["note"] += (f" {nb} of them are textured from 0x206000-0x234000, the bank "
+                      "our build never binds anywhere in the run (A617/A618).")
+        for k in ("_group", "_dirty", "_scissor", "_zupd", "_timg"):
             f.pop(k, None)
 
     if verbose:

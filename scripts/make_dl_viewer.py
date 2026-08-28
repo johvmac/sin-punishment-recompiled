@@ -204,6 +204,8 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       <button class="btn" id="ks" type="button" aria-pressed="true">Scene, no depth</button>
       <button class="btn" id="ko" type="button" aria-pressed="false">Screen overlay</button>
       <button class="btn" id="kr" type="button" aria-pressed="true">Rects</button>
+      <button class="btn ref-only" id="kb" type="button" aria-pressed="false"
+              hidden>Only the missing bank</button>
     </div>
     <p class="hidden" id="hid"></p>
   </div>
@@ -230,6 +232,9 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   // live -- calling them overlay hid them for a day.
   var show = { d: true, s: true, o: false };
   var showRects = true;
+  // A617/A618: triangles textured from 0x206000-0x234000, the bank our build
+  // never binds anywhere in the run. Only reference frames carry the flag.
+  var bankOnly = false;
 
   var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   var slider = document.getElementById("slider");
@@ -258,7 +263,10 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
   // covering the whole frame at z = -0.996 -- nearest possible, so they win
   // every depth test and paint the scene out. Hiding them shows the 3D scene;
   // showing them shows what the frame also contains.
-  function keep(t) { return show[t.k || (t.z ? "d" : "o")]; }
+  function keep(t) {
+    if (bankOnly && !t.b) return false;
+    return show[t.k || (t.z ? "d" : "o")];
+  }
   function shown() {
     var f = frame();
     if (byTri) return f.tris.slice(0, pos).filter(keep);
@@ -327,6 +335,15 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
 
   function draw() {
     var f = frame(), g = groups(f);
+    // BEFORE anything reads the filter: our frames carry no bank flag, so
+    // arriving on one with "only the missing bank" still latched would draw an
+    // empty canvas and read as a finding. Reset first, then compose the list.
+    var nb = 0;
+    f.tris.forEach(function (t) { if (t.b) nb++; });
+    var kb = document.getElementById("kb");
+    kb.hidden = !nb;
+    if (nb) kb.textContent = "Only the missing bank (" + nb + ")";
+    if (!nb && bankOnly) { bankOnly = false; kb.setAttribute("aria-pressed", "false"); }
     cv.width = f.w; cv.height = f.h;
     ctx.clearRect(0, 0, f.w, f.h);
     var freshC = (!byTri && pos > 0) ? g.order[pos - 1] : -1;
@@ -395,6 +412,12 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
     ["d", "s", "o"].forEach(function (k) {
       if (!show[k] && n[k]) hid.push(n[k] + " " + names[k]);
     });
+    if (bankOnly) {
+      document.getElementById("hid").textContent =
+        "showing ONLY the " + nb + " triangles textured from 0x206000\u20130x234000 " +
+        "\u2014 the bank our build never binds anywhere in the run";
+      return;
+    }
     document.getElementById("hid").textContent = hid.length
       ? ("hiding " + hid.join(" + ") + " \\u2014 " +
          hid.reduce(function (a, s) { return a + parseInt(s, 10); }, 0) +
@@ -456,6 +479,11 @@ PAGE = """<title>Draw-call stepper — Sin &amp; Punishment display lists</title
       this.setAttribute("aria-pressed", show[pair[1]] ? "true" : "false");
       draw();
     });
+  });
+  document.getElementById("kb").addEventListener("click", function () {
+    bankOnly = !bankOnly;
+    this.setAttribute("aria-pressed", bankOnly ? "true" : "false");
+    draw();
   });
   document.getElementById("kr").addEventListener("click", function () {
     showRects = !showRects;
