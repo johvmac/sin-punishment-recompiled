@@ -4987,3 +4987,40 @@ same canvas and made comparison silently meaningless.
 chasing.** The reference draws 942 of 1481 triangles with no depth involvement
 at all, and the viewer hides that class by default — a third of the frame, and
 it would read as missing geometry. The page now states the hidden count aloud.
+
+## `[dlgeom] s` — the segment table, without which texture bindings are unreadable (added 2026-08-28, A616)
+
+`SNP_DL_GEOM` has emitted `[dlgeom] x <w0> <w1>` for every G_SETTIMG since
+2026-08-26 (A480). **Do not "add texture emission" to the probe — read
+`events.cpp:797` first.** A613 recommended exactly that and was wrong, because
+`dl_render.py`'s "NO TEXTURES, DELIBERATELY" is about the offline RENDERER not
+drawing them, not about the probe not emitting them.
+
+**The operands are RAW, and most are SEGMENTED** — 1,013 of 1,209 bindings in a
+tutorial frame use segments 6 and 7. The reference's RDP stream reports PHYSICAL
+addresses, so without the segment table the two cannot be compared at all. The
+walker always tracked the bases; it just never said so. It now prints
+`[dlgeom] s <seg> <base>` at each G_MW_SEGMENT, **in list order**, because a
+segment can be re-based mid-list and a single end-of-frame table would resolve
+earlier bindings with a later base.
+
+    scripts/run_game.sh 210 <log> SNP_DL_CENSUS=1 SNP_DL_GEOM=4800,5100,5400,6000
+
+**SNP_DL_GEOM is inert without SNP_DL_CENSUS** (it lives inside the census
+block; measured 2026-08-26). Resolve by replaying `s` and `x` lines in order,
+per task — segment state must be reset at each task boundary.
+
+**THE CONTROL THAT MAKES A RESOLUTION BELIEVABLE, and it is not optional:** a
+wrong mask or shift produces plausible addresses that match nothing, which reads
+exactly like a real deficit. Predict before running that resolved addresses must
+land inside the reference's observed range AND that a substantial fraction must
+match reference addresses EXACTLY. A616 got **97/97 in range, 97/97 exact** —
+our bindings are a perfect subset of the reference's, which is far stronger
+evidence than a partial overlap would have been.
+
+**AND WHEN ASKING "IS THIS ASSET IN MEMORY", THE CONTROL IS NOT AN ARBITRARY
+ADDRESS.** A614 compared the missing textures against random addresses in the
+same region and got 86.3% vs 67.4% — too close to call, because that region is
+densely populated. The right control is **the textures the build demonstrably
+DOES bind**: same region, same kind of data, guaranteed live. Against that the
+answer was immediate — 86.1% vs 86.5%, indistinguishable, so the data is there.
