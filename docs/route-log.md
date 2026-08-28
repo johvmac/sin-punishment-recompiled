@@ -411,3 +411,4 @@ A gap in the numbering means a roll was skipped.
 - roll #392: **EXPLOIT** (drew 0.846 vs eps 0.3) -> `T211` [witness `781c1f`] — THE ROUTE: a local patch to /Documents/sin_and_punishment/tools/ares-64 — we own the checkout, n
 - roll #393: **EXPLOIT** (drew 0.309 vs eps 0.3) -> `A211` [witness `e20149`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #394: **EXPLORE** (drew 0.114 vs eps 0.3) -> `A219` [witness `93f4e3`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #395: **EXPLORE** (drew 0.210 vs eps 0.3) -> `T150` [witness `3e9177`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
