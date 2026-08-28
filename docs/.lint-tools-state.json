@@ -94,11 +94,12 @@
   "unsquash.py",
   "user_queue.py",
   "xclick.py",
+  "xref_addr.py",
   "xtest_key.py",
   "yay0_extract.py",
   "yaz0_extract.py"
  ],
- "runs": 44,
+ "runs": 45,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
