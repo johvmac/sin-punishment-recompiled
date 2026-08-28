@@ -193,30 +193,17 @@ games usually paint a sky.
 — it would mean the blank is purely my renderer's blind spot and nothing is
 wrong with the game there. Please do not hunt for a defect to report.
 
-## 7. ⚑ THE ~12 SECONDS BEFORE THE TUTORIAL (added 2026-08-28, A672/A679)
+## 7. ~~THE ~12 SECONDS BEFORE THE TUTORIAL~~ — ANSWERED 2026-08-29, RETIRED
 
-**What I measured, and what I cannot see.** Reading the scene index out of
-memory each frame (`0x80068A94`, A671) gives the run's real shape:
-scene 1 → **scene 20 for about 2.5 minutes** → **scene 2 for roughly 12
-seconds** → **scene 19, the tutorial**, until it stops.
+**It is the TITLE SCREEN** (A685). The 罪と罰 card, © 2000 Nintendo. It submits
+no geometry to the draw gate and touches no scenery table **because it is 2D**,
+which is the correct behaviour and not a fault.
 
-**Scene 2 submits ZERO objects to the drawing test and touches NONE of the
-three scenery tables for its whole 350 frames.** Every counter is flat. On the
-log it looks like the game renders nothing at all for twelve seconds.
-
-**⚑ I CANNOT TELL WHETHER THAT IS NORMAL.** A fade, a load screen, or a black
-transition would all look exactly like this from memory, and so would a fault.
-
-> **The question: between the main action and the tutorial, is there a stretch
-> of roughly ten to fifteen seconds that is BLANK or BLACK? If so — does it look
-> deliberate (a fade, a title card, a load) or does it look broken?**
-> If nothing like that stands out to you, say so — **"I didn't notice one" is a
-> real answer here** and it tells me the twelve seconds are ordinary.
-
-**Do not let me guess this from the recording.** Scene identity has been wrong
-twice from my sampling (A93, A161) and that is exactly why the scene is now read
-from memory rather than watched — but "is this blank stretch normal" is a
-judgement about how the game is SUPPOSED to look, which only you can make.
+**The user answered "didn't notice anything" and was right.** I recorded that as
+a weak negative when it was simply correct — and the answer was already sitting
+in a recording I had. **I asked a person before I looked at my own video.** The
+lesson is the ordering, not the outcome: a question that a frame can answer
+should never be spent on the user's attention.
 
 ## 6. GENERAL FEEL — the things no scalar catches
 
