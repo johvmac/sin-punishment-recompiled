@@ -3,7 +3,12 @@
  "deadline": 1787905980.3843725,
  "requested": 3600,
  "task": "find out WHY boot_func_80029070 writes five words at 0x8007AF00 (static read, no run)",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "T211's remaining step: a 449 s interpreter-forced ares run with SNP_REC_MAX set explicitly, to read the tutorial pause words' writers (roll #392, witness 781c1f)",
+   "why": "Setup is spent and the binary is current, so this is resumable at zero cost next session. Started now it would finish with ~20 min left and the analysis would be rushed against the deadline; and it is pause machinery, not the geometry the user asked to work on exclusively. A645's named next step is static and on that priority."
+  }
+ ],
  "blocks": [],
  "roll_at_start": 387,
  "entries_at_start": [
