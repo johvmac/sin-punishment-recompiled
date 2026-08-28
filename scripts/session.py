@@ -268,6 +268,44 @@ def cmd_end(args, now=None):
     if not d or d.get("ended"):
         print("[session] REFUSING: no session open.", file=sys.stderr)
         return 2
+
+    # --- EARLY-STOP GATE (added 2026-08-28, A652) --------------------------
+    # THE FAILURE, FIVE TIMES: the stretch is called finished while real time
+    # remains. 2026-08-26 ended at 46m of 65m on an ESTIMATED clock; 2026-08-28
+    # ended at 43m of 65m having CHECKED the clock and still judged it done.
+    # Checking `status` was never the fix, because the error is not ignorance of
+    # the time -- it is deciding that what is left is not worth starting, which
+    # is exactly T161's rationalisation.
+    #
+    # `end` is IRREVERSIBLE, so a wrong call cannot be taken back: the 2026-08-26
+    # session kept working afterwards and its own log under-reports the stretch.
+    # Hence a GATE rather than a warning. The escape hatch takes a MANDATORY
+    # reason, on the same principle as `--defer` on the observed-run gate: the
+    # rule is not "you may not stop early", it is "you may not stop early
+    # SILENTLY".
+    early = None
+    if "--early" in args:
+        i = args.index("--early")
+        rest = args[i + 1:]
+        early = (rest[0].strip() if rest else "")
+        args = args[:i] + rest[1:]
+        if len(early) < 10:
+            print("[session] REFUSING: --early needs a REASON (why the remaining "
+                  "time cannot be used), not a bare flag.", file=sys.stderr)
+            return 2
+
+    _t_now = now if now is not None else time.time()
+    _left_now = d["deadline"] - _t_now
+    if _left_now > CHECKPOINT and early is None:
+        print(f"[session] REFUSING: {hms(_left_now)} remain — room for "
+              f"{int(_left_now // CHECKPOINT)} more checkpoint(s).", file=sys.stderr)
+        print("[session]   This gate exists because the stretch has been called "
+              "finished early FIVE times, most recently while the clock was being "
+              "read correctly (A652). Ending is IRREVERSIBLE.", file=sys.stderr)
+        print("[session]   Roll again — or, if the time genuinely cannot be used, "
+              "say so: session.py end \"<summary>\" --early \"<reason>\"", file=sys.stderr)
+        return 2
+
     summary = (args[0] if args else "").strip()
     if len(summary) < 15:
         print("[session] REFUSING: a session ends with ONE PLAIN SENTENCE saying what "
@@ -460,9 +498,31 @@ def self_check():
         _st["deadline"] = time.time() + 1800
         (root / "docs" / ".session-state.json").write_text(json.dumps(_st))
 
-        chk("end REFUSES with no summary", p(["end"]).returncode == 2, "ended silently")
+        # THE NEW GATE'S DISCRIMINATING PAIR (A652). A gate that always refuses
+        # is not a gate, and one that never does is not either -- so both arms.
+        chk("end REFUSES while more than one checkpoint remains (A652)",
+            p(["end", "we did a reasonable amount of useful work today"]).returncode == 2,
+            "ended early with 30 minutes on the clock")
+        chk("...and ACCEPTS the same call with --early plus a reason",
+            p(["end", "we did a reasonable amount of useful work today",
+               "--early", "the machine is being shut down"]).returncode == 0,
+            "the escape hatch does not open")
+        chk("--early REFUSES a bare flag with no reason",
+            p(["end", "we did a reasonable amount of useful work today",
+               "--early"]).returncode == 2,
+            "accepted an unexplained early stop")
+        # reopen for the remaining controls, since the accepting arm closed it
+        p(["start", "35m", "self-check continuation"])
+        _st2 = json.loads((root / "docs" / ".session-state.json").read_text())
+        _st2["deadline"] = time.time() + 1800
+        (root / "docs" / ".session-state.json").write_text(json.dumps(_st2))
+
+        chk("end REFUSES with no summary",
+            p(["end", "--early", "self-check, clock irrelevant here"]).returncode == 2,
+            "ended silently")
         chk("end REFUSES a jargon summary",
-            p(["end", "merged 0x800F91B0 per A197 in funcs_128.c"]).returncode == 2,
+            p(["end", "merged 0x800F91B0 per A197 in funcs_128.c",
+               "--early", "self-check, clock irrelevant here"]).returncode == 2,
             "accepted an unreadable summary")
 
         # DRIFT: an entry added with no roll citation and no user-direction note.
@@ -470,7 +530,8 @@ def self_check():
             "| # | status | finding | evidence |\n|---|---|---|---|\n"
             "| A1 | MEASURED | x | y |\n"
             "| A2 | MEASURED | something nobody rolled for | z |\n")
-        r = p(["end", "we looked at the thing and it still does not work"])
+        r = p(["end", "we looked at the thing and it still does not work",
+               "--early", "self-check, clock irrelevant here"])
         chk("end DETECTS an entry that cites neither a roll nor user direction",
             r.returncode == 0 and "DRIFT" in r.stdout, "drift went unreported")
         chk("end writes the session log", (root / "docs" / "session-log.md").exists(),
