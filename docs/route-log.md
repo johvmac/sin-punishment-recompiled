@@ -422,3 +422,4 @@ A gap in the numbering means a roll was skipped.
 - roll #403: **EXPLOIT** (drew 0.828 vs eps 0.3) -> `T197` [witness `a34d1b`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #404: **EXPLORE** (drew 0.148 vs eps 0.3) -> `A219` [witness `3e52ff`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #405: **EXPLOIT** (drew 0.713 vs eps 0.3) -> `A218` [witness `a18994`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #406: **EXPLOIT** (drew 0.433 vs eps 0.3) -> `A211` [witness `dc4458`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
