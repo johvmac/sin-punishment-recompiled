@@ -4520,13 +4520,17 @@ tutorial pause, and only the working game can say.**
 
 * **Scope: CPU stores only.** DMA writes bypass the choke point — deliberate:
   the question is which CODE writes scene state, not which DMA loads over it.
-* **COVERAGE IS PARTIAL — the dynarec DOES bypass the hook once blocks are
-  warm (A477, corrected same day it was claimed otherwise).** What the hook
-  sees is FRESH, STILL-INTERPRETED code — which makes it excellent for
-  freshly-loaded overlay code and worthless for absences anywhere else. **An
-  absence in a watch log means NOTHING under partial coverage.** For complete
+* ~~**COVERAGE IS PARTIAL — the dynarec DOES bypass the hook once blocks are
+  warm (A477).** An absence in a watch log means NOTHING. For complete
   coverage, force ares's CPU interpreter (unexplored) before trusting any
-  negative.
+  negative.~~ **SUPERSEDED 2026-08-27: the interpreter IS forced now**
+  (`ares/n64/accuracy.hpp`, `Accuracy::CPU::Interpreter` hard-set to 1 with the
+  original expression kept in a comment), so every CPU access goes through the
+  hook and **an absence is now meaningful.** This section contradicted itself
+  for a day — the bullet above said absences mean nothing while the EPOCH
+  bullet below said "the CPU is also interpreter-forced (A505)". Struck rather
+  than deleted, because the strike is the thing worth seeing: **check
+  `accuracy.hpp` rather than this file before trusting either statement.**
 * **Controls (A470, run before first use):** positive — the display-list
   append pointer, written every frame: 754 hits with PCs. negative — a
   top-of-RAM word: exactly one boot-time zeroing write (data 0, boot-library
@@ -4561,6 +4565,48 @@ tutorial pause, and only the working game can say.**
   `cmake --build` — guard false positive, known).
 * **The attract needs NO input** (A436) — the tutorial arrives by itself at
   ~200 s emulated, so pause-machinery questions need a ≥215 s run.
+
+### `ARES_WATCH_READ` — the same watch, on LOADS (added 2026-08-28, A630)
+
+**Purpose, and the mistake that motivated it.** `ARES_WATCH` sees CPU **stores**
+only. A pointer table is written once at scene set-up and **read every frame**,
+so a store-only watch reports it as silent exactly when it is busiest. Our own
+recomp-side tap (`SNP_READWATCH`) taps `MEM_W`, which serves **both loads and
+stores**. Comparing that tap's counts against a store-only watch is not a
+comparison — and A627 did it, aimed at an address our own build barely uses, and
+read the result as agreement. **`ARES_WATCH_READ` exists so the two sides
+measure the same thing.**
+
+* Same file (`ares/n64/cpu/memory.cpp`), same parser, same ≤16 byte addresses,
+  hooked into `CPU::read` — the choke point for loads, mirroring `CPU::write`.
+  Emits `[watch] R pc=... paddr=... size=...`.
+* **`ARES_WATCH` keeps its exact old meaning and its exact old line format.**
+  Two independent sets, two env vars. An existing watch log therefore still
+  parses and still means what it meant.
+* **A TIME AXIS, because A627's numbers were read off a truncated log with no
+  way to tell where in the run a line fell.** Every 4096 hits the watch prints
+  `[watch] T=<seconds> hits=<n>`, wall seconds since the FIRST hit. The counter
+  is shared across all watched addresses, which is the point: hot control
+  addresses keep the clock running so a *silent* address can still be placed in
+  time.
+* **A fast reject (min/max span) precedes the loop** on both hooks, so the cost
+  on the hot load path is two comparisons.
+* **Do not arm both on a hot address for a long run.** The write watch on the
+  matrix-stack top emitted **124,793 lines in 25 s** — ~2 M over 420 s on
+  unbuffered stderr, enough to slow the emulator out of the scene you wanted.
+* **Controls (`a630_analyse.py --self-check`, 4 controls, 2 falsifications):**
+  C1 time markers exist and advance — **falsified** by feeding a clockless log,
+  which must FAIL; C2 every armed address printed *including zeros*, so "never
+  fired" cannot look like "never watched"; C3 per-address totals sum to parsed
+  lines; C4 a synthetic log where one address fires **only in the first half**,
+  which fails if the binner reports it active late.
+* **The in-scene control is the one that matters** and it is not in the script:
+  watch known-hot addresses (ranges A and C) alongside the question (range B).
+  If A and C are silent too, the addresses simply are not used by the reference
+  and the range-B zero means nothing. **That branch must be reported, not
+  explained away.**
+* Scope, unchanged: **CPU accesses only.** DMA does not pass through
+  `CPU::read`/`CPU::write`. A silence cannot exclude DMA traffic.
 
 ## `unsquash.py` — de-smoosh a field capture for human eyes (added 2026-08-26, user request)
 

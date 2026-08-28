@@ -104,3 +104,6 @@ correction.
 ## DEFERRED 2026-08-28 — user away (away from the PC today (user, 2026-08-28))
 - no observed run today; deferred deliberately, not skipped.
 
+## DEFERRED 2026-08-28 — user recorded AWAY from the PC today (2026-08-28 alarm, eyes-needed flags suppressed until 2026-08-29); an observed run needs their eyes and ears, so it cannot happen today
+- no observed run today; deferred deliberately, not skipped.
+
