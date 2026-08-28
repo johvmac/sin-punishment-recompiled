@@ -393,7 +393,9 @@ A_AUDIO=$(ans   "1. AUDIO IS FIXED AND CLOSED (A447/A499/A509/A518). Regression 
 A_ATTRACT=$(ans "2. The ATTRACT vs the real game: anything different at all? —")
 A_FREEZE=$(ans  "3. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
 A_SCENERY=$(ans "4. Tutorial background — still black/empty, or is any scenery there? —")
-A_DISAGREE=$(ans "5. ANYTHING that contradicts what I have claimed:")
+A_BLANK=$(ans   "5. Between the main action and the tutorial — a BLANK/BLACK stretch of
+     ~10-15 s? Deliberate (fade/load) or broken? 'Didn't notice one' is a real answer. —")
+A_DISAGREE=$(ans "6. ANYTHING that contradicts what I have claimed:")
 
 [[ -f "$LOG" ]] || cat > "$LOG" <<'HDR'
 # User-observed runs
@@ -414,6 +416,7 @@ cat >> "$LOG" <<EOF
 - **attract vs the real game (A615/A667):** $A_ATTRACT
 - **freeze: waiting or locked (A451):** $A_FREEZE
 - **tutorial scenery (A218):** $A_SCENERY
+- **scene 2, the ~12 s blank before the tutorial (A672/A679):** $A_BLANK
 - **CONTRADICTS MY CLAIMS:** $A_DISAGREE
 
 EOF
