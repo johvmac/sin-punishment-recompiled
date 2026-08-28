@@ -58,6 +58,7 @@
   "patch_si_stubs.py",
   "probe_stubs.py",
   "qty.py",
+  "rad_hist.py",
   "rdp_to_stepper.py",
   "rdram_peek.py",
   "recompile.sh",
@@ -97,7 +98,7 @@
   "yay0_extract.py",
   "yaz0_extract.py"
  ],
- "runs": 43,
+ "runs": 44,
  "tmp_known": [
   "ares_watch.sh",
   "boot_screen_check.sh",
