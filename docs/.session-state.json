@@ -1,14 +1,9 @@
 {
- "start": 1787887867.4869359,
- "deadline": 1787891767.4869359,
+ "start": 1787891299.1789494,
+ "deadline": 1787895199.1789494,
  "requested": 3600,
- "task": "extend SNP_DL_GEOM to emit texture bindings (G_SETTIMG), then work exclusively on the missing tutorial geometry",
- "shelf": [
-  {
-   "what": "a READ watch on 0x8006C044 / 0x80070700 / 0x800712C4 during the tutorial \u2014 are A619's pointer tables ever consulted?",
-   "why": "no read-watch exists: SNP_WATCH samples changes at 1Hz, ARES_WATCH logs stores on the reference side. Needs a runtime addition or an ablation approach. Everything else on A218 proceeded without it."
-  }
- ],
+ "task": "make the access tap report per-task, re-run, then keep after the missing tutorial geometry",
+ "shelf": [],
  "blocks": [],
  "roll_at_start": 383,
  "entries_at_start": [
@@ -558,7 +553,14 @@
   "A613",
   "A614",
   "A615",
+  "A616",
+  "A617",
+  "A618",
+  "A619",
   "A62",
+  "A620",
+  "A621",
+  "A622",
   "A64",
   "A66",
   "A67",
