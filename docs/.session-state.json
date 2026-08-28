@@ -1,20 +1,11 @@
 {
- "start": 1787895948.532019,
- "deadline": 1787899848.532019,
+ "start": 1787902080.3843725,
+ "deadline": 1787905980.3843725,
  "requested": 3600,
- "task": "A629 blocker: ARES_WATCH on range B hot words + re-run our own tap at 200s+ with SNP_RW_WORDS 481",
- "shelf": [
-  {
-   "what": "our build's audio captures read mean -15.3 dB across every run today, contradicting A265's flat -91 dB; whether it SOUNDS right needs the user's ears",
-   "why": "the range-B thread proceeds without it, and the user is away today so the listening half cannot happen; the amplitude half is already measured and recorded"
-  },
-  {
-   "what": "watch the instruction that overwrites the callback pointer at 0x8007AF0C \u2014 needs a narrow tap range plus a load/store split, then a rebuild and a 215s run",
-   "why": "both changes are one-liners but the run must reach t=207s and under 20 minutes remained; a rushed run on an instrument that cannot yet tell a read from a write would produce an ambiguous answer"
-  }
- ],
+ "task": "find out WHY boot_func_80029070 writes five words at 0x8007AF00 (static read, no run)",
+ "shelf": [],
  "blocks": [],
- "roll_at_start": 383,
+ "roll_at_start": 387,
  "entries_at_start": [
   "A1",
   "A10",
@@ -577,6 +568,16 @@
   "A627",
   "A628",
   "A629",
+  "A630",
+  "A631",
+  "A632",
+  "A633",
+  "A634",
+  "A635",
+  "A636",
+  "A637",
+  "A638",
+  "A639",
   "A64",
   "A66",
   "A67",
@@ -789,6 +790,7 @@
   "T223",
   "T224",
   "T225",
+  "T226",
   "T23",
   "T24",
   "T25",
@@ -891,5 +893,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
