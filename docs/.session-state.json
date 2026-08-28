@@ -1,9 +1,18 @@
 {
- "start": 1787891299.1789494,
- "deadline": 1787895199.1789494,
+ "start": 1787895948.532019,
+ "deadline": 1787899848.532019,
  "requested": 3600,
- "task": "make the access tap report per-task, re-run, then keep after the missing tutorial geometry",
- "shelf": [],
+ "task": "A629 blocker: ARES_WATCH on range B hot words + re-run our own tap at 200s+ with SNP_RW_WORDS 481",
+ "shelf": [
+  {
+   "what": "our build's audio captures read mean -15.3 dB across every run today, contradicting A265's flat -91 dB; whether it SOUNDS right needs the user's ears",
+   "why": "the range-B thread proceeds without it, and the user is away today so the listening half cannot happen; the amplitude half is already measured and recorded"
+  },
+  {
+   "what": "watch the instruction that overwrites the callback pointer at 0x8007AF0C \u2014 needs a narrow tap range plus a load/store split, then a rebuild and a 215s run",
+   "why": "both changes are one-liners but the run must reach t=207s and under 20 minutes remained; a rushed run on an instrument that cannot yet tell a read from a write would produce an ambiguous answer"
+  }
+ ],
  "blocks": [],
  "roll_at_start": 383,
  "entries_at_start": [
@@ -561,6 +570,13 @@
   "A620",
   "A621",
   "A622",
+  "A623",
+  "A624",
+  "A625",
+  "A626",
+  "A627",
+  "A628",
+  "A629",
   "A64",
   "A66",
   "A67",
@@ -875,5 +891,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
