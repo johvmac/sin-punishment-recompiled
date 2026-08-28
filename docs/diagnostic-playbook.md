@@ -5025,7 +5025,22 @@ densely populated. The right control is **the textures the build demonstrably
 DOES bind**: same region, same kind of data, guaranteed live. Against that the
 answer was immediate — 86.1% vs 86.5%, indistinguishable, so the data is there.
 
-## A read-watch on game globals — DESIGNED, NOT BUILT (added 2026-08-28, A620's shelf)
+## An ACCESS tap on game globals — BUILT AND RUN (added 2026-08-28, A620's shelf, executed as A622)
+
+**BUILT THE SAME DAY, and the shelf note below was WRONG about the price.** It said "do not
+start this with less than an hour" because `recomp.h` is included by all 140 generated files.
+**A full rebuild after touching it is 43 SECONDS**, and the instrumented build still reaches
+the tutorial in a 200 s run. The estimate was the expensive part, not the work. **Measure a
+rebuild before pricing a change on it.**
+
+Result (A622): all three of A619's tables are touched from task 65 onward and keep climbing.
+Enable with `SNP_READWATCH=1`; it is inert otherwise. **Totals print on a control-count
+boundary, which is too coarse to read tutorial-specific rates — make it per-task if that is
+the question.**
+
+### The original design note, kept because its three gotchas all held
+
+## A read-watch on game globals — the design (2026-08-28, A620's shelf)
 
 **The question it answers:** A619 found three tables in the game's globals
 (0x8006C044, 0x80070700, 0x800712C4) fully populated with pointers into the
