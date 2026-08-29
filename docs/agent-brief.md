@@ -375,3 +375,23 @@ permanent ceiling, demonstrated by the person who documented it.
 
 **No checker can catch this.** The gate sees the line and passes. The only thing
 that caught it was re-reading my own sentence and noticing its tense.
+
+### A FORMATTING TRAP, and the checker is the one in the right (2026-08-29, A730)
+
+**`MERGE: PENDING` on its own FAILS check 4l**, and the first entry written under
+this rule tripped it. The gate reads `MERGE:\s*(.+?)(?:\*\*|\||$)` — it captures
+up to **the next `**`** — and then rejects anything under 20 characters as "too
+short to be an answer". So writing `**MERGE: PENDING** — roll #441 was still
+running…` hands the checker the word `PENDING` and nothing else, because the
+bold closes before the disclosure.
+
+**This is the gate working, not misfiring.** Part 3 asks for three things —
+PENDING, the sibling roll, and an explicit statement that no comparison happened
+— and the length rule is what forces the second and third. **Put the whole
+disclosure INSIDE the bold**, or use no bold at all:
+
+> `**MERGE: PENDING — roll #441 (A219, Badger) was still running when this row
+> was written, so NO comparison has been performed.**`
+
+Worth knowing because the failure is invisible in the rendered file: the entry
+*looks* like it says the right thing.
