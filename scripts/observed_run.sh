@@ -393,8 +393,9 @@ A_AUDIO=$(ans   "1. AUDIO IS FIXED AND CLOSED (A447/A499/A509/A518). Regression 
 A_ATTRACT=$(ans "2. The ATTRACT vs the real game: anything different at all? —")
 A_FREEZE=$(ans  "3. The freeze: WAITING mid-instruction (text card up), or HARD LOCK mid-motion? —")
 A_SCENERY=$(ans "4. Tutorial background — still black/empty, or is any scenery there? —")
-A_BLANK=$(ans   "5. Between the main action and the tutorial — a BLANK/BLACK stretch of
-     ~10-15 s? Deliberate (fade/load) or broken? 'Didn't notice one' is a real answer. —")
+A_SOLDIERS=$(ans "5. The SOLDIERS shot in the attract — you said \"still green soldiers\".
+     Do you mean they are the WRONG COLOUR, or that the shot's missing patch of sky
+     is still missing? Either is fine — I just must not guess (T229). —")
 A_DISAGREE=$(ans "6. ANYTHING that contradicts what I have claimed:")
 
 [[ -f "$LOG" ]] || cat > "$LOG" <<'HDR'
@@ -407,16 +408,34 @@ correction.
 
 HDR
 
+# T150, wired 2026-08-29 (A696): serve the recording up for annotation. The
+# checklist now tells the user an .eaf sits beside the video, so one must
+# actually be written or that promise is false. Failure is NON-FATAL and
+# SAID OUT LOUD -- an annotation project is a convenience, and losing the
+# stanza because a convenience failed would be the worse trade.
+EAF=""
+if [[ -n "${VIDEO:-}" && -f "$VIDEO" ]]; then
+    EAF="${VIDEO%.*}.eaf"
+    if python3 scripts/eaf_make.py "$VIDEO" --tier "faults" --tier "scene identity" \
+           -o "$EAF" >/dev/null 2>&1; then
+        echo "[observed] ELAN project: $EAF (both media linked, tiers empty)"
+    else
+        echo "[observed] NOTE: eaf_make.py failed -- no annotation project for this run." >&2
+        EAF=""
+    fi
+fi
+
 cat >> "$LOG" <<EOF
 ## $STAMP — build \`$HASH\`, ${SECS}s requested, rc=$RC ($VERDICT)
 - run log: \`$(basename "$RUNLOG")\`
 - **video:** ${VIDEO:-\*\*NOT RECORDED\*\* — nothing to annotate}
 - **sound:** ${SOUND:-\*\*NOT CAPTURED\*\* — A97 cannot be answered from this run}
+- **annotate:** ${EAF:-\(none — eaf_make did not run\)}
 - **audio REGRESSION only (closed: A447/A499/A509/A518):** $A_AUDIO
 - **attract vs the real game (A615/A667):** $A_ATTRACT
 - **freeze: waiting or locked (A451):** $A_FREEZE
 - **tutorial scenery (A218):** $A_SCENERY
-- **scene 2, the ~12 s blank before the tutorial (A672/A679):** $A_BLANK
+- **soldiers shot: wrong colour, or the missing sky? (T229):** $A_SOLDIERS
 - **CONTRADICTS MY CLAIMS:** $A_DISAGREE
 
 EOF
