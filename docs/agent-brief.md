@@ -281,12 +281,26 @@ method so far.** Three Opus agents: 3.66, 8.49 and 15.65 minutes.
 
 **And concurrency has costs the 8.3% does not net out.** A parallel round forces
 the `MERGE: PENDING` two-pass — one entry written, then annotated when its
-sibling lands — plus the formatting trap that goes with it. Sequenced, neither
-exists.
+sibling lands — plus the formatting trap that goes with it.
+
+> **~~Sequenced, neither exists.~~ WRONG, AND CORRECTED THE SAME EVENING BY A
+> STAGGERED ROUND THAT STILL FORCED TWO OF THEM (A733).** Staggering the AGENTS
+> does not stagger the CHECKPOINTS. **`PENDING` is forced by parallel
+> CHECKPOINTS — several rolls in flight — not by concurrent agents**, and a
+> coordinator doing inline work on roll N+1 while an agent works roll N has
+> exactly the same problem. **The two-pass is the price of parallel checkpoints
+> in any form.** It was predicted to disappear under staggering and did not;
+> that prediction was pre-registered, which is the only reason the error is
+> legible.
+>
+> **The practical consequence: what caps parallel checkpoints is the
+> coordinator's capacity to RESOLVE the merges, not agent availability.** An
+> unresolved `PENDING` is the silence the gate exists to refuse, so do not open
+> a checkpoint you cannot close.
 
 **SO: default to ONE agent out at a time, and treat its runtime as your own work
-time.** Keeps the overlap that paid, drops the two-pass, concentrates the
-spot-check budget.
+time.** Keeps the overlap that paid and concentrates the spot-check budget — but
+**it does NOT drop the two-pass**, per the correction above.
 
 **THE CONDITION IS THE WHOLE RULE: this holds ONLY when you have independent
 work available.** On 2026-08-29 the L1 audit came due mid-session, by luck.
