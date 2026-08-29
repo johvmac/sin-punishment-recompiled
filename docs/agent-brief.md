@@ -120,8 +120,12 @@ anything. Your output is handed to someone who verifies it before it counts.
 * **Three submodules carry LOCAL, UNCOMMITTED probe patches** —
   `lib/N64ModernRuntime`, `lib/RecompFrontend`, `external/N64Recomp`. Changes you
   see there may be our instrumentation, not upstream code.
-* **`lib/rt64` is CLEAN** — no local changes. Anything you find there is
-  upstream as-shipped.
+* **ALL FOUR SUBMODULES ARE DIRTY. `lib/rt64` IS NOT CLEAN — that claim was
+  FALSE and was pasted into agent prompts for days (corrected 2026-08-29,
+  T237).** It carries a local A310 patch to
+  `src/hle/rt64_workload_queue.cpp` — a clamp on the debugger's framebuffer
+  index, marked LOCAL ONLY in its own comment. **Treat nothing in any of the
+  four as upstream-as-shipped without checking `git -C <sub> diff` yourself.**
 * **Do not read `docs/findings-ledger.md` end to end.** Measured 2026-08-29 at
   945 entries: **523,983 words / 3.2 MB**, roughly 800k tokens. The way in is
   `scripts/ledger.py --index` — 20,482 words, about 4% of the file. (The older
