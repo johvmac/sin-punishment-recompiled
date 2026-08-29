@@ -699,6 +699,25 @@ def main():
           f"SILENT when quoted={not d2}, SILENT about the game={not d3}, other units={d4}")
     extra += 1; bad += not _dok
 
+    # THE AUDIT KILL CRITERION (2026-08-29). audit.py has always DOCUMENTED and
+    # PRINTED "three quiet audits halve the frequency" while check_ledger read a
+    # hardcoded 10. This direction must FAIL if that wiring is reverted, which is
+    # the whole point -- the previous state of the world passed every test in
+    # this file, because nothing tested it.
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location("_cl_mod", CHECKER)
+    _cl = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_cl)
+    _ai = _cl.audit_interval
+    a_base = _ai(0) == 10 and _ai(2) == 10          # below threshold: unchanged
+    a_widen = _ai(3) == 20 and _ai(6) == 40         # 3 and 6 quiet: doubles
+    a_cap = _ai(99) == 40                           # decay is not deletion
+    a_reset = _ai(0) < _ai(6)                       # a firing audit snaps it back
+    _aok = a_base and a_widen and a_cap and a_reset
+    print(f"{'ok  ' if _aok else 'FAIL'}  audit kill criterion — base unchanged "
+          f"below 3={a_base}, widens at 3 and 6={a_widen}, capped={a_cap}, "
+          f"resets when an audit fires={a_reset}")
+    extra += 1; bad += not _aok
+
     total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0

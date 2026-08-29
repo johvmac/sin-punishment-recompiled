@@ -66,6 +66,29 @@ SUPERSEDES_RE = re.compile(
     r"|upgraded by|reframed by|split by|closed by|vindicat)", re.I)
 
 
+AUDIT_BASE_INTERVAL = 10
+AUDIT_MAX_INTERVAL = 40
+
+
+def audit_interval(quiet_streak):
+    """How many rolls between L1 audits, given consecutive quiet audits.
+
+    audit.py's KILL CRITERION -- "if three consecutive audits find nothing
+    actionable, halve the frequency" -- was documented in its docstring and
+    PRINTED in its summary line ("quiet streak N; at 3, halve the frequency")
+    and then read by nothing. The nag interval was the literal 10. Found on
+    2026-08-29 at quiet_streak 6, twice the stated threshold, never having
+    moved once.
+
+    Doubling per 3 quiet audits. SELF-CORRECTING: audit.py sets quiet_streak
+    back to 0 as soon as an audit finds something, so the interval snaps back
+    to the base. CAPPED, because decay is not deletion -- a long quiet run
+    must not push the audit out of reach.
+    """
+    return min(AUDIT_BASE_INTERVAL * (2 ** (max(0, quiet_streak) // 3)),
+               AUDIT_MAX_INTERVAL)
+
+
 def superseded_by_later(eid, rows):
     """Does a LATER entry name `eid` next to a correction word?
 
@@ -597,9 +620,27 @@ def main():
         ast_ = json.loads((LEDGER.parent / ".audit-state.json").read_text())
         st_ = json.loads((LEDGER.parent / ".route-state.json").read_text())
         due = st_.get("roll", 0) - ast_.get("last_roll", 0)
-        if due >= 10:
+        # 4b-bis. THE KILL CRITERION WAS DOCUMENTED, PRINTED, AND NOT WIRED.
+        # audit.py's docstring has always said "if three consecutive audits find
+        # nothing actionable, halve the frequency -- an audit that never fires is
+        # a cost, not a control", and its summary line prints the streak and even
+        # names the threshold. But the interval here was the literal 10, and
+        # NOTHING read the streak. Found at streak 6, i.e. twice the stated
+        # threshold, having never moved. A rule that announces its own trigger
+        # and cannot act on it is the same shape as the liveness watcher that
+        # could not fail in the useful direction (T65).
+        #
+        # Doubling per 3 quiet audits, and it is SELF-CORRECTING: audit.py resets
+        # quiet_streak to 0 the moment an audit finds something, which snaps the
+        # interval straight back to 10. The cap exists so a long quiet run can
+        # never push the audit out of reach entirely -- decay is not deletion.
+        _qs = ast_.get("quiet_streak", 0)
+        _every = audit_interval(_qs)
+        if due >= _every:
+            _why = (f" (interval {_every}, widened from 10: {_qs} quiet audits "
+                    f"in a row — audit.py's kill criterion)") if _every > 10 else ""
             reminders.append(f"audit: {due} rolls since audit #{ast_.get('audits', 0)} "
-                             f"— run scripts/audit.py (due every ~10).")
+                             f"— run scripts/audit.py (due every ~{_every}).{_why}")
     except Exception:
         reminders.append("audit: no audit recorded yet — run scripts/audit.py.")
 
