@@ -439,3 +439,4 @@ A gap in the numbering means a roll was skipped.
 - roll #420: **EXPLORE** (drew 0.256 vs eps 0.3) -> `T150` [witness `fd8f38`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
 - roll #421: **EXPLOIT** (drew 0.731 vs eps 0.3) -> `T229` [witness `4d6e12`] — Split out of T227 when that closed (A691, roll #415). The user's full answer and the run it came
 - roll #422: **EXPLORE** (drew 0.142 vs eps 0.3) -> `A219` [witness `1141c7`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #423: **EXPLOIT** (drew 0.617 vs eps 0.3) -> `A225` [witness `8c11dc`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
