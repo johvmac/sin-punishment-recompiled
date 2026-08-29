@@ -510,3 +510,18 @@
                                     # snp_append_if_type2, and type code 7.
                                     # This is WHY the byte-identical append
                                     # pair (A708) exists: one copy per type.
+
+# --- DESCRIBED (A727, 2026-08-29, roll #437) --------------------------------
+# The most-called UNNAMED function in the tree: 1717 call sites, 856 distinct
+# callers, 7 instructions. Found by applying A694's caller-count filter
+# tree-wide instead of only inside the donor band.
+0x80027228 = "snp_mtx_stack_pop"   # DESCRIBED (A727): reads the stack-top
+                                    # global at 0x80068A84, subtracts 0x40 (one
+                                    # matrix slot), writes it back. No other
+                                    # effect, no arguments, no return value.
+                                    # CAVEAT: "matrix stack" is A566's
+                                    # identification of the global, re-derived
+                                    # by A722's 733-access census but NOT
+                                    # re-derived here. The decrement itself is
+                                    # read directly. Subtracting 0x40 preserves
+                                    # A722's mod-0x40 residue.

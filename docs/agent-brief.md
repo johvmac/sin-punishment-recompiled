@@ -268,3 +268,51 @@ and the material is not visible from the item's description.
 Part 2's 15-entry cap **has never bound in practice** — four agents used 5, 7, 6
 and 10. Keep it anyway: it costs nothing when unneeded, and the run it was
 written for spent 280k tokens expanding ~74 entries.
+
+## Interrupting the assistant KILLS in-flight agents (measured 2026-08-29)
+
+**An interrupt to the coordinator's message stops every background agent with
+it.** I predicted the opposite — that a detached background process would
+survive — and the user, reading the task list directly, corrected me. Two Opus
+agents about five minutes in were simply gone; their output files sat frozen at
+a 168-byte stub.
+
+Consequences for running a threaded step:
+
+* **In-flight agent work is not durable.** Anything an agent has not yet
+  returned is lost on interrupt, and it has written nothing anywhere — the brief
+  forbids agent writes, so there is no partial artefact to recover.
+* **Prefer several short agent runs to one long one** when the user is at the
+  keyboard. A ten-minute agent is ten minutes of exposure.
+* **Relaunching is safe and cheap** — every agent task under this brief is
+  read-only and idempotent, so re-running costs tokens and nothing else. Do that
+  rather than trying to reconstruct what a dead agent might have found.
+* **Do not infer liveness from the output file — this is MEASURED, not a
+  caution.** With two dead agents and two live ones side by side, all four
+  output files read **`size=168`, mtime frozen at launch**. The transcript is
+  written only on completion, so a working agent and a killed one are
+  byte-for-byte indistinguishable. **The task list is the authority — ask the
+  user what it shows rather than guessing from mtime.**
+* **AND THE WATCHER I BUILT FOR THIS COULD NOT HAVE WORKED.** I armed a
+  background loop to poll for output growth and report "dead" after four
+  minutes. Given the above it would have said DEAD about a healthy agent every
+  time — **a control that cannot fail in the useful direction (T65), built as an
+  operational tool rather than a checker, which is where that rule is easiest to
+  forget.** It happened to be right only because the agents really were dead.
+
+## Draft IDs are not entry IDs — do not write them as bare tokens
+
+**Bitten three times on 2026-08-29.** An agent drafts an entry under an ID you
+supplied; you then fold its substance into a different entry, or into an index,
+and the draft ID is never placed. **Every later mention of that ID is a dangling
+citation**, and `check_ledger`'s withdrawn/missing-citation check flags it — which
+is the only reason it was caught each time.
+
+Also caught this way: synthetic fixture IDs quoted in an entry's evidence cell
+(test rows numbered in the eight-hundreds read as citations of entries that do
+not exist).
+
+**Rule: when referring to work whose draft was never placed, name where it
+actually landed** — "recorded in A720's index", "the coordinator step's census" —
+rather than the draft ID. If you must mention the ID, say in the same sentence
+that it was never placed.
