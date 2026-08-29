@@ -487,3 +487,26 @@
                                     # linked list from *arg0 while
                                     # cur->[0x4] >= new->[0x4], then splices
                                     # new in and stores arg0 into new+0x8.
+
+# --- DESCRIBED (A726, 2026-08-29, user-directed) ----------------------------
+# The two A694 left unnamed. A711 read them and proposed no name because the
+# callee was unverified. Reading it settled them -- and the callee turned out
+# to be ALREADY NAMED at line 97 by the oracle: alFilterNew. My first draft
+# added a duplicate key for it and the TOML parser refused the file, which is
+# how this was caught. The names below reflect the oracle's identification.
+0x8003FC60 = "snp_filter_init_t6"    # DESCRIBED (A726): calls alFilterNew
+                                    # (0x80041630) with two function pointers
+                                    # 0x80040870 / snp_append_if_type2_dup and
+                                    # type code 6, then sets obj[0x14]=0 (the
+                                    # count the append routine bumps),
+                                    # obj[0x18]=arg2, obj[0x1C]=arg1 (the array
+                                    # the append routine indexes). 23 instr.
+                                    # CAVEAT: the alFilterNew name is the
+                                    # oracle's, not re-derived here; the field
+                                    # writes are read directly.
+0x8003FCBC = "snp_filter_init_t7"    # DESCRIBED (A726): identical skeleton to
+                                    # 0x8003FC60, differing ONLY in three
+                                    # constants -- 0x80041650,
+                                    # snp_append_if_type2, and type code 7.
+                                    # This is WHY the byte-identical append
+                                    # pair (A708) exists: one copy per type.
