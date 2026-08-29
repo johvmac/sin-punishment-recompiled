@@ -5223,3 +5223,72 @@ the common path is a predictable branch and never a call.
 **The control:** watch a known-hot global as well — the matrix-stack top
 0x80068A84, which A566/A620 put at 733 access sites in 293 functions. If that
 reports zero the tap is not wired in, and the tables' silence means nothing.
+
+## `check_ledger.py` check 4l — the MERGE gate on threaded work (added 2026-08-29, T231)
+
+**PURPOSE.** Refuse a ledger entry that describes a multi-thread sub-agent run
+without recording what the merge found. It exists because of **A713's F3**: two
+read-only agents on related targets returned individually CORRECT reports whose
+composition was WRONG — an exclusion resting on a register operand the hardware
+never reads. That was caught only because the merge question sat in a
+pre-registration and was asked deliberately, which left the sole safeguard
+against threaded work's main hazard standing on memory. T28 records what happens
+to disciplines left there.
+
+**HOW IT TRIGGERS — two signals, both required.**
+
+* Signal 1: two distinct thread labels (`THREAD 1`, `Thread B`), **or** the bare
+  plural `threads`.
+* Signal 2: a sub-agent marker — `sub-agent`, `agent`, `Fable`, `Opus`,
+  `agent-brief`.
+
+**Signal 2 is not optional and is the whole reason this is usable.** This project
+writes about the GAME's threads constantly (B59's thread 4 / thread 17, I5's two
+threads both reporting id 3). Triggering on the word alone would fire on every
+runtime entry, and T118 measured a 6-of-7 noise rate on a nag that fired
+regardless of whether it had anything to say.
+
+**WHAT SATISFIES IT.** A `MERGE:` line of 20+ characters saying whether any
+thread's claim needs something another thread denies. **"No collision, and here
+is what I compared" is a complete answer.** Silence is not.
+
+**CONTROLS — `scripts/test_check_ledger.py`, control `merge_case`, 5 directions:**
+fires when missing; SILENT when answered; **SILENT on the GAME's threads**; fires
+on a stub answer; catches the plural-only shape. Intact **38/38**. With the
+sub-agent guard replaced by a regex matching anything, **37/38 with only
+`game-threads` flipping** — verified, not assumed.
+
+**TWO CONTROLS THAT LOOKED GREEN AND TESTED NOTHING. Read this before writing
+another one.**
+
+1. The first deliberate break was a **syntax error**. Every case went False and
+   the suite "failed" — but it was measuring *the script crashed*, not *the guard
+   is broken*. **A crash-detector does not discriminate.** Make the break
+   semantically valid and confirm the file still parses.
+2. The second break was valid and **the control passed anyway**. The
+   game-thread fixture said `THREAD 4 ... THREAD 17`, and `17` never matched the
+   single-character label pattern — so signal 1 never fired and signal 2 was
+   never exercised. **The case was silent for the wrong reason.** T65 exactly,
+   and it would have shipped as a green tick. A negative control must be
+   constructed so that ONLY the thing under test can keep it quiet.
+
+**A THIRD BUG, CAUGHT BY READING THE OUTPUT (T71 gate 1).** The first message
+said *"describes 0 threads"* — it printed the label count, which stops being the
+trigger once the plural signal exists. A checker stating a confidently wrong
+number is the failure this file exists to catch.
+
+**OPERATIONAL WARNING.** The break/restore cycle **timed out mid-run once and
+left `check_ledger.py` broken on disk.** Take a `sha256sum` before breaking
+anything and verify after restoring; without it, every later run that session is
+silently unguarded.
+
+**KNOWN LIMITS, stated rather than patched.**
+
+* It cannot tell an entry that **is** a threaded run from one that **discusses**
+  one (T121's mention-vs-use, third instance on this project). T231 trips its own
+  check. Answering costs one sentence, so the conservative direction is right —
+  but do not let that breed `MERGE:` lines that say nothing.
+* **It sees whether a merge was RECORDED, never whether one was PERFORMED.** A
+  dishonest line satisfies it exactly as a real one does. This is a floor, not a
+  guarantee.
+* Baseline `{"A": 709, "T": 229}` — no historical entry is examined.

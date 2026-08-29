@@ -1280,6 +1280,76 @@ def main():
         reminders.append(f"STATUS-PAGE staleness check failed ({_e}) — the page can "
                          f"drift unnoticed (T185).")
 
+    # 4l. A MULTI-THREAD RUN MUST RECORD ITS MERGE (A713).
+    #
+    # A713 ran four read-only sub-agents on router-picked targets and F3 FIRED:
+    # two individually CORRECT reports composed into a WRONG conclusion -- an
+    # exclusion resting on a register value the hardware never reads. It was
+    # caught only because the merge question had been written into the
+    # pre-registration and asked deliberately. That left the sole safeguard
+    # against the main hazard standing on memory, and T28 records that every
+    # discipline left to memory on this project has been forgotten.
+    #
+    # So: an entry describing TWO OR MORE threads must carry a MERGE: line
+    # saying whether any thread's claim needs something another thread denies.
+    # "They did not collide" is a fine answer. SILENCE is not.
+    #
+    # T121's trap applies -- a checker cannot tell mention from use -- so
+    # placeholders and backtick-quoted mentions are discarded exactly as the
+    # SO WHAT check does. This rule's own entry quotes the format.
+    try:
+        _mg_base = {"A": 709, "T": 229}
+        for eid, (tag, body, n) in rows.items():
+            _mm0 = re.match(r"([A-Z]+)(\d+)", eid)
+            if not _mm0 or int(_mm0.group(2)) <= _mg_base.get(_mm0.group(1), 10 ** 9):
+                continue
+            blob = tag + " " + body
+            # ONE SIGNAL, DELIBERATELY. The first version required TWO -- a
+            # thread-count signal AND a sub-agent signal -- and T233 measured
+            # that the count half is EVADABLE BY ORDINARY PARAPHRASE. "One agent
+            # read the exclusion table while another read the head banners" and
+            # "spawned a pair of readers concurrently" BOTH slipped through: no
+            # plural "threads", no numbered THREAD label. Nobody has to intend
+            # that; it is just how you would write the sentence.
+            #
+            # So counting is abandoned. If an entry mentions sub-agents AT ALL,
+            # it must state the merge position -- and "single agent, no merge
+            # applies" is a complete answer costing one clause. Every entry
+            # written under this gate so far already volunteered exactly that.
+            #
+            # The GAME-THREAD false positive that motivated the old signal 2 is
+            # handled better this way, not worse: B59's "thread 4" and I5's two
+            # threads carry no sub-agent vocabulary, so they never trigger.
+            if not re.search(r"sub-?agent|\bagents?\b|Fable 5|Opus 5|agent-brief",
+                             blob, re.I):
+                continue
+            _got = None
+            for _mm in re.finditer(r"MERGE:\s*(.+?)(?:\*\*|\||$)", blob, re.S):
+                _t = _mm.group(1).strip()
+                if _t.startswith("<"):
+                    continue
+                if _mm.start() > 0 and blob[_mm.start() - 1] == "`":
+                    continue
+                _got = _t
+            if _got is None:
+                # DO NOT print len(_labels) here. It is not the trigger count --
+                # the plural signal fires with zero labels -- and an earlier
+                # version said "describes 0 threads", which is the confidently-
+                # wrong-number failure this file exists to catch.
+                problems.append((n, f"{eid}: mentions sub-agents but records no "
+                                    f"MERGE: line. Say whether any "
+                                    f"thread's claim needs something another one "
+                                    f"denies -- 'no collision, and here is what I "
+                                    f"compared' is a fine answer; silence is not "
+                                    f"(A713)."))
+            elif len(_got) < 20:
+                problems.append((n, f"{eid}: its MERGE: line is too short to be an "
+                                    f"answer. Name what was compared (A713)."))
+    except Exception as _e:
+        reminders.append(f"MERGE check failed ({_e}) — parallel threads can "
+                         f"publish on each other's dead premises unnoticed, "
+                         f"which is exactly A713's F3 (A713).")
+
     # 5. duplicate ids
     for eid, n, first in dupes:
         problems.append((n, f"{eid}: duplicate ID (first seen line {first}). "

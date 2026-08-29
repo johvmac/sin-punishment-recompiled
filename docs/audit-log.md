@@ -458,3 +458,9 @@ here that T209 does not already carry.
 - suppressed as superseded (2): A668 (single-run, justified in the entry); A660 (single-run, justified in the entry)
 - nothing flagged (quiet streak 4; at 3, halve the frequency)
 
+## Audit #37 — since cc5f399a
+- ledger: 944 entries (+46 this window), 42 withdrawn
+- rolls: 22 this window; runs: 10 (1 exited early, 0 contaminated)
+- suppressed as superseded (5): A699 (single-run, justified in the entry); A693 (single-run, justified in the entry); A684 (single-run, justified in the entry); A678 (single-run, justified in the entry); A672 (single-run, justified in the entry)
+- nothing flagged (quiet streak 5; at 3, halve the frequency)
+

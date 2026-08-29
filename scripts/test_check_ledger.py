@@ -354,6 +354,79 @@ def main():
           f"stub={sw_stub}, quotes-template={sw_quotes_template}")
     extra += 1; bad += not sw_ok
 
+    # THE MERGE CHECK (A713). Entry IDs must be above the check's baseline
+    # (A709), or nothing is examined at all -- which would make every case
+    # below pass for the wrong reason.
+    def merge_case(row):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "r"
+            (root / "scripts").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            shutil.copy(CHECKER, root / "scripts" / "check_ledger.py")
+            led = root / "docs" / "findings-ledger.md"
+            head = "| # | status | finding | evidence |\n|---|---|---|---|\n"
+            base = "| A1 | MEASURED (2 runs) | baseline | x.log, y.log |\n"
+            led.write_text(head + base)
+            chk = [sys.executable, str(root / "scripts" / "check_ledger.py")]
+            subprocess.run(chk, capture_output=True, text=True)      # seeds the mark
+            led.write_text(head + base + row)
+            p = subprocess.run(chk, capture_output=True, text=True)
+            return "MERGE:" in (p.stdout + p.stderr)
+
+    _SW = "**SO WHAT: the thing now works better than it did.**"
+    mg_missing = merge_case(
+        f"| A801 | MEASURED | ran two Fable sub-agents. THREAD 1 read the table, "
+        f"THREAD 2 read the callers. {_SW} | a.log, b.log |\n")
+    mg_present = merge_case(
+        f"| A802 | MEASURED | ran two Fable sub-agents. THREAD 1 read the table, "
+        f"THREAD 2 read the callers. MERGE: compared both exclusion lists; neither "
+        f"claim needs anything the other denies. {_SW} | a.log, b.log |\n")
+    # THE ONE THAT MATTERS: the GAME's threads, not sub-agents. B59 and I5 are
+    # full of "thread 4" / "thread 17" and must never trip this.
+    # It must trip SIGNAL 1 (so the plural AND two single-char labels), leaving
+    # ONLY the sub-agent guard to keep it silent. The first version said
+    # "THREAD 4 ... THREAD 17" and stayed quiet for the WRONG REASON: "17" never
+    # matched the single-character label pattern, so signal 1 never fired and
+    # the guard was never exercised. Breaking the guard did not fail this case,
+    # which is precisely T65's "a control that cannot fail is not a control".
+    mg_game = merge_case(
+        f"| A803 | MEASURED | I5's instrument defect: two threads both report id 3, "
+        f"and THREAD 4 and THREAD 7 have different priorities and stacks. {_SW} "
+        f"| a.log, b.log |\n")
+    mg_short = merge_case(
+        f"| A804 | MEASURED | ran two Opus sub-agents. THREAD 1 and THREAD 2. "
+        f"MERGE: fine. {_SW} | a.log, b.log |\n")
+    # Plural-only, no numbered labels -- the A714 shape that label-matching missed.
+    mg_plural = merge_case(
+        f"| A805 | MEASURED | both threads returned lists; the agents were Opus 5. "
+        f"{_SW} | a.log, b.log |\n")
+    # THE PARAPHRASES THAT EVADED THE FIRST VERSION (T233). Both slipped the
+    # old two-signal trigger: no plural "threads", no numbered THREAD label.
+    # These are the reason counting was abandoned; if either goes SILENT again
+    # the hole is back.
+    mg_para1 = merge_case(
+        f"| A806 | MEASURED | ran two Fable sub-agents in parallel. One agent read "
+        f"the exclusion table while another read the head banners. {_SW} "
+        f"| a.log, b.log |\n")
+    mg_para2 = merge_case(
+        f"| A807 | MEASURED | spawned a pair of readers concurrently; the agents "
+        f"were Fable 5. The first covered one entry, the second another. {_SW} "
+        f"| a.log, b.log |\n")
+    # A SINGLE agent must also state the position -- "no merge applies" is one
+    # clause, and silence is what the gate exists to refuse.
+    mg_single = merge_case(
+        f"| A808 | MEASURED | one Opus 5 sub-agent read the log and returned a "
+        f"list. {_SW} | a.log, b.log |\n")
+    mg_ok = (mg_missing and not mg_present and not mg_game
+             and mg_short and mg_plural
+             and mg_para1 and mg_para2 and mg_single)
+    print(f"{'ok  ' if mg_ok else 'FAIL'}  MERGE recorded whenever sub-agents are mentioned: "
+          f"fires when missing, SILENT when answered, SILENT on the GAME's threads, fires on "
+          f"a stub, and CATCHES THE PARAPHRASES THAT EVADED v1 (T233) — missing={mg_missing}, "
+          f"answered={mg_present}, game-threads={mg_game}, stub={mg_short}, plural={mg_plural}, "
+          f"paraphrase-1={mg_para1}, paraphrase-2={mg_para2}, single-agent={mg_single}")
+    extra += 1; bad += not mg_ok
+
     # ...and it must not FORGET. The single-run mark advances to the current
     # maximum every run, so its findings are reported exactly once. Here that
     # would erase a gap the moment it was first mentioned, so the mark stops
