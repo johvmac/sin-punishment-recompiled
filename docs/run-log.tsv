@@ -903,3 +903,4 @@ ts	secs_req	secs_actual	rc	input	leftover	gfx_total	gfx_rate	verdict	log	env
 2026-08-29T09:31:18+10:00	10	3	139	0	0	NA	NA	CRASHED	dry.log	none
 2026-08-29T09:33:57+10:00	110	110	0	0	0	3245	30	CLEAN	a684-matrixablate.log	none
 2026-08-29T10:35:24+10:00	45	45	0	0	0	1297	30	CLEAN	a703-pool.log	none
+2026-08-29T10:38:09+10:00	45	45	0	0	0	1294	30	CLEAN	a704-paired.log	none
