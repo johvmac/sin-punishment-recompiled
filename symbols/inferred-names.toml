@@ -463,3 +463,17 @@
 # symbol, and nothing here establishes which printf it was.
 0x80045B88 = "snp_printf_stub"      # DESCRIBED (A694): varargs spill then
                                     # return; callers pass diagnostic strings
+
+# --- DESCRIBED (A702, 2026-08-29, roll #425) --------------------------------
+# Three more of A694's eight, read the same way: body, then a caller.
+0x80042D08 = "snp_list_push"        # DESCRIBED (A702): loads a head pointer
+                                    # from [0x80060B00]+0x2C, writes it into
+                                    # arg[0], stores arg as the new head.
+                                    # Textbook singly-linked push.
+0x80041790 = "snp_append_if_type2"   # DESCRIBED (A702): if arg1 == 2, appends
+                                    # arg2 to the array at arg0+0x1C and bumps
+                                    # the count at arg0+0x14. Always returns 0.
+0x8003DFAC = "snp_save_status_exl"   # DESCRIBED (A702): mfc0 Status, ORs in
+                                    # 0x2 (EXL), stores to +0x118 of a struct
+                                    # from [0x80060BE0]. NOTE: no jr $ra in the
+                                    # listing -- may fall through; unverified.
