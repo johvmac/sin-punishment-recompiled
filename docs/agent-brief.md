@@ -316,3 +316,62 @@ not exist).
 actually landed** — "recorded in A720's index", "the coordinator step's census" —
 rather than the draft ID. If you must mention the ID, say in the same sentence
 that it was never placed.
+
+## Naming agents: alliterative animals, alphabetical (user's choice, 2026-08-29)
+
+**Give every agent in a step a name, and put it in the agent's own prompt so it
+can sign its report.** Ubuntu-release style — an adjective and an animal sharing
+a letter, assigned alphabetically in launch order:
+
+> **Agile Aardvark, Brisk Badger, Curious Capybara, Dapper Dormouse.**
+
+The alliteration is not decoration. The letter carries launch order, so "Capybara
+found it" tells you *which* and *when* without a lookup — the same job NATO
+phonetic does, chosen here because the user preferred whimsy and it costs
+nothing.
+
+**THE HARD CONSTRAINT: NO DIGITS, AND NOTHING SHAPED LIKE AN ENTRY ID.** This
+ledger's namespace is `A###` / `T###` / `B###` / `I###` / `U###`, and
+`check_ledger` matches `[A-Z]+\d+`. On 2026-08-29 I labelled threads **T1-T4**
+and **T3 and T4 are real entries** — the checker flagged the write-up for citing
+a withdrawn entry nobody had meant to cite. The same shape bit twice more the
+same day via draft IDs. `Badger` cannot collide; `S3` and `T1` can, and did.
+
+**A name is a within-step handle, not an identity.** Badger is a different agent
+next step. So in any ledger entry, first mention pairs the name with what it
+actually was: **"Badger (A225, roll #439)"**. Without that the name is a dead
+reference within a week — true of NATO and every other scheme too.
+
+Running out of alphabet is a feature: a step needing more than a few agents is
+already a design problem (see the coordinator-is-the-limit note above).
+
+## PARALLEL CHECKPOINTS: the merge line says PENDING, or the entry waits
+
+**Measured on myself, 2026-08-29, within two hours of predicting it.**
+
+Threads inside ONE checkpoint all land before you write, so the merge line is a
+statement about the past and writing it honestly is easy.
+
+**Separate checkpoints break that.** Roll #438 and #439 ran in parallel; #438's
+agent returned first, and its entry was written while #439 was still out. The
+natural sentence — *"I compared both sets of claims and neither needs anything
+the other denies"* — is then **a claim about the future**, and the pull toward
+writing it is strong because it is what you expect to be true. **I wrote exactly
+that, and `check_ledger` accepted it**, because check 4l tests whether a `MERGE:`
+line EXISTS, not whether the comparison HAPPENED. That is T233's P2b — the
+permanent ceiling, demonstrated by the person who documented it.
+
+**THE RULE, and it is structural rather than a matter of care:**
+
+* In a parallel round, an entry placed before its sibling returns **must write
+  `MERGE: PENDING`**, name the sibling roll, and say no comparison has been
+  performed. An expectation of no collision is not a merge.
+* **Record the comparison as an ANNOTATION on that entry once the sibling
+  lands.** Do not leave PENDING standing — an unresolved PENDING is the same
+  silence the gate exists to refuse.
+* Or simply **hold the entry until both return**. Cheaper, and the only cost is
+  that findings sit in context longer — which rule 1 of this protocol says is
+  itself a risk, so prefer PENDING-then-annotate when the round is long.
+
+**No checker can catch this.** The gate sees the line and passes. The only thing
+that caught it was re-reading my own sentence and noticing its tense.
