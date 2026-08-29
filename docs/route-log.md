@@ -429,3 +429,4 @@ A gap in the numbering means a roll was skipped.
 - roll #410: **EXPLOIT** (drew 0.363 vs eps 0.3) -> `A218` [witness `dd00bf`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #411: **EXPLORE** (drew 0.152 vs eps 0.3) -> `T197` [witness `0ddada`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #412: **EXPLORE** (drew 0.117 vs eps 0.3) -> `A218` [witness `318432`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #413: **EXPLORE** (drew 0.193 vs eps 0.3) -> `T150` [witness `9685e2`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
