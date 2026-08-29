@@ -174,6 +174,17 @@ rather than reporting on a different scene** — scene identity has been wrong
 twice from sampling (A93, A161) and both times the observation was right and
 the quantifier wrong.
 
+**⛑ READ THIS BEFORE THE PARAGRAPH BELOW (A699/A692, 2026-08-29).** The blank region
+described here is **in the OFFLINE RECONSTRUCTION, not on screen** — and we have now
+MEASURED why. The reconstruction draws triangles only and ignores `G_TEXRECT`; our
+display-list census shows the tutorial issuing **21.2 thin full-width textured rects per
+task** against the attract's 2.0, every one in 1CYCLE mode. **So it is blind to roughly
+twenty full-width rectangles per tutorial frame, and a blank region in its output is its
+own omission rather than evidence about the game.** A692 spent a whole checkpoint hunting
+that signature in a live recording before noticing it could never have been there. **Do not
+reason about missing picture from the reconstruction until it draws `G_TEXRECT`.** What YOU
+see on screen is still worth everything — which is why this section stays.
+
 **Why it is worth your eyes.** In the offline reconstruction that shot leaves a
 region blank in the **top left** where every other attract frame is filled.
 Task 2400 draws its sky as ordinary geometry; **this one apparently does not.**
