@@ -261,6 +261,42 @@ and the material is not visible from the item's description.
   prompt.
 * **Four agents is not four checkpoints.** Steps 3 and 4 of a checkpoint —
   checking and writing — do not parallelise, and they GROW with agent count.
+
+### THE OVERLAP THAT PAYS IS AGENT ∥ COORDINATOR, NOT AGENT ∥ AGENT (T239)
+
+**Measured 2026-08-29, and it is the single most useful number about this
+method so far.** Three Opus agents: 3.66, 8.49 and 15.65 minutes.
+
+* Serial one-after-another **27.80 min**; as actually run **24.14 min**.
+  **Running two at once saved 3.66 minutes of a 44-minute session — 8.3%**,
+  and that 3.66 is simply the shorter agent's whole runtime hidden under the
+  longer one.
+* **The single agent's 15.65-minute runtime — 35.6% of the session — yielded a
+  COMPLETE coordinator-authored entry** (T236: a defect found, a control built
+  and verified to fail, an end-to-end check, the write-up). **Four times the
+  gain, from one agent instead of two.**
+* With TWO agents out, the coordinator manages far less, because it is hoarding
+  context for two inbound reports. **Two agents did not double the work; they
+  halved what could safely be done while waiting.**
+
+**And concurrency has costs the 8.3% does not net out.** A parallel round forces
+the `MERGE: PENDING` two-pass — one entry written, then annotated when its
+sibling lands — plus the formatting trap that goes with it. Sequenced, neither
+exists.
+
+**SO: default to ONE agent out at a time, and treat its runtime as your own work
+time.** Keeps the overlap that paid, drops the two-pass, concentrates the
+spot-check budget.
+
+**THE CONDITION IS THE WHOLE RULE: this holds ONLY when you have independent
+work available.** On 2026-08-29 the L1 audit came due mid-session, by luck.
+**With nothing to do inline you idle either way, and agent ∥ agent is strictly
+better.** This is not "never run two agents".
+
+**AND KEEP IT IN PROPORTION: two of that day's six entries came from NEITHER
+agents nor parallelism** — one from a routine close-out check, one from the
+coordinator making the same paste error twice. Do not credit the method with
+the whole yield.
 * **Threading buys DEPTH, not speed.** On 2026-08-29 it produced four findings
   and killed two long-standing wrong beliefs; it did not multiply throughput.
 * **If throughput is the goal, shorten the entries.** `check_ledger` has been
