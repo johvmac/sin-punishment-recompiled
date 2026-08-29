@@ -515,6 +515,22 @@
 # The most-called UNNAMED function in the tree: 1717 call sites, 856 distinct
 # callers, 7 instructions. Found by applying A694's caller-count filter
 # tree-wide instead of only inside the donor band.
+0x800274F8 = "snp_mtx_push_translate"  # DESCRIBED (A732): the PUSH whose POP
+                                    # is 0x80027228 above. Reads the same
+                                    # stack-top global 0x80068A84, copies
+                                    # rows 0-2 (+0x00..+0x2C) of the current
+                                    # top VERBATIM into the new slot, ADDS
+                                    # 0x40 and writes the pointer back, then
+                                    # rebuilds row 3 only, as
+                                    # M3c' = M3c + x*M0c + y*M1c + z*M2c --
+                                    # the last row of T(x,y,z)*M in row-vector
+                                    # convention. 992 static callers.
+                                    # VERIFIED BY ME, not by the agent that
+                                    # proposed it: funcs_0.c load/store block
+                                    # 0x8002751C-0x80027574 read directly.
+                                    # CAVEAT: inherits 0x80027228's caveat --
+                                    # "matrix" is A566's identification of
+                                    # the global, not re-derived here.
 0x80027228 = "snp_mtx_stack_pop"   # DESCRIBED (A727): reads the stack-top
                                     # global at 0x80068A84, subtracts 0x40 (one
                                     # matrix slot), writes it back. No other
