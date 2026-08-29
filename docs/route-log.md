@@ -437,3 +437,4 @@ A gap in the numbering means a roll was skipped.
 - roll #418: **EXPLORE** (drew 0.063 vs eps 0.3) -> `T197` [witness `d27eaf`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #419: **EXPLORE** (drew 0.239 vs eps 0.3) -> `A211` [witness `e02c2a`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #420: **EXPLORE** (drew 0.256 vs eps 0.3) -> `T150` [witness `fd8f38`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
+- roll #421: **EXPLOIT** (drew 0.731 vs eps 0.3) -> `T229` [witness `4d6e12`] — Split out of T227 when that closed (A691, roll #415). The user's full answer and the run it came
