@@ -515,6 +515,31 @@
 # The most-called UNNAMED function in the tree: 1717 call sites, 856 distinct
 # callers, 7 instructions. Found by applying A694's caller-count filter
 # tree-wide instead of only inside the donor band.
+0x8004BE70 = "snp_u32_to_double"      # DESCRIBED (A733): unsigned 32-bit ->
+                                    # double. 5 instructions. bit31 clear ->
+                                    # tails to 0x8004BE30 (mtc1 / cvt.d.w).
+                                    # bit31 set -> builds {hi=0, lo=$a0} and
+                                    # enters the software path at 0x8004BE84.
+                                    # The hi=0 zero-extension is what makes it
+                                    # UNSIGNED; a signed convert is the inlined
+                                    # cvt.d.w alone. VERIFIED BY ME, both halves.
+0x80026DBC = "snp_cos_bam"            # DESCRIBED (A733): cosine of a 16-bit
+                                    # binary angle (65536 per turn), sharing
+                                    # 0x80026D48's quarter-wave table.
+                                    # CORRECTION, and it matters: this is NOT
+                                    # "sine with one instruction prepended".
+                                    # It adds 0x4000 (90 deg), RE-TRUNCATES to
+                                    # s16 (sll/sra 16), and only THEN does the
+                                    # >>4 and a SECOND sign-extension -- three
+                                    # extra instructions, 32 vs 29, and the
+                                    # truncation between them is load-bearing
+                                    # because it makes the angle wrap at 16 bits.
+                                    # CAVEAT: the table at 0x802B4000 is built at
+                                    # runtime, lies outside every mapped section,
+                                    # and HAS NEVER BEEN READ. "cosine" rests on
+                                    # 0x800C56D8 using x/sin and y/cos
+                                    # interchangeably as one length, not on the
+                                    # table's contents.
 0x800274F8 = "snp_mtx_push_translate"  # DESCRIBED (A732): the PUSH whose POP
                                     # is 0x80027228 above. Reads the same
                                     # stack-top global 0x80068A84, copies
