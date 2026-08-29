@@ -450,3 +450,16 @@
 0x8003719C = "snp_tile_blit"         # DESCRIBED (READING): emits one TEXRECT per tile over a
                                     # nested loop, from the 10-field descriptor
                                     # A529 recovered and A553 confirmed
+
+# --- DESCRIBED (A694, 2026-08-29, roll #418) --------------------------------
+# Read during a T197 re-costing. Five instructions: spills $a0-$a3 into the
+# caller's o32 argument save area at 0(sp)-0xC(sp) and returns -- the standard
+# varargs entry prologue, with no body. Its four call sites are guarded error
+# paths that load a diagnostic string first; one reads
+#   0x8005E648 = "SND : Warnning ( Buffer over flow PTR file) !!!!"
+# (the misspelling is the game's own). So it is a retail-stubbed printf: it
+# accepts a format string and arguments and does nothing with them.
+# NOT named osSyncPrintf: that would be a BORROWED claim about the original
+# symbol, and nothing here establishes which printf it was.
+0x80045B88 = "snp_printf_stub"      # DESCRIBED (A694): varargs spill then
+                                    # return; callers pass diagnostic strings

@@ -434,3 +434,4 @@ A gap in the numbering means a roll was skipped.
 - roll #415: **EXPLOIT** (drew 0.727 vs eps 0.3) -> `T227` [witness `6acfd6`] — WHY THIS IS A ROW AND NOT A NOTE (P7.4b): the router draws from ledger.py --open, and an observa
 - roll #416: **EXPLOIT** (drew 0.354 vs eps 0.3) -> `T229` [witness `c20ad2`] — Split out of T227 when that closed (A691, roll #415). The user's full answer and the run it came
 - roll #417: **EXPLORE** (drew 0.234 vs eps 0.3) -> `A219` [witness `bc3a6d`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #418: **EXPLORE** (drew 0.063 vs eps 0.3) -> `T197` [witness `d27eaf`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
