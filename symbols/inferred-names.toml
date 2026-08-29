@@ -477,3 +477,13 @@
                                     # 0x2 (EXL), stores to +0x118 of a struct
                                     # from [0x80060BE0]. NOTE: no jr $ra in the
                                     # listing -- may fall through; unverified.
+
+# --- DESCRIBED (A708, 2026-08-29, roll #431) --------------------------------
+0x8004094C = "snp_append_if_type2_dup"  # DESCRIBED (A708): instruction-for-
+                                    # instruction IDENTICAL to 0x80041790 --
+                                    # same offsets, same type-2 test, same
+                                    # return 0. A duplicate, not a variant.
+0x8003E0B4 = "snp_list_insert_ordered"  # DESCRIBED (A708): walks a singly-
+                                    # linked list from *arg0 while
+                                    # cur->[0x4] >= new->[0x4], then splices
+                                    # new in and stores arg0 into new+0x8.
