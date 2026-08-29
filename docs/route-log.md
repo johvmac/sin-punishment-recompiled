@@ -432,3 +432,4 @@ A gap in the numbering means a roll was skipped.
 - roll #413: **EXPLORE** (drew 0.193 vs eps 0.3) -> `T150` [witness `9685e2`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
 - roll #414: **EXPLORE** (drew 0.265 vs eps 0.3) -> `A218` [witness `935301`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
 - roll #415: **EXPLOIT** (drew 0.727 vs eps 0.3) -> `T227` [witness `6acfd6`] — WHY THIS IS A ROW AND NOT A NOTE (P7.4b): the router draws from ledger.py --open, and an observa
+- roll #416: **EXPLOIT** (drew 0.354 vs eps 0.3) -> `T229` [witness `c20ad2`] — Split out of T227 when that closed (A691, roll #415). The user's full answer and the run it came
