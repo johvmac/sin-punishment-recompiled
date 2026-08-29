@@ -446,3 +446,4 @@ A gap in the numbering means a roll was skipped.
 - roll #427: **EXPLOIT** (drew 0.818 vs eps 0.3) -> `A211` [witness `a8c2fb`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #428: **EXPLOIT** (drew 0.341 vs eps 0.3) -> `A219` [witness `1b4ec5`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #429: **EXPLORE** (drew 0.076 vs eps 0.3) -> `T150` [witness `84220d`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
+- roll #430: **EXPLORE** (drew 0.007 vs eps 0.3) -> `T150` [witness `730e25`] — >>> ITS OWN GAP STATEMENT IS STALE AND HALF THIS ITEM IS DONE — A456 (2026-08-25, roll #264). Th
