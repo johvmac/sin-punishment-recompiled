@@ -753,6 +753,15 @@ def cmd_sowhat(rows, n):
     What can be mechanised is the RETRIEVAL: closing any chunk of work should
     be one command, not an act of memory. Newest LAST so it reads in the order
     the work happened, and so the final line is the one to close on.
+
+    BROKEN AS OF 2026-08-30 (T242), AND SAYING SO RATHER THAN PRETENDING.
+    The comment below claims the ledger is newest-first on disk. IT IS NOT:
+    38 entry rows precede the newest-first block, so `rows[:n]` returns
+    entries from days ago while the header called them "the last n".
+    The header now warns. The SELECTION is deliberately NOT patched here --
+    picking "newest" correctly means ordering by roll or by date, and doing
+    that blind at the end of a session is how a retrieval tool starts lying
+    in a new direction instead of the old one.
     """
     # parse() returns a LIST of (id, status, body, evidence, raw), not a dict --
     # checked rather than assumed, after assuming wrong once.
@@ -763,7 +772,10 @@ def cmd_sowhat(rows, n):
     # ledger is newest-first on disk, which is the real chronology.
     ids = [(0, 0, r) for r in rows if re.match(r"[A-Z]+\d+", r[0])]
     tail = list(reversed(ids[:n]))
-    print(f"# closing sentences, last {len(tail)} entries, oldest first\n")
+    print(f"# closing sentences, {len(tail)} entries in FILE ORDER, oldest first")
+    print("# WARNING (T242): file order is NOT chronological -- 38 rows precede")
+    print("#   the newest-first block, so these are entries from DAYS AGO, not")
+    print("#   the last n. Selection deliberately UNFIXED; see T242.\n")
     missing = []
     for _pre, _num, r in tail:
         eid = r[0]
