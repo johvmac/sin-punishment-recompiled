@@ -908,6 +908,64 @@ def main():
     except Exception:
         _srs = {}
     _base = _srs.get("sr_baseline")
+
+    # 4a3. THE ROW MUST HAVE FOUR CELLS (T245, 2026-08-31).
+    #
+    # The main table is `| # | status | finding | evidence |`. On 2026-08-31 it
+    # turned out that TWENTY-ONE consecutive entries had been written with
+    # THREE -- status and finding merged, evidence in cell 3, and cell 4 absent.
+    #
+    # Nothing here caught it. Every content check passed, because they all read
+    # `tag` and `body`, which the parser happily fills from a 3-cell row.
+    # `ledger.py --show` rendered them correctly for the same reason. The ONLY
+    # tool that noticed was audit.py, which reads the evidence cell BY INDEX and
+    # so reported "no evidence recorded" for 19 entries at once -- which looks
+    # exactly like a parser bug and was nearly dismissed as one.
+    #
+    # So: check the SHAPE, not just the content. A pipe preceded by a backslash
+    # is escaped and is not a separator -- getting that wrong is what made the
+    # first diagnosis of this defect overcount by 17 rows.
+    #
+    # BOUNDED by the same high-water mark as the single-run check: ~50 historical
+    # rows carry unescaped pipes and flagging them every run is exactly the noise
+    # T29 warns about. Their count is disclosed as a note instead, so the bound
+    # hides the volume and never the existence (T76).
+    # Each row is compared against ITS OWN table's header, because this file
+    # holds several tables with different widths -- the user queue and the
+    # instrument-defect list are both narrower, and a check keyed to "4" alone
+    # fires on 14 of them. That was the first version of this check and it is
+    # why the header is tracked rather than assumed.
+    _shape_bad, _shape_old, _width = [], 0, None
+    for _ln, _raw in enumerate(LEDGER.read_text().split("\n"), 1):
+        _cells = len(re.split(r"(?<!\\)\|", _raw))
+        if re.match(r"\|\s*#\s*\|", _raw):          # a table header row
+            _width = _cells
+            continue
+        if re.match(r"\|[-: ]+\|", _raw):             # the ---|---|--- rule
+            continue
+        _m = re.match(r"\| ([A-Z]+\d+) \|", _raw)
+        if not _m or _width is None or _cells == _width:
+            continue
+        _em = re.match(r"([A-Z]+)(\d+)", _m.group(1))
+        if (_base is not None and _em
+                and int(_em.group(2)) > _base.get(_em.group(1), 0)):
+            _shape_bad.append((_ln, _m.group(1), _cells - 2, _width - 2))
+        else:
+            _shape_old += 1
+    for _ln, _eid, _n, _want in _shape_bad:
+        problems.append(
+            (_ln, f"{_eid}: row has {_n} cells, its table's header has {_want}. "
+                  f"A findings row with 3 cells has NO evidence column, and "
+                  f"every content check here still passes on it -- only "
+                  f"audit.py notices, and it looks like a parser bug (T245). "
+                  f"Split the status cell at the headline, or escape a stray "
+                  f"`|` as `\\|`."))
+    if _shape_old:
+        reminders.append(f"STANDING — {_shape_old} row(s) below the mark do not "
+                     f"match their table's header width, almost all from "
+                     f"unescaped `|` in prose. Pre-existing and not flagged "
+                     f"individually (T29); the count is here so the bound hides "
+                     f"the volume, never the existence (T76).")
     _cur = {}
     for eid in rows:
         m = re.match(r"([A-Z]+)(\d+)", eid)

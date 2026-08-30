@@ -5452,3 +5452,37 @@ exactly the kind of thing that later turns out to matter.
 off as "built at runtime, outside every mapped section, never read". **Running a
 whole-image matcher over everything is cheap; the sections you were not asking
 about answer questions anyway.**
+
+## Ledger rows have FOUR cells — check the SHAPE, not just the content (T245, 2026-08-31)
+
+**Twenty-one consecutive entries were written with three.** The table is
+`| # | status | finding | evidence |`; they merged status and finding, put the
+evidence in cell 3, and had no cell 4 at all.
+
+**EVERY CONTENT CHECK PASSED ON THEM**, because `check_ledger.py`'s checks read
+`tag` and `body`, which the parser fills happily from a short row — and
+`ledger.py --show` renders such a row correctly, so re-reading the entry never
+reveals it. **`audit.py` was the only tool that saw it**, because it reads the
+evidence cell BY INDEX. It said "no evidence recorded" nineteen times in one
+run, which looks exactly like a broken parser.
+
+> **THE LESSON IS ABOUT READING CHECKERS, NOT ABOUT TABLES.** T100 warns that a
+> checker finding nothing on its first run should be suspected. **The converse is
+> just as dangerous: a checker that reports nineteen identical findings looks
+> broken, and dismissing it is one keystroke.** Both shapes deserve a look before
+> a verdict.
+
+**`check_ledger.py` check 4a3** now compares each row against **its own table's
+header width** — this file holds several tables of different widths, and a
+version keyed to a hard-coded 4 fired on fourteen user-queue rows.
+
+**TWO CONTROL FAILURES WORTH COPYING.** The first control broke A756 back to
+three cells and the check stayed silent: **the high-water mark advances every
+run, so a row is checkable only between being written and the next run.** Test
+with an entry number ABOVE the mark. And write the break/restore with a
+`sha256sum` on both sides — the playbook already warns that cycle once left a
+script broken on disk.
+
+**WHEN WRITING A ROW BY SCRIPT: assert it splits into exactly the header's
+number of cells, counting `\|` as escaped.** That one assertion would have
+caught all 21.
