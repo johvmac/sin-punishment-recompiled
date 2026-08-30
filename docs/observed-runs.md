@@ -132,3 +132,6 @@ correction.
 ## DEFERRED 2026-08-30 — away from the computer today (user, 2026-08-30)
 - no observed run today; deferred deliberately, not skipped.
 
+## DEFERRED 2026-08-31 — User set a three-hour timer at 23:08 on 2026-08-30 and left; the day rolled over to 2026-08-31 mid-session at 00:00 and they are not at the keyboard. An observed run needs their eyes and ears (T101) and I can supply neither. Deferred rather than skipped, and it does not accumulate (T151) -- 2026-08-31 owes ONE run whenever they next work, not one per missed day.
+- no observed run today; deferred deliberately, not skipped.
+
