@@ -161,3 +161,9 @@ mistake before it happened). One success is not grounds for automation.
 - quiet: yes (streak 1; at 2, drop L2 to weekly)
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #17 — covering L1 audits 37..38
+- L1 blocks digested: 2
+- no defects reported in this window
+- quiet: yes (streak 2; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+

@@ -129,3 +129,6 @@ correction.
 - **scene 2, the ~12 s blank before the tutorial (A672/A679):** didn't notice anything - not 100% sure
 - **CONTRADICTS MY CLAIMS:** no
 
+## DEFERRED 2026-08-30 — away from the computer today (user, 2026-08-30)
+- no observed run today; deferred deliberately, not skipped.
+

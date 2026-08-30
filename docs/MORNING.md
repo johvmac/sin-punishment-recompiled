@@ -1,4 +1,4 @@
-# Morning state — 2026-08-29
+# Morning state — 2026-08-30
 
 Written by `scripts/morning.sh` at 06:03 by cron. Machine-side only:
 nothing here ran the game, cleared a gate, or published anything.
