@@ -523,6 +523,19 @@
                                     # The hi=0 zero-extension is what makes it
                                     # UNSIGNED; a signed convert is the inlined
                                     # cvt.d.w alone. VERIFIED BY ME, both halves.
+0x80026D48 = "snp_sin_bam"             # DESCRIBED (A748): sine of a 16-bit
+                                    # binary angle. 29 distinct instructions.
+                                    # sra $a0,4 reduces the angle to 12 bits;
+                                    # andi 0x3FF is the index; andi 0x400
+                                    # mirrors it as 0x3FF-index; sll 2 scales by
+                                    # FOUR and lwc1 loads a FLOAT from
+                                    # lui 0x802B + addiu 0x4000 = 0x802B4000;
+                                    # andi 0x800 negates. So: a 1024-entry
+                                    # float32 quarter-wave, mirrored and negated
+                                    # -> 4096 steps to the turn. VERIFIED BY ME,
+                                    # instructions and table contents both.
+                                    # 0x80026DBC is this function with the angle
+                                    # pre-advanced by 0x4000 -- i.e. cosine.
 0x80026DBC = "snp_cos_bam"            # DESCRIBED (A733): cosine of a 16-bit
                                     # binary angle (65536 per turn), sharing
                                     # 0x80026D48's quarter-wave table.
@@ -534,12 +547,22 @@
                                     # extra instructions, 32 vs 29, and the
                                     # truncation between them is load-bearing
                                     # because it makes the angle wrap at 16 bits.
-                                    # CAVEAT: the table at 0x802B4000 is built at
-                                    # runtime, lies outside every mapped section,
-                                    # and HAS NEVER BEEN READ. "cosine" rests on
-                                    # 0x800C56D8 using x/sin and y/cos
-                                    # interchangeably as one length, not on the
-                                    # table's contents.
+                                    # CAVEAT WITHDRAWN 2026-08-30 (A748). It said
+                                    # the table at 0x802B4000 "is built at runtime,
+                                    # lies outside every mapped section, and HAS
+                                    # NEVER BEEN READ". ALL THREE ARE FALSE: it is
+                                    # .ovlfile24 (rom 0x007757E0, vram 0x802B4000,
+                                    # size 0x1EA0), it matches ROM 100% in all
+                                    # seven archived snapshots, and it has now
+                                    # been read -- 1024 float32, monotone 0.0 ->
+                                    # 0.99995, a quarter-wave.
+                                    # THE NAME NO LONGER NEEDS THE INDIRECT
+                                    # ARGUMENT: cos(x) = sin(x+90), and 0x4000 of
+                                    # a 16-bit turn IS 90 degrees.
+                                    # STILL OPEN: the table is NOT sin(k*2pi/4096)
+                                    # to float precision (worst 5.1e-04, ~4000x
+                                    # eps) and matches no closed form tried; the
+                                    # angular convention is unestablished (A748).
 0x80027964 = "snp_mtx_rot_x"           # DESCRIBED (A744): concatenates a
                                     # rotation about X onto the matrix in $s0.
                                     # 91 distinct instructions. Writes EIGHT

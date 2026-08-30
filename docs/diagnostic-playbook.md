@@ -5412,3 +5412,43 @@ only that something is wrong.
 fixtures proves nothing; agreeing with `eaf_read.py` — an independently written
 parser — on the same real ELAN file (both say 4 annotations, 3 tiers) is the
 check that counts.
+
+## `ovl_whole_image.py` — WHICH overlay is resident, not "are these 16 bytes there" (added 2026-08-30, A746)
+
+**THE INCIDENT.** All 27 `.ovlfileNN` sections load at the same vram, `0x800E4780`.
+The previous instrument, `a604-ovl-resident.py`, answered residency by matching
+**four instructions** at one address. A729 caught it returning True for a window
+whose first 7.4 KB were a different overlay; A739 measured the blast radius at 73
+ledger rows. **A746's per-address classification then showed four of five queued
+entries were reading `ovlfile01` while believing it was `ovlfile23` — `A700` on
+four of its five addresses.**
+
+**THE DESIGN RULE THAT GENERALISES.** When a location can hold one of N things,
+**an instrument that samples one point cannot tell you which** — no matter how
+distinctive that point is. Compare the whole image and print a MAP, so a window
+holding two things stacked appears as two things stacked.
+
+**MEASURE THE ENCODING, NEVER ASSUME IT.** The ROM is big-endian z64; a snapshot's
+word order is a property of whoever wrote it. This tool compares `.boot` — known
+rom/vram, present in every healthy dump, and outside the window under test —
+under both orders and **REFUSES unless exactly one clears 99%** (measured:
+word-swapped 99.98%, direct 15.36%). **A tool that silently guesses would report
+every overlay absent, and the absence would read as a finding.** That refusal
+turned out to be a two-sided control for free: breaking the comparison open makes
+BOTH conventions pass, breaking it shut makes NEITHER, and either way it refuses.
+
+**BREAK THE NARROWEST THING (T243's lesson, applied).** Coarse breaks both trip
+C1 and so say nothing about C2 and C3. **Two surgical breaks were run instead** —
+ignoring the wrong-offset shift fails C2 alone; self-comparing each overlay fails
+C3 alone. **Report which break proves which control.**
+
+**KNOWN RESIDUE, recorded not rounded away.** `.boot` matches 99.98%, not 100% —
+15 words of 62996 differ consistently across all seven snapshots, unexplained.
+It clears the 99% gate, but an unexplained residue in a positive control is
+exactly the kind of thing that later turns out to matter.
+
+**IT ALSO FOUND SOMETHING NOBODY WAS LOOKING FOR (A748):** `.ovlfile24` scores
+100% in all seven snapshots — and it is the trig table that A732/A733 had written
+off as "built at runtime, outside every mapped section, never read". **Running a
+whole-image matcher over everything is cheap; the sections you were not asking
+about answer questions anyway.**
