@@ -5393,3 +5393,22 @@ proves which control, not just that some break failed.**
 say and prints that it has nothing to say. A nag that fires with no signal is how
 a discipline stops being read (T29/T118). Wire it after the first observed run
 whose stanza carries an `annotate:` line.
+
+### `check_observed_eaf.py` — it PARSES now, and the breaks are surgical (2026-08-30, T243)
+
+`eaf_parses()` opens the project rather than statting it: XML must parse and at
+least one `TIER` must exist. **Annotation COUNT is deliberately not a criterion**
+— an empty project is normal until the user annotates, and firing on it nags
+about their homework rather than the mechanism (T29/T118).
+
+**THE CONTROL LESSON, and it corrects the previous section.** T243's two breaks
+fail *exactly* the controls they should — shut fails C6/C7 alone, open fails
+C4/C8 alone. **A741's coarser injection failed all five at once and therefore
+proved nothing about any single control.** When you break a tool to test its
+controls, **break the narrowest thing that can be broken**, or the run tells you
+only that something is wrong.
+
+**And seed the positive from a REAL artefact.** `eaf_parses` agreeing with my own
+fixtures proves nothing; agreeing with `eaf_read.py` — an independently written
+parser — on the same real ELAN file (both say 4 annotations, 3 tiers) is the
+check that counts.

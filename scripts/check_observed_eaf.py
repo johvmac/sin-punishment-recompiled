@@ -38,6 +38,8 @@ Usage:
 """
 import re
 import sys
+import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 LOG = Path("docs/observed-runs.md")
@@ -54,8 +56,31 @@ def split_stanzas(text):
     return out
 
 
-def check(text, exists=Path.exists):
+def eaf_parses(path):
+    """(ok, detail) — does this actually parse as an ELAN project?
+
+    A742's NEXT: statting the file is not enough. A truncated or half-written
+    `.eaf` satisfies `exists()` and is useless, and that is exactly the state a
+    crashed `eaf_make.py` would leave behind — the failure this check is for.
+    Annotation COUNT is deliberately not a criterion: an empty project is the
+    normal state until the user annotates, and firing on it would nag about the
+    user's homework rather than about the mechanism (T29/T118).
+    """
+    try:
+        root = ET.parse(path).getroot()
+    except (ET.ParseError, OSError) as e:
+        return False, f"does not parse: {e}"
+    tiers = root.findall(".//TIER")
+    if not tiers:
+        return False, "parses, but declares no TIER — not an annotation project"
+    n = len(root.findall(".//ALIGNABLE_ANNOTATION"))
+    return True, f"{len(tiers)} tier(s), {n} annotation(s)"
+
+
+def check(text, exists=Path.exists, parses=None):
     """-> (problems, pre_wiring, complete). Each problem is (stamp, why)."""
+    if parses is None:
+        parses = eaf_parses
     problems, pre, done = [], [], []
     for stamp, body in split_stanzas(text):
         m = ANNOT.search(body)
@@ -68,58 +93,79 @@ def check(text, exists=Path.exists):
         elif not exists(Path(val)):
             problems.append((stamp, f"stanza names {val!r} but that file is not on disk"))
         else:
-            done.append(stamp)
+            ok, detail = parses(Path(val))
+            if not ok:
+                problems.append((stamp, f"{val!r} is on disk but {detail}"))
+            else:
+                done.append(stamp)
     return problems, pre, done
 
 
 def self_check():
-    """Both directions, or it is not a control (T65/T231)."""
-    here = Path(__file__).resolve()
-    real = {here}                      # a path that certainly exists
-    exists = lambda p: p in real       # noqa: E731  -- no filesystem in the fixtures
+    """Both directions, or it is not a control (T65/T231).
 
-    FIXTURE = f"""
-## PREWIRE — build `aaa`, 220s requested, rc=0 (STALLED)
-- run log: `observed-000001.log`
-- **video:** /x/run_game-000001.mp4
-- **CONTRADICTS MY CLAIMS:** no
+    THE FIXTURES ARE REAL FILES AND THE REAL PARSER RUNS ON THEM. Injecting a
+    fake `parses` would test the plumbing and not the parse, which is the half
+    that can actually be wrong.
+    """
+    d = Path(tempfile.mkdtemp(prefix="eafcheck-"))
+    good = d / "run_game-000004.eaf"
+    good.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<ANNOTATION_DOCUMENT><TIME_ORDER/>'
+        '<TIER TIER_ID="faults"><ANNOTATION><ALIGNABLE_ANNOTATION ANNOTATION_ID="a1">'
+        '<ANNOTATION_VALUE>x</ANNOTATION_VALUE></ALIGNABLE_ANNOTATION></ANNOTATION>'
+        '</TIER></ANNOTATION_DOCUMENT>')
+    empty = d / "run_game-000005.eaf"
+    empty.write_text('<?xml version="1.0" encoding="UTF-8"?>\n'
+                     '<ANNOTATION_DOCUMENT><TIER TIER_ID="faults"/></ANNOTATION_DOCUMENT>')
+    corrupt = d / "run_game-000006.eaf"
+    corrupt.write_text('<?xml version="1.0"?>\n<ANNOTATION_DOCUMENT><TIER truncated')
+    notproj = d / "run_game-000007.eaf"
+    notproj.write_text('<?xml version="1.0"?>\n<something_else/>')
 
-## FAILED — build `bbb`, 220s requested, rc=0 (STALLED)
-- run log: `observed-000002.log`
-- **video:** /x/run_game-000002.mp4
-- **annotate:** (none — eaf_make did not run)
-- **CONTRADICTS MY CLAIMS:** no
+    def stanza(name, annot=None):
+        s = f"\n## {name} — build `x`, 220s requested, rc=0 (STALLED)\n- run log: `x.log`\n"
+        if annot is not None:
+            s += f"- **annotate:** {annot}\n"
+        return s + "- **CONTRADICTS MY CLAIMS:** no\n"
 
-## GHOST — build `ccc`, 220s requested, rc=0 (STALLED)
-- run log: `observed-000003.log`
-- **annotate:** /x/run_game-000003.eaf
-- **CONTRADICTS MY CLAIMS:** no
+    FIXTURE = (stanza("PREWIRE")
+               + stanza("FAILED", "(none — eaf_make did not run)")
+               + stanza("GHOST", str(d / "does-not-exist.eaf"))
+               + stanza("GOOD", str(good))
+               + stanza("EMPTY", str(empty))
+               + stanza("CORRUPT", str(corrupt))
+               + stanza("NOTPROJ", str(notproj)))
 
-## GOOD — build `ddd`, 220s requested, rc=0 (STALLED)
-- run log: `observed-000004.log`
-- **annotate:** {here}
-- **CONTRADICTS MY CLAIMS:** no
-"""
-    problems, pre, done = check(FIXTURE, exists)
-    got_p = {s for s, _ in problems}
+    problems, pre, done = check(FIXTURE)
+    got = {s for s, _ in problems}
     checks = [
-        ("C1 POSITIVE  a stanza whose eaf_make FAILED must FIRE",
-         "FAILED" in got_p),
-        ("C2 POSITIVE  a stanza naming an eaf not on disk must FIRE",
-         "GHOST" in got_p),
-        ("C3 NEGATIVE  a PRE-WIRING stanza (no annotate line) must stay SILENT",
-         pre == ["PREWIRE"] and "PREWIRE" not in got_p),
-        ("C4 NEGATIVE  a complete stanza must stay SILENT",
-         done == ["GOOD"] and "GOOD" not in got_p),
-        ("C5 the four fixtures must be partitioned, none lost",
-         len(problems) + len(pre) + len(done) == 4),
+        ("C1 POSITIVE  eaf_make FAILED must FIRE", "FAILED" in got),
+        ("C2 POSITIVE  named file not on disk must FIRE", "GHOST" in got),
+        ("C3 NEGATIVE  pre-wiring stanza must stay SILENT",
+         pre == ["PREWIRE"] and "PREWIRE" not in got),
+        ("C4 NEGATIVE  a complete project must stay SILENT",
+         "GOOD" in done and "GOOD" not in got),
+        ("C5 partition: nothing lost",
+         len(problems) + len(pre) + len(done) == 7),
+        ("C6 POSITIVE  a CORRUPT project must FIRE (A742's NEXT)",
+         "CORRUPT" in got),
+        ("C7 POSITIVE  valid XML that is not a project must FIRE",
+         "NOTPROJ" in got),
+        ("C8 NEGATIVE  an EMPTY but valid project must stay SILENT",
+         "EMPTY" in done and "EMPTY" not in got),
     ]
     ok = True
     for label, passed in checks:
         print(f"  {label:<62} {'PASS' if passed else 'FAIL'}")
         ok &= passed
+    for f in (good, empty, corrupt, notproj):
+        f.unlink()
+    d.rmdir()
     print(f"\nSELF-CHECK {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
+
 
 
 def main():
