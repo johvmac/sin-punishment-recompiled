@@ -575,6 +575,28 @@
                                     # would be the more interesting outcome; it
                                     # is. The family is: sine and cosine by
                                     # table, atan2 by series, hypot by atan2.
+0x80032CDC = "snp_draw_enqueue"        # DESCRIBED (A766): the draw-submission
+                                    # entry point. 46 instructions. Calls the
+                                    # gate 0x80032AA0 FIRST and RETURNS WITHOUT
+                                    # ENQUEUEING if it yields 0 -- which A756
+                                    # showed is what happens when the 512 cap is
+                                    # hit. Then selects ONE OF THREE display-list
+                                    # cursors from the base at 0x80068180
+                                    # (lui 0x8007 / lw -0x7E80): +0xF8, +0x100 or
+                                    # +0x108, chosen by flag bits 0x1,
+                                    # 0x01000000 and 0x10000000 of its first
+                                    # argument. Loads a float key from 0x80068264
+                                    # and tail-calls the enqueue at 0x80032988.
+                                    # VERIFIED BY ME.
+                                    # WHY IT MATTERS BEYOND THE NAME: three
+                                    # separate lists selected by flags is the
+                                    # standard opaque/decal/transparent split,
+                                    # and A765 measured that we drop whole SPANS
+                                    # of the reference's command stream rather
+                                    # than individual textures. A list that is
+                                    # never emitted or never walked would produce
+                                    # exactly that. NOT TESTED -- named as the
+                                    # connection to make next.
 0x80026CA8 = "snp_rand_next"           # DESCRIBED (A751): the pseudorandom
                                     # generator. 12 instructions, no arguments.
                                     # Loads ONE global at 0x80068ACC
