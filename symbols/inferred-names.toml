@@ -556,6 +556,25 @@
                                     # when the result exceeds 0x8000. Result is
                                     # in [-0x8000, 0x8000] -- the short way
                                     # round. VERIFIED BY ME.
+0x80026E84 = "snp_atan2_bam"           # DESCRIBED (A760): arctangent of two
+                                    # arguments, returning a 16-bit binary angle.
+                                    # 155 instructions. (0,0) -> 0. Second arg
+                                    # zero -> +/-0x4000, i.e. +/-90 degrees.
+                                    # Otherwise: ratio = x/y, reduced to [-1,1]
+                                    # by using 1/ratio when |ratio| > 1, then a
+                                    # SEVEN-TERM CONTINUED FRACTION -- the loop
+                                    # at 0x80026F58 runs $a0 = 7..1 forming k^2
+                                    # and 2k+1 -- and the result is scaled by the
+                                    # double at 0x80062C90 = 10430.37835, which
+                                    # is 32768/pi: radians -> BAM. Quadrant fixes
+                                    # use +/-16383.999999261016 (90 deg) and
+                                    # +/-32767.99999852203 (180 deg) at
+                                    # 0x80062C88/C80/C78/C70. VERIFIED BY ME.
+                                    # IT DOES NOT INDEX THE SINE TABLE. A755
+                                    # expected it would and said the opposite
+                                    # would be the more interesting outcome; it
+                                    # is. The family is: sine and cosine by
+                                    # table, atan2 by series, hypot by atan2.
 0x80026CA8 = "snp_rand_next"           # DESCRIBED (A751): the pseudorandom
                                     # generator. 12 instructions, no arguments.
                                     # Loads ONE global at 0x80068ACC
