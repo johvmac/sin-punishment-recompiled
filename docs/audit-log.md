@@ -470,3 +470,30 @@ here that T209 does not already carry.
 - suppressed as superseded (1): A724 (single-run, justified in the entry)
 - nothing flagged (quiet streak 6; at 3, halve the frequency)
 
+## Audit #39 — since a12e8f86
+- ledger: 998 entries (+33 this window), 42 withdrawn
+- rolls: 23 this window; runs: 0 (0 exited early, 0 contaminated)
+- **21 thing(s) to look at:**
+  - A747: rests on ONE run (a616-tutorial-timg.log). Repeat it or say why one is enough.
+  - A742: rests on ONE run (observed-133720.log). Repeat it or say why one is enough.
+  - T244: no evidence recorded. Say what was observed and when.
+  - A753: no evidence recorded. Say what was observed and when.
+  - A752: no evidence recorded. Say what was observed and when.
+  - A751: no evidence recorded. Say what was observed and when.
+  - A750: no evidence recorded. Say what was observed and when.
+  - A749: no evidence recorded. Say what was observed and when.
+  - A748: no evidence recorded. Say what was observed and when.
+  - A746: no evidence recorded. Say what was observed and when.
+  - A747: no evidence recorded. Say what was observed and when.
+  - A745: no evidence recorded. Say what was observed and when.
+  - T243: no evidence recorded. Say what was observed and when.
+  - T242: no evidence recorded. Say what was observed and when.
+  - A744: no evidence recorded. Say what was observed and when.
+  - A743: no evidence recorded. Say what was observed and when.
+  - A742: no evidence recorded. Say what was observed and when.
+  - A741: no evidence recorded. Say what was observed and when.
+  - A740: no evidence recorded. Say what was observed and when.
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 126 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+  - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
+- suppressed as superseded (3): A754 (single-run, justified in the entry); A740 (single-run, superseded by A747); A735 (single-run, justified in the entry)
+
