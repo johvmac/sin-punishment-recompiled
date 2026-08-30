@@ -5292,3 +5292,69 @@ silently unguarded.
   dishonest line satisfies it exactly as a real one does. This is a floor, not a
   guarantee.
 * Baseline `{"A": 709, "T": 229}` — no historical entry is examined.
+
+## `a740-misresolution.py` — could a texture be hiding under a WRONG segment base? (added 2026-08-30, A740)
+
+**WHY IT EXISTS.** A737 measured that our tutorial never binds `0x00289A10`, the
+texture carrying 75.2% of the reference's overlay strip. Its whole weight rests
+on a resolver, `a616_bindings.py`, which reconstructs physical addresses offline
+from segmented operands. A737 named its own attack point — *"examine the 6 of our
+103 resolved addresses that match no reference address"* — and this tool executes
+it, then executes a strictly harder version of it.
+
+**THE NAMED FALSIFIER WAS TOO NARROW, AND THAT IS THE REUSABLE LESSON.** The six
+are `ours - reference`. A mis-resolution only lands among them if the wrong base
+happens to produce an address matching NO reference texture; a wrong base landing
+on any *other* reference address hides inside the 97 exact matches instead. **A
+falsifier defined over a set difference can only see the mistakes that miss
+everything.** Prefer a reachability question — *can the target be produced at
+all?* — over a membership question.
+
+**WHAT IT DOES.** Walks our `[dlgeom]` log in order, keeping per-binding
+provenance (raw `w1`, segment, offset, and the base live *at that moment*), then
+asks whether the target address is producible by ANY `(segment, offset, base)`
+triple, using **every base each segment ever held** rather than the end-of-run
+table.
+
+**A DISPLAY DEFECT IN `a616_bindings.py`, WORTH KNOWING BEFORE YOU TRUST ITS
+SUMMARY.** Its `segment bases seen:` line prints the segment table **as it stands
+at end of run** — one base per segment. Segment 5 actually held **60 distinct
+bases** during the tutorial (segment 6 held 14, segment 7 held 9). The resolution
+itself walks in order and is correct; only the summary misleads, and it misleads
+in the direction of making the table look nearly static when it moved 419 times.
+
+**THE THREE GATES (T71).**
+1. `--dry-run` prints the five steps and exits, touching nothing.
+2. `--self-check` runs two pre-registered controls. **C1 POSITIVE** is seeded
+   from the log's own resolved set — ground truth, not my reading (brief rule 5)
+   — and must be reachable. **C2 NEGATIVE** is *constructed* to be unreachable by
+   searching for an in-range address no triple produces, then must come back
+   unreachable. **Both were verified to FAIL under deliberate breakage: C1 alone
+   when the walk is broken shut, C2 alone when broken open.** A control verified
+   only to pass is not a control (T65).
+3. This section, written in the same checkpoint.
+
+**A SEPARATE CONTROL ON THE DECODER.** The descriptor-word decode
+(`fmt = (w0>>21)&7`, `siz = (w0>>19)&3`, `width = (w0&0xFFF)+1`) was checked
+against the reference dump's own independently-written text on all nine
+descriptor words present, and agrees on all nine. **Use that dump as the oracle
+whenever decoding G_SETTIMG — it states the answer in prose beside the raw word.**
+
+**PAIRING BY DESCRIPTOR IS A REAL METHOD, WITH A REAL TRAP.** Grouping bindings
+by `w0` and comparing addresses class by class found the substitution
+`ref 0x289A10` vs `ours 0x26ED90` inside a class of exactly three per build with
+two exact matches. **But the descriptor carries almost no identity** — `w=1` is
+the dummy width of the load-block idiom and the render tile is set to a different
+format two commands later — so cardinality agreement is suggestive, never
+identifying. **Always finish by reading what the binding DRIVES.** Here the
+reference's led to twelve Shade-Tex triangles and ours to one texture rectangle
+in a different part of the frame, which killed the pairing.
+
+**KNOWN LIMITS.** Our log is a whole run's bindings; the reference is eight
+frames — asymmetric windows, and three I-8bpp widths present only in ours are
+unseparated between "defect" and "longer window". The all-frames address count
+(293) exceeds the resolver's (286) partly because this tool does not mask with
+`0x3FFFFFF` and the reference dump carries at least one KSEG0-form address.
+
+**GREPS OVER `[dlgeom]` LOGS MUST BE CASE-INSENSITIVE** — the probe writes
+`[dlgeom]`, and a `GEOM` grep silently misses 25 MB (T240).
