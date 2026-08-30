@@ -5358,3 +5358,38 @@ unseparated between "defect" and "longer window". The all-frames address count
 
 **GREPS OVER `[dlgeom]` LOGS MUST BE CASE-INSENSITIVE** — the probe writes
 `[dlgeom]`, and a `GEOM` grep silently misses 25 MB (T240).
+
+## `check_observed_eaf.py` — read the STANZA, not the filesystem (added 2026-08-30, A741)
+
+**THE GENERAL LESSON FIRST, because it is not about ELAN.** When a script records
+what it did, **check the record, not the side-effects.** The record is written by
+the script and therefore describes *the version of the script that wrote it*; the
+filesystem describes only the present. This one property dissolved two separate
+defects that a filesystem checker could not have avoided:
+
+* **Wrong filename, permanently.** `observed_run.sh:418` writes
+  `EAF="${VIDEO%.*}.eaf"` — beside the **video**, so `run_game-<stamp>.eaf`. A
+  checker globbing for an `.eaf` beside `observed-<stamp>.log` reports MISSING on
+  every correctly-wired run. **The one `.eaf` on the archive is
+  `observed-091444.eaf`, which looks like it vindicates the filesystem design and
+  does the opposite** — it was made by hand at 09:59 and the wiring landed at
+  10:23.
+* **Wrong bound.** Bounding by the wiring commit silences the checker on all
+  eleven existing bundles, so it never once says yes — T100 in its purest form.
+
+**THE STANZA RULE.** No `annotate:` line → pre-wiring, silent, self-describing.
+`annotate: (none …)` → the mechanism ran and failed, FIRE. `annotate: <path>` →
+verify against disk, FIRE if absent. **A self-describing high-water mark needs no
+date and no state file**, which is what makes it different from T238's mark: what
+is being skipped could not have happened, so no recall is lost.
+
+**CONTROLS: five, both directions, both breaks verified.** The honest limit is
+recorded in the entry — the broken-shut injection empties every bucket, so that
+run says nothing about C3/C4; **the broken-OPEN run is what shows C3 and C4
+discriminate**, since C1/C2 pass there and C3/C4 fail alone. **Report which break
+proves which control, not just that some break failed.**
+
+**IT IS NOT WIRED INTO THE HOOK, ON PURPOSE.** Its first real run has nothing to
+say and prints that it has nothing to say. A nag that fires with no signal is how
+a discipline stops being read (T29/T118). Wire it after the first observed run
+whose stanza carries an `annotate:` line.
