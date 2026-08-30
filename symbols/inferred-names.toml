@@ -523,6 +523,39 @@
                                     # The hi=0 zero-extension is what makes it
                                     # UNSIGNED; a signed convert is the inlined
                                     # cvt.d.w alone. VERIFIED BY ME, both halves.
+0x800C56D8 = "snp_hypot"               # DESCRIBED (A755): magnitude of (x, y),
+                                    # computed WITHOUT a square root. 91
+                                    # instructions, in .main so the symbol is
+                                    # main_func_, not boot_func_ (A455's trap).
+                                    # If both args are zero it returns 0. Else it
+                                    # calls 0x80026E84 (atan2) on (x, y), sign-
+                                    # extends the result to a 16-bit angle, then
+                                    # returns |x / sin(angle)| if |x| <= |y| and
+                                    # |y / cos(angle)| otherwise -- picking the
+                                    # LARGER divisor so the division is never
+                                    # ill-conditioned. Both branches return the
+                                    # same length; that is what makes it hypot.
+                                    # Returns 0 if the chosen divisor is exactly
+                                    # zero. VERIFIED BY ME.
+                                    # THIS DISCHARGES A733's INHERITED CAVEAT:
+                                    # A733 placed snp_cos_bam partly on the
+                                    # grounds that "0x800C56D8 uses x/sin and
+                                    # y/cos interchangeably as one length",
+                                    # which nobody had read. It does exactly
+                                    # that, and because the two branches must
+                                    # agree, a swap of sine and cosine would
+                                    # make them disagree -- so this independently
+                                    # confirms 0x80026D48 = sine and
+                                    # 0x80026DBC = cosine.
+0x800C5638 = "snp_angle_delta"         # DESCRIBED (A755): shortest signed
+                                    # difference between two 16-bit binary
+                                    # angles. 16 instructions. Masks both args
+                                    # to 0xFFFF, adds 0x10000 to the second if
+                                    # it is below the first, subtracts, then
+                                    # subtracts 0x10000 (as two -0x8000 steps)
+                                    # when the result exceeds 0x8000. Result is
+                                    # in [-0x8000, 0x8000] -- the short way
+                                    # round. VERIFIED BY ME.
 0x80026CA8 = "snp_rand_next"           # DESCRIBED (A751): the pseudorandom
                                     # generator. 12 instructions, no arguments.
                                     # Loads ONE global at 0x80068ACC
