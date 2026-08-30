@@ -523,6 +523,33 @@
                                     # The hi=0 zero-extension is what makes it
                                     # UNSIGNED; a signed convert is the inlined
                                     # cvt.d.w alone. VERIFIED BY ME, both halves.
+0x80026CA8 = "snp_rand_next"           # DESCRIBED (A751): the pseudorandom
+                                    # generator. 12 instructions, no arguments.
+                                    # Loads ONE global at 0x80068ACC
+                                    # (lui 0x8007 / lw -0x7534), computes
+                                    # x <- ((4x+2)*(4x+3)) >> 2 via mult/mflo,
+                                    # stores it back to the same global and
+                                    # returns it in $v0. A quadratic congruential
+                                    # recurrence -- NOT a linear one, so do not
+                                    # describe it as an LCG. VERIFIED BY ME.
+0x800289D4 = "snp_mtx_xform_point"     # DESCRIBED (A751, name from A732):
+                                    # transforms a point by the CURRENT top of
+                                    # the matrix stack. 38 instructions. Reads
+                                    # the stack-top global 0x80068A84 (the same
+                                    # one A727/A730/A736 study) into $v1, then
+                                    # writes three floats to $a3:
+                                    #   out.x = x*[0x00] + y*[0x10] + z*[0x20] + [0x30]
+                                    #   out.y = x*[0x04] + y*[0x14] + z*[0x24] + [0x34]
+                                    #   out.z = x*[0x08] + y*[0x18] + z*[0x28] + [0x38]
+                                    # THIS CONFIRMS A744's ROW-MAJOR PREMISE,
+                                    # which A744 named as the one assumption that
+                                    # could permute all three rotation names at
+                                    # once: out.x consumes offsets 0x00/0x10/
+                                    # 0x20/0x30, i.e. COLUMN 0 of a row-major
+                                    # matrix, so points are ROW VECTORS times M.
+                                    # Under that convention a rotation about X
+                                    # leaves row 0 = (1,0,0,0) alone, exactly as
+                                    # A744 measured. VERIFIED BY ME.
 0x80026D48 = "snp_sin_bam"             # DESCRIBED (A748): sine of a 16-bit
                                     # binary angle. 29 distinct instructions.
                                     # sra $a0,4 reduces the angle to 12 bits;
