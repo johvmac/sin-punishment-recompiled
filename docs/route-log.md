@@ -563,3 +563,4 @@ A gap in the numbering means a roll was skipped.
 - roll #544: **EXPLORE** (drew 0.022 vs eps 0.3) -> `A211` [witness `e904e7`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #545: **EXPLORE** (drew 0.128 vs eps 0.3) -> `A219` [witness `d4ab94`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #546: **EXPLOIT** (drew 0.695 vs eps 0.3) -> `T197` [witness `d89ecc`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #547: **EXPLOIT** (drew 0.348 vs eps 0.3) -> `A225` [witness `e4a4bb`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
