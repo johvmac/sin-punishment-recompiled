@@ -854,3 +854,25 @@
                                     # loose pattern match and DELIBERATELY did
                                     # not name them. They do not scale row 3;
                                     # they ACCUMULATE into it.
+0x800267F8 = "snp_heap_free"        # DESCRIBED (A786): the counterpart of
+                                    # snp_heap_alloc, taking (heap, pointer).
+                                    # Backs up 0x10 to the block header --
+                                    # confirming that header size from the free
+                                    # side -- and REFUSES if the in-use flag at
+                                    # +0x8 is already clear, which is a
+                                    # double-free guard. Coalesces BOTH ways: it
+                                    # absorbs the next block when that is free
+                                    # (size += next.size + 0x10), then walks the
+                                    # chain from the head to find the block whose
+                                    # next is this one and merges backwards too.
+                                    # Returns 1 on the null and double-free
+                                    # paths. One caller.
+0x800267B4 = "snp_malloc"           # DESCRIBED (A786): the global-heap alloc
+                                    # wrapper. Loads the heap handle from
+                                    # [0x800591FC], returns 0 if it is still -1
+                                    # (uninitialised), else tail-calls
+                                    # snp_heap_alloc with (heap, size). 3 callers.
+0x800268C8 = "snp_free"             # DESCRIBED (A786): the matching free
+                                    # wrapper -- same handle, same -1 guard, then
+                                    # snp_heap_free with (heap, pointer).
+                                    # 5 callers.
