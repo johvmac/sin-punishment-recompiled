@@ -717,10 +717,10 @@
                                     # effect, no arguments, no return value.
                                     # CAVEAT: "matrix stack" is A566's
                                     # identification of the global, re-derived
-                                    # by A722's 733-access census but NOT
+                                    # by A720's 733-access census but NOT
                                     # re-derived here. The decrement itself is
                                     # read directly. Subtracting 0x40 preserves
-                                    # A722's mod-0x40 residue.
+                                    # A720's mod-0x40 residue.
 0x80028A6C = "snp_mtx_push_view"   # DESCRIBED (A777): the PUSH counterpart of
                                     # snp_mtx_stack_pop. Reads the stack-top
                                     # global at 0x80068A84, adds 0x40, writes it
