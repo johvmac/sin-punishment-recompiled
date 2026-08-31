@@ -1,4 +1,4 @@
-# Morning state — 2026-08-30
+# Morning state — 2026-08-31
 
 Written by `scripts/morning.sh` at 06:03 by cron. Machine-side only:
 nothing here ran the game, cleared a gate, or published anything.
@@ -7,8 +7,8 @@ nothing here ran the game, cleared a gate, or published anything.
 - status page HTML: rebuilt at `docs/.status-fresh.html` (**not published** —
   that needs an interactive session; fetch clicks first, then publish)
 - still running from overnight: 0 game process(es), 0 Xvfb
-- observed run recorded today: **no — this is the one thing that needs you**
-- open reminders from the ledger check: 9
+- observed run recorded today: yes
+- open reminders from the ledger check: 12
 
 ## What still needs a person
 

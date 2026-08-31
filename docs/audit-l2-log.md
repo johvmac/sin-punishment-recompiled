@@ -172,3 +172,14 @@ mistake before it happened). One success is not grounds for automation.
 - quiet: **n/a — NOTHING WAS DIGESTED, so this is not evidence of calm.** Streak HELD at 2. L1 is behind; run `scripts/audit.py`.
 - **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
 
+## L2 #19 — covering L1 audits 39..39
+- L1 blocks digested: 1
+- **defects by class (raised this window / all prior / FIXED this window / still open):**
+  - `single-run` (T22): 2 / 37 / 0 / 0 — **recurs**
+  - `no-control` (I1/I13): 0 / 52 / 0 / 0 — **quiet**
+  - `churn` (I14): 0 / 43 / 0 / 0 — **quiet**
+  - `no-evidence` (A24/B35): 17 / 26 / 0 / 0 — **recurs**
+  - `under-explore` (T14): 0 / 1 / 0 / 0 — **quiet**
+- quiet: no (streak 0; at 2, drop L2 to weekly)
+- **L2 is a digest for a human, not a verdict.** The failure that dominates here — a claim broader than its evidence — leaves no mechanical trace. Scan the classes above and ask whether any of them is that.
+
