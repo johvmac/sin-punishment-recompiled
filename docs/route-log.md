@@ -559,3 +559,4 @@ A gap in the numbering means a roll was skipped.
 - roll #540: **EXPLOIT** (drew 0.383 vs eps 0.3) -> `A225` [witness `c37b9b`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
 - roll #541: **EXPLOIT** (drew 0.772 vs eps 0.3) -> `A219` [witness `e30657`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
 - roll #542: **EXPLOIT** (drew 0.702 vs eps 0.3) -> `A211` [witness `3798f4`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #543: **EXPLOIT** (drew 0.629 vs eps 0.3) -> `A218` [witness `b6761c`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
