@@ -910,3 +910,17 @@
                                     # 76 lines, read whole; called by
                                     # snp_frame_tick, so input is read once per
                                     # frame before the display list is built.
+0x80032AA0 = "snp_draw_gate"           # DESCRIBED (A836): the gate A766 named
+                                    # but never read. 163 instructions, 5 calls.
+                                    # Reads the object counter 0x8006826C FIRST
+                                    # -- the exact word A659's snp_obj_seen hook
+                                    # watches. Calls snp_frustum_cull_point and
+                                    # takes the early exit when the outcode is
+                                    # NON-zero; otherwise allocates a draw
+                                    # record, links it at +0x114/+0x118 off
+                                    # 0x80068180, and calls guMtxF2L on the 0x40
+                                    # matrix allocator 0x80068A84, storing the
+                                    # result at record+0x0. Globals touched:
+                                    # 0x80068180, 258, 25C, 260, 268, 26C, 27C,
+                                    # 0x80068A84. RETURN-VALUE convention is
+                                    # A766's, NOT re-derived here -- see A836.
