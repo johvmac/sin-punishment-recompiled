@@ -1,16 +1,11 @@
 {
- "start": 1788159049.7203085,
- "deadline": 1788162949.7203085,
+ "start": 1788164986.7051392,
+ "deadline": 1788168886.7051392,
  "requested": 3600,
  "task": "",
- "shelf": [
-  {
-   "what": "T248's NEXT: make backup_drive.sh and daily_push.sh append their own outcome line unconditionally, not only under the cron wrapper",
-   "why": "Its two flags have now fired in audits #40, #41, #42 and #43 -- four times, three of them stale. But it edits two scripts the nightly cron runs and I cannot test the cron before the deadline; rushing it risks breaking a job that is currently working. Everything else in this session proceeded."
-  }
- ],
+ "shelf": [],
  "blocks": [],
- "roll_at_start": 543,
+ "roll_at_start": 562,
  "entries_at_start": [
   "A1",
   "A10",
@@ -787,7 +782,27 @@
   "A832",
   "A833",
   "A834",
+  "A835",
+  "A836",
+  "A837",
+  "A838",
+  "A839",
+  "A840",
+  "A841",
+  "A842",
+  "A843",
+  "A844",
+  "A845",
+  "A846",
+  "A847",
+  "A848",
+  "A849",
   "A85",
+  "A850",
+  "A851",
+  "A852",
+  "A853",
+  "A854",
   "A86",
   "A87",
   "A88",
@@ -1012,6 +1027,7 @@
   "T248",
   "T249",
   "T25",
+  "T250",
   "T26",
   "T27",
   "T28",
@@ -1111,5 +1127,5 @@
   "U8",
   "U9"
  ],
- "ended": true
+ "ended": false
 }
