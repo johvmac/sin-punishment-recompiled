@@ -728,9 +728,12 @@
                                     # top: eleven from the view context
                                     # ([0x80068180] + 0xB0..0xD0) and five from
                                     # the PREVIOUS top (+0xC/1C/2C/30/34). Then,
-                                    # if arg0 is non-zero, two rotations from
-                                    # [arg0+0x0] and [arg0+0x4] via 0x8002844C
-                                    # and 0x800284A8. CAVEAT: "matrix stack" is
+                                    # if arg0 is non-zero, two AXIS SCALES from
+                                    # [arg0+0x0] and [arg0+0x4] via
+                                    # snp_mtx_scale_x and snp_mtx_scale_y.
+                                    # (A777 called these rotations from the call
+                                    # site alone; A782 read them and they are
+                                    # scales.) CAVEAT: "matrix stack" is
                                     # A566's identification of the global, not
                                     # re-derived here; the +0x40 and the 16
                                     # stores are read directly.
@@ -816,3 +819,17 @@
                                     # loads the floats at lo, hi and the midpoint
                                     # (($lo+$hi)>>1) and orders them with three
                                     # c.lt.s -- then partitions in place.
+0x8002844C = "snp_mtx_scale_x"      # DESCRIBED (A782): multiplies ROW 0 of the
+                                    # current matrix (+0x00..0x0C, the X basis
+                                    # under A744/A751's row-major reading) by the
+                                    # float in $f12. Returns immediately if that
+                                    # float is exactly 1.0f. 63 call sites.
+                                    # CORRECTS A777, which called this and its
+                                    # sibling "rotations" from the call site
+                                    # alone -- there is no trigonometry in it.
+0x800284A8 = "snp_mtx_scale_y"      # DESCRIBED (A782): the same, on ROW 1
+                                    # (+0x10..0x1C). 37 call sites.
+0x80028504 = "snp_mtx_scale_z"      # DESCRIBED (A782): the same, on ROW 2
+                                    # (+0x20..0x2C). 37 call sites. Completes the
+                                    # family; all three are 75 lines with an
+                                    # identical shape and the same 1.0f early-out.
