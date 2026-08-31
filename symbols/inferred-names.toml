@@ -891,3 +891,22 @@
                                     # the index and WRAPS AT 3: three display-
                                     # list buffers rotating, in step with A367's
                                     # three framebuffers. 98 lines, 1 caller.
+0x8004C2F8 = "snp_pad_poll_one"     # DESCRIBED (A825): reads ONE controller.
+                                    # Saves the struct's old button halfword from
+                                    # +0x0, calls 0x8004C4FC, indexes a 6-byte-per
+                                    # -entry array at 0x800784F4 by arg1 (index*6
+                                    # via (i<<1 + i)<<1), and bcopy's 6 bytes --
+                                    # the size of an N64 pad record -- into the
+                                    # struct. Then computes ~old & new and stores
+                                    # it at struct+0x6: NEWLY-PRESSED BUTTONS.
+                                    # So the struct is 8 bytes: 6-byte pad at +0,
+                                    # 2-byte newly-pressed at +6. 86 lines.
+0x80026024 = "snp_pad_poll_enabled" # DESCRIBED (A825): tests two bits of the byte
+                                    # at 0x80068A98 and polls the corresponding
+                                    # controller for each -- bit 0x1 -> struct
+                                    # 0x800681B8 index 0, bit 0x2 -> struct
+                                    # 0x800681C0 index 1. The two structs are 8
+                                    # bytes apart, matching the layout above.
+                                    # 76 lines, read whole; called by
+                                    # snp_frame_tick, so input is read once per
+                                    # frame before the display list is built.
