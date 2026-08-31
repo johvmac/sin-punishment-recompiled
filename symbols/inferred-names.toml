@@ -833,3 +833,24 @@
                                     # (+0x20..0x2C). 37 call sites. Completes the
                                     # family; all three are 75 lines with an
                                     # identical shape and the same 1.0f early-out.
+0x80027244 = "snp_mtx_translate"    # DESCRIBED (A784): translates the current
+                                    # matrix by a 3-vector IN ITS OWN AXES --
+                                    # row3 += x*row0 + y*row1 + z*row2. Three
+                                    # float arguments ($f12, $f14, and the third
+                                    # at 0x8($sp), the o32 convention) and THREE
+                                    # independent early-outs, one per component,
+                                    # each skipping when that component is
+                                    # exactly 0.0f. 144 call sites.
+0x80027390 = "snp_mtx_translate_x"  # DESCRIBED (A784): the single-axis form --
+                                    # reads row0 (+0x00..0x0C) and row3, writes
+                                    # row3 += d*row0. Early-out on 0.0f. 10 call
+                                    # sites.
+0x80027408 = "snp_mtx_translate_y"  # DESCRIBED (A784): the same on row1
+                                    # (+0x10..0x1C). 44 call sites.
+0x80027480 = "snp_mtx_translate_z"  # DESCRIBED (A784): the same on row2
+                                    # (+0x20..0x2C). 142 call sites.
+                                    # CORRECTS A782, which described these four
+                                    # as "scaling row 3" on the strength of a
+                                    # loose pattern match and DELIBERATELY did
+                                    # not name them. They do not scale row 3;
+                                    # they ACCUMULATE into it.
