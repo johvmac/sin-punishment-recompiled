@@ -3,7 +3,12 @@
  "deadline": 1788162949.7203085,
  "requested": 3600,
  "task": "",
- "shelf": [],
+ "shelf": [
+  {
+   "what": "T248's NEXT: make backup_drive.sh and daily_push.sh append their own outcome line unconditionally, not only under the cron wrapper",
+   "why": "Its two flags have now fired in audits #40, #41, #42 and #43 -- four times, three of them stale. But it edits two scripts the nightly cron runs and I cannot test the cron before the deadline; rushing it risks breaking a job that is currently working. Everything else in this session proceeded."
+  }
+ ],
  "blocks": [],
  "roll_at_start": 543,
  "entries_at_start": [

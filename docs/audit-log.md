@@ -523,3 +523,11 @@ here that T209 does not already carry.
   - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
 - suppressed as superseded (6): A828 (single-run, justified in the entry); A818 (single-run, justified in the entry); A817 (single-run, justified in the entry); A809 (single-run, justified in the entry); A796 (single-run, justified in the entry); A792 (single-run, justified in the entry)
 
+## Audit #43 — since 8d2d56b8
+- ledger: 1093 entries (+11 this window), 42 withdrawn
+- rolls: 10 this window; runs: 0 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 230 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+  - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
+- **STILL OPEN from earlier audits (1):** A817 (no-control, open since #42, 1 audit(s))
+
