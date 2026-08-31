@@ -788,3 +788,31 @@
                                     # 0x800688A0 indexed by arg2 << 3 (tails at
                                     # 0x8006889C), and returns allocation+0x10 --
                                     # still 16-byte aligned.
+0x8002AA3C = "snp_draw_sort_all_lists" # DESCRIBED (A781): takes the view
+                                    # context in $a0 and calls the sort THREE
+                                    # times, on (ptr,count) pairs at +0xF8/+0xFC,
+                                    # +0x100/+0x104 and +0x108/+0x10C -- A769's
+                                    # three display lists, in the FIXED order
+                                    # 0, 1, 2, never interleaved. Nothing else.
+                                    # Third independent confirmation that the
+                                    # word after each cursor is a COUNT: A769
+                                    # read it, snp_draw_list_append increments
+                                    # it, and this passes it as one.
+0x800387A0 = "snp_qsort_ptr_by_float" # DESCRIBED (A781): an explicit-stack
+                                    # QUICKSORT over an array of pointers at
+                                    # $a0[i], keyed on the FLOAT at each
+                                    # pointed-to record's +0x0 -- the same word
+                                    # snp_draw_list_append writes from the global
+                                    # at 0x80068264. Early-outs below 2 elements;
+                                    # 2-element case is a direct c.ngt.s compare
+                                    # and pointer swap; otherwise partitions and
+                                    # pushes the larger half onto a 32-deep range
+                                    # stack in its own 0x130-byte frame.
+                                    # QUICKSORT IS NOT STABLE: records with equal
+                                    # keys come out in an order determined by the
+                                    # partition path, hence by the INPUT order.
+0x8003860C = "snp_qsort_partition"  # DESCRIBED (A781): the partition, one caller
+                                    # only. Picks the pivot MEDIAN-OF-THREE --
+                                    # loads the floats at lo, hi and the midpoint
+                                    # (($lo+$hi)>>1) and orders them with three
+                                    # c.lt.s -- then partitions in place.
