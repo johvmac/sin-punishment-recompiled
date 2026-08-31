@@ -763,3 +763,28 @@
                                     # count, the record cursor at 0x80068268 by
                                     # 0x2C, the queue counter at 0x8006826C, and
                                     # [view+0xF4]. NO comparison, NO sort.
+0x80026630 = "snp_heap_init"        # DESCRIBED (A780): given (base, size),
+                                    # refuses sizes under 0x20, aligns the base
+                                    # UP to 16 (+0xF & ~0xF), and writes a 0x10
+                                    # header there: next=0, size=size-0x10,
+                                    # inuse=0, total=size. Returns the aligned
+                                    # base, or -1.
+0x800266C0 = "snp_heap_alloc"       # DESCRIBED (A780): best-fit free-list
+                                    # allocator over snp_heap_init's chain.
+                                    # Rounds the request UP to a multiple of 16,
+                                    # adds a 0x10 header, walks the list for the
+                                    # smallest fitting block, splits when the
+                                    # remainder exceeds 0x20, and RETURNS
+                                    # block + 0x10. Every pointer it returns is
+                                    # therefore 16-byte aligned -- the base is
+                                    # aligned, every block total is a multiple
+                                    # of 16, and splits preserve it. That
+                                    # induction is what excludes 0x800397A8
+                                    # from A211.
+0x80026960 = "snp_node_alloc"       # DESCRIBED (A780): wraps snp_heap_alloc.
+                                    # Asks for size+0x10, writes a four-word
+                                    # link node (next, callback, prev, 0),
+                                    # splices it into the list array based at
+                                    # 0x800688A0 indexed by arg2 << 3 (tails at
+                                    # 0x8006889C), and returns allocation+0x10 --
+                                    # still 16-byte aligned.
