@@ -935,3 +935,18 @@
                                     # NOTE the vram is overlay-shared: this is
                                     # ovlfile19 specifically, the overlay A820
                                     # found resident in both stall snapshots.
+0x800D40B0 = "snp_unpack_bitfield_table" # DESCRIBED (A842): 141 instructions.
+                                    # bcopy 0x1B0 from 0x80075BD8 to $a0, zero
+                                    # 0x240 bytes there, then a 3x3x8 loop
+                                    # unpacking 5-, 6- or 7-byte input groups
+                                    # from $a1 into 7-byte output rows, then
+                                    # bcopy 0x240 to 0x800E44D0 and 0x14 from
+                                    # 0x80075DAC to 0x80075DD0. IGNORES $a2 --
+                                    # it is overwritten with the bcopy length
+                                    # 0x1B0 at 0x800D40D0. See A842: that dead
+                                    # argument is what withdraws A837.
+0x800D42F8 = "snp_restore_20_bytes"    # DESCRIBED (A842): 15 instructions, one
+                                    # bcopy of 0x14 bytes from 0x80075DD0 back
+                                    # to 0x80075DAC -- the reverse of the last
+                                    # copy in snp_unpack_bitfield_table. Also
+                                    # ignores $a2.
