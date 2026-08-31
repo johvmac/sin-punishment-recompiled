@@ -17,13 +17,25 @@
 #     records three of these files coming one command from deletion, two of them
 #     holding ~870 s that no other copy has.
 #
-# TIERS, measured 2026-08-21. Ordered by (irreplaceable / size), not by size.
+# TIERS. First column measured 2026-08-21, second RE-MEASURED 2026-08-31 by
+# running --all as a dry run. Ordered by (irreplaceable / size), not by size.
 #
-#   1  184 KB  probe patches + handoffs      irreplaceable, ungittable
-#   2   74 MB  ares-refs, reference-captures, scene-refs
-#   R  164 MB  the ROMs themselves + the .eeprom save
-#   3   36 MB  run logs cited by ledger entries
-#   4  719 MB  recordings -- mostly re-creatable by re-running
+#              08-21     08-31
+#   1  probe patches + handoffs      184 KB    1.9 MB   irreplaceable, ungittable
+#   2  ares-refs, reference-captures, scene-refs
+#                                     74 MB     236 MB
+#   R  the ROMs themselves + the .eeprom save
+#                                    164 MB     176 MB
+#   3  run logs cited by ledger entries
+#                                     36 MB    1.37 GB
+#   4  recordings -- mostly re-creatable
+#                                    719 MB    3.16 GB
+#
+# THE 08-21 FIGURES WERE QUOTED AS CURRENT ON 2026-08-31 AND WERE WRONG BY 6x
+# FOR TIERS 3-4. A number in a comment is a measurement with no expiry date on
+# it; this one was ten days stale and got repeated to the user as fact. Re-run
+# the dry run before quoting any of these -- it prints the live totals, which is
+# why they are worth printing at all.
 #
 # WHAT IS DELIBERATELY EXCLUDED, and each exclusion is a decision:
 #   * `rom/*.log` -- 1.24 GB of ares CPU instruction traces from 2026-08-13.
