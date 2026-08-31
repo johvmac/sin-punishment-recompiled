@@ -750,3 +750,16 @@
                                     # the sixteen bytes MEAN is not established
                                     # here, and per A771's rule that is left
                                     # unnamed rather than guessed.
+0x80032988 = "snp_draw_list_append"  # DESCRIBED (A778): the tail of
+                                    # snp_draw_enqueue. Takes a two-word list
+                                    # descriptor in $a1 (write pointer at +0x0,
+                                    # count at +0x4) and appends the current
+                                    # draw record's pointer to it. DIRECTION IS
+                                    # NOT FIXED: if the view-context pointer at
+                                    # 0x80068180 equals the default 0x80067CA0
+                                    # it writes then adds 4; otherwise it
+                                    # subtracts 4 first and then writes, so the
+                                    # list grows backwards. Then bumps the
+                                    # count, the record cursor at 0x80068268 by
+                                    # 0x2C, the queue counter at 0x8006826C, and
+                                    # [view+0xF4]. NO comparison, NO sort.
