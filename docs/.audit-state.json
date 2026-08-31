@@ -1,8 +1,14 @@
 {
- "audits": 41,
- "last_rev": "e982b53218d91603418b90e6f8d8f555ccd0c8fa",
- "last_roll": 499,
+ "audits": 42,
+ "last_rev": "8d2d56b8aa60364cbb639593449c2a451c58d438",
+ "last_roll": 544,
  "quiet_streak": 0,
- "last_runs": 905,
- "open": {}
+ "last_runs": 907,
+ "open": {
+  "no-control:A817": {
+   "cls": "no-control",
+   "eid": "A817",
+   "since": 42
+  }
+ }
 }

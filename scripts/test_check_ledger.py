@@ -743,6 +743,52 @@ def main():
           f"resets when an audit fires={a_reset}")
     extra += 1; bad += not _aok
 
+    # T250: THE HOOK MUST REACH LEDGER EDITS MADE THROUGH BASH.
+    #
+    # For 34 overdue rolls it did not. settings.json matched Edit|Write|MultiEdit
+    # and every entry was being written by a script run through Bash, whose
+    # payload has no file_path -- so the hook returned 0 and the "cannot be
+    # missed" escalation was never reached. Three directions, and the FIRST is
+    # the one that matters, because it is the one that fails if the wiring is
+    # reverted. The previous state of the world passed every other test here.
+    import json as _json
+    _settings = CHECKER.parent.parent / ".claude" / "settings.json"
+    try:
+        _s = _json.loads(_settings.read_text())
+        _post = _s.get("hooks", {}).get("PostToolUse", [])
+        _wired = any("Bash" in h.get("matcher", "")
+                     and any("check_ledger" in c.get("command", "")
+                             for c in h.get("hooks", []))
+                     for h in _post)
+    except Exception:
+        _wired = False
+    print(f"{'ok  ' if _wired else 'FAIL'}  THE ONE THAT MATTERS: settings.json "
+          f"PostToolUse routes Bash to check_ledger --hook (T250) — {_wired}")
+    extra += 1; bad += not _wired
+
+    # Direction 2: content fallback SEES a change the path test cannot.
+    # Direction 3: and stays SILENT when there is none, or it becomes the
+    # every-command noise T29 warns about and gets ignored like the last one.
+    _lg = _cl.LEDGER
+    _seen, _silent = False, False
+    if _lg.exists():
+        _orig = _lg.read_bytes()
+        _stp = _lg.parent / ".check-ledger-state.json"
+        _stb = _stp.read_bytes() if _stp.exists() else None
+        try:
+            _cl._ledger_changed_since_last_hook()          # sync the mark
+            _silent = not _cl._ledger_changed_since_last_hook()
+            _lg.write_bytes(_orig + b"\n<!-- t250 selftest -->\n")
+            _seen = _cl._ledger_changed_since_last_hook()
+        finally:
+            _lg.write_bytes(_orig)
+            if _stb is not None:
+                _stp.write_bytes(_stb)
+    _fok = _seen and _silent
+    print(f"{'ok  ' if _fok else 'FAIL'}  content fallback discriminates — sees "
+          f"an out-of-band ledger edit={_seen}, silent when unchanged={_silent}")
+    extra += 1; bad += not _fok
+
     total = len(CASES) + extra
     print(f"\n{total - bad}/{total} correct")
     return 1 if bad else 0

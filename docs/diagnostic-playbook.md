@@ -1049,6 +1049,39 @@ fire (T65).
 had a nag and still went 13 rolls unread (T76), so a level with no nag was never
 going to run at all.
 
+**And then the nag itself went dark for 34 rolls (T250).** The PostToolUse hook
+matched `Edit|Write|MultiEdit` and tested `tool_input.file_path` for
+`findings-ledger`. Since T245 every entry has been written by `python3
+<scratchpad>/aNNN.py` run through **Bash** — to get the cell-count assertion —
+and a Bash payload has no `file_path`, so the hook returned 0 on every ledger
+edit it existed to guard. L1 ran at 44 rolls against a ~10 interval. **The
+manual `check_ledger.py` at the top of a checkpoint still printed the note
+perfectly; the escalation is gated on `hook`, so reading it stayed optional —
+exactly the state T76 built the escalation to end.**
+
+Fixed two ways, and the second is the one that survives the next such change:
+the matcher now includes `Bash`, and the path test is a **fast path rather than
+a gate** — when it does not match, the hook falls through to
+`_ledger_changed_since_last_hook()`, a SHA-256 of the ledger against a digest in
+`.check-ledger-state.json`. Unchanged is silent and free, so a Bash matcher
+cannot become the every-command noise T29 warns about; changed runs the full
+check. **Content is the only signal that does not depend on how the edit was
+made.**
+
+Controls in `test_check_ledger.py` (45/45). The load-bearing one is a
+**negative** — it asserts `settings.json` routes Bash to the hook, and it was
+**verified to FAIL (44/45) with the matcher reverted**, per T65. The other two
+check that the fallback sees an out-of-band edit and stays silent without one.
+**The convincing evidence was production, not the suite**: the first Bash-written
+entry after wiring escalated `1 OVERDUE` from the channel that had been dead.
+
+**The general lesson, and it is why this is in the playbook rather than only the
+ledger: a guard that identifies its subject by HOW the edit arrived breaks
+silently the moment the method changes, and improving one safeguard is a normal
+reason for the method to change.** T245 made me start writing entries through
+Bash; nothing connected that to the hook. Prefer identifying the subject by what
+it *is*.
+
 **L3 refuses a trend below 2 digests.** Its first recorded block claimed
 "defects per digest: 118.0 -> 0.0 — FALLING" from a *single* digest: the window
 was halved regardless of size and the empty half scored 0. That is a direction

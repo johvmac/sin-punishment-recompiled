@@ -514,3 +514,12 @@ here that T209 does not already carry.
   - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
 - suppressed as superseded (2): A790 (single-run, justified in the entry); A776 (single-run, justified in the entry)
 
+## Audit #42 — since e982b532
+- ledger: 1082 entries (+45 this window), 42 withdrawn
+- rolls: 45 this window; runs: 2 (0 exited early, 0 contaminated)
+- **3 thing(s) to look at:**
+  - A817: describes a probe with no control mentioned. A dead probe reads as a clean negative.
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 219 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+  - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
+- suppressed as superseded (6): A828 (single-run, justified in the entry); A818 (single-run, justified in the entry); A817 (single-run, justified in the entry); A809 (single-run, justified in the entry); A796 (single-run, justified in the entry); A792 (single-run, justified in the entry)
+

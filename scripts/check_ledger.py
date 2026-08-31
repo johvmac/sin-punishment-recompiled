@@ -33,6 +33,7 @@ Usage:
                                             # report on stderr so it is surfaced.
 """
 import datetime as _dt
+import hashlib
 import json
 import re
 import sys
@@ -251,6 +252,33 @@ def parse(text):
     return rows, lb, dupes
 
 
+def _ledger_changed_since_last_hook(record=True):
+    """True if the ledger differs from the last hook run's digest (T250).
+
+    The Edit|Write|MultiEdit matcher cannot see an entry written by a script
+    through Bash, and a Bash payload has no file_path to test. Content is the
+    only signal left. `record=False` is for the self-test, which must be able to
+    ask the question WITHOUT advancing the mark.
+    """
+    if not LEDGER.exists():
+        return False
+    p = LEDGER.parent / ".check-ledger-state.json"
+    try:
+        st = json.loads(p.read_text()) if p.exists() else {}
+    except Exception:
+        st = {}
+    digest = hashlib.sha256(LEDGER.read_bytes()).hexdigest()
+    if st.get("hook_digest") == digest:
+        return False
+    if record:
+        st["hook_digest"] = digest
+        try:
+            p.write_text(json.dumps(st, indent=2, sort_keys=True) + "\n")
+        except Exception:
+            pass
+    return True
+
+
 def main():
     if "--help" in sys.argv or "-h" in sys.argv:
         print(__doc__)
@@ -269,7 +297,22 @@ def main():
             return 0
         path = (payload.get("tool_input") or {}).get("file_path", "")
         if "findings-ledger" not in str(path):
-            return 0
+            # T250: THE ESCALATION CHANNEL WAS DARK FOR 34 OVERDUE ROLLS.
+            #
+            # settings.json matches Edit|Write|MultiEdit. Ledger entries have
+            # been written by `python3 <scratchpad>/aNNN.py` run through Bash --
+            # to get T245's cell-count assertion -- and a Bash payload carries no
+            # file_path at all, so this returned 0 every time. CLAUDE.md says the
+            # hook "exits 2 on an overdue level so the nag cannot be missed"; it
+            # could be missed, and was, 34 times.
+            #
+            # Path is now a FAST PATH, not the gate. When it does not name the
+            # ledger, fall through to CONTENT: escalate only if the ledger really
+            # changed since the last hook run. A Bash call that touched nothing
+            # still costs one hash of a ~500 KB file and returns 0 silently, so
+            # this cannot become the every-command noise T29 warns about.
+            if not _ledger_changed_since_last_hook():
+                return 0
 
     if not LEDGER.exists():
         return 0
