@@ -497,3 +497,12 @@ here that T209 does not already carry.
   - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
 - suppressed as superseded (3): A754 (single-run, justified in the entry); A740 (single-run, superseded by A747); A735 (single-run, justified in the entry)
 
+## Audit #40 — since c71b692e
+- ledger: 1021 entries (+23 this window), 42 withdrawn
+- rolls: 19 this window; runs: 0 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 150 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+  - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
+- **resolved since last audit (19):** A740 (no-evidence, open since #39); A741 (no-evidence, open since #39); A742 (no-evidence, open since #39); A743 (no-evidence, open since #39); A744 (no-evidence, open since #39); A745 (no-evidence, open since #39); A746 (no-evidence, open since #39); A747 (no-evidence, open since #39); A748 (no-evidence, open since #39); A749 (no-evidence, open since #39); A750 (no-evidence, open since #39); A751 (no-evidence, open since #39); A752 (no-evidence, open since #39); A753 (no-evidence, open since #39); T242 (no-evidence, open since #39); T243 (no-evidence, open since #39); T244 (no-evidence, open since #39); A742 (single-run, open since #39); A747 (single-run, open since #39)
+- suppressed as superseded (5): A776 (single-run, justified in the entry); A775 (single-run, justified in the entry); A774 (single-run, justified in the entry); A772 (single-run, justified in the entry); A765 (single-run, justified in the entry)
+

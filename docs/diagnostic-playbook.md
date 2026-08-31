@@ -5486,3 +5486,65 @@ script broken on disk.
 **WHEN WRITING A ROW BY SCRIPT: assert it splits into exactly the header's
 number of cells, counting `\|` as escaped.** That one assertion would have
 caught all 21.
+
+## `dl_order_context.py` — the binding-ORDER comparison, with a tool this time (added 2026-08-31, A776)
+
+**A772, A774 and A775 all compared our texture-binding order against the
+reference's, and none of them left a tool behind.** `ls scripts/` showed nothing;
+every figure lived in a throwaway snippet. A739 recorded exactly this failure
+mode for residency — 73 ledger rows resting on a method nobody could re-run —
+and this is that method for the ordering work, built before a fourth entry rests
+on it.
+
+    scripts/dl_order_context.py --self-check          # C2 + C3 + C5
+    scripts/dl_order_context.py --units               # the view that matters
+    scripts/dl_order_context.py --context 29B340 29B180 --task 5400
+    scripts/dl_order_context.py --inversions
+
+Run it from the directory holding `a616-tutorial-timg.log` and
+`a610-tutorial-rdp.txt`, or pass `--ours` / `--reference`.
+
+**THE UNIT IS A TEXTURE, NOT AN ADDRESS, AND THAT IS THE WHOLE POINT.** A743
+measured that `FD1xxxxx` is followed by `Load Tex LUT` in 327/327 and `FD5xxxxx`
+by `Load Block` in 328/328 — palette and indexed image. `--units` groups the
+reference's own frame-1 stream into consecutive `(FD1, FD5)` pairs, giving 154
+units from 286 distinct bindings, and re-expresses our order as reference unit
+indices. **Counting inversions over raw addresses inflates one swapped texture
+into four inverted pairs and one frame's disorder into forty-four**; counting
+over units gives one and four. Both statistics are printed, because an entry
+citing "N inversions" is unreadable without knowing which N it meant.
+
+**THE ADDRESS CONVENTION IS MEASURED.** A word whose top byte is `>= 0x80` is
+direct (`addr = word & 0xFFFFFF`); otherwise `seg = word >> 24` and
+`addr = base[seg] + (word & 0xFFFFFF)`. C2 verifies this reproduces A772's 103
+distinct on our side and A775's 286-per-frame on the reference's. **A wrong mask
+yields plausible addresses that match nothing, which reads exactly like a
+deficit** — the hazard A616 already wrote down.
+
+### CONTROLS — four, and the break is verified to FAIL
+
+* **C1 `--dry-run`** prints the plan and reads no log.
+* **C2 positive**, and its needle comes from the two logs, never from this file
+  (T100): 103 distinct ours, 286 per reference frame.
+* **C3 negative**: the reference compared against ITSELF through the same
+  comparison code must give zero inversions across all eight frames. This is the
+  code path that reports our inversions, so a zero from it is meaningful.
+* **C4 `--break-segments`** is the deliberate break — it disables the segment
+  walk, and C2 must FAIL (103 → 23 distinct). **Verified to fail, not merely
+  observed to pass (T65).**
+* **C5 settles a disagreement rather than picking a side.** This playbook's A616
+  section says *"segment state must be reset at each task boundary"*; A774 walked
+  the bases across the whole log. C5 runs both and compares. **On
+  `a616-tutorial-timg.log` they are IDENTICAL with zero unresolved either way**,
+  so every segment used inside a task is set inside that task first. **That is a
+  property of this log and not a general fact** — C5 re-checks it on any other,
+  and says DIFFER rather than choosing.
+
+### THE TRAP THIS TOOL EXISTS TO AVOID
+
+**"Six inversions" is not a number until you say what a unit is.** A774 reported
+six; over raw addresses the same frames give four and forty-four; over units they
+give one and four. A774's *identification* of which textures invert is exactly
+right and this tool reproduces all four independently — but the count differs by
+an order of magnitude between two defensible statistics, and neither entry said
+which it used. Print both or name one.
