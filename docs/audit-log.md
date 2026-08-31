@@ -506,3 +506,11 @@ here that T209 does not already carry.
 - **resolved since last audit (19):** A740 (no-evidence, open since #39); A741 (no-evidence, open since #39); A742 (no-evidence, open since #39); A743 (no-evidence, open since #39); A744 (no-evidence, open since #39); A745 (no-evidence, open since #39); A746 (no-evidence, open since #39); A747 (no-evidence, open since #39); A748 (no-evidence, open since #39); A749 (no-evidence, open since #39); A750 (no-evidence, open since #39); A751 (no-evidence, open since #39); A752 (no-evidence, open since #39); A753 (no-evidence, open since #39); T242 (no-evidence, open since #39); T243 (no-evidence, open since #39); T244 (no-evidence, open since #39); A742 (single-run, open since #39); A747 (single-run, open since #39)
 - suppressed as superseded (5): A776 (single-run, justified in the entry); A775 (single-run, justified in the entry); A774 (single-run, justified in the entry); A772 (single-run, justified in the entry); A765 (single-run, justified in the entry)
 
+## Audit #41 — since 0912dd33
+- ledger: 1037 entries (+17 this window), 42 withdrawn
+- rolls: 15 this window; runs: 0 (0 exited early, 0 contaminated)
+- **2 thing(s) to look at:**
+  - cron: last logged run refused ([daily-push] REFUSING: ledger check failed (see above). Fix ) and 169 commit(s) are unpushed. **This may be history** — commits accumulate normally between nightly runs. Settle it with `scripts/daily_push.sh --dry-run`.
+  - cron: the last Drive backup did not print its completion line. It may have died partway; check scripts/backup_drive.log.
+- suppressed as superseded (2): A790 (single-run, justified in the entry); A776 (single-run, justified in the entry)
+
