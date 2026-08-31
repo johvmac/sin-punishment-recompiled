@@ -5548,3 +5548,62 @@ give one and four. A774's *identification* of which textures invert is exactly
 right and this tool reproduces all four independently — but the count differs by
 an order of magnitude between two defensible statistics, and neither entry said
 which it used. Print both or name one.
+
+## `ovl_burst.py` — was the overlay LIVE when the archive landed on it? (added 2026-08-31, A779)
+
+**A767 found nine Yay0 archives DMA'd to the shared overlay window and quoted
+the probe's own 2026-08-18 hazard note. A773 deflated the headline and left one
+live question: is any archive loaded while the overlay it lands on is still
+executing?** This answers it from logs already on the archive drive.
+
+    scripts/ovl_burst.py --self-check     # C2 + C3
+    scripts/ovl_burst.py                  # the report
+
+Run it from `<archive>/evidence/2026-08-19/`, which holds `ovl.log`, `ovl1.log`
+and `ovl2.log`.
+
+**THE IDEA IS THE HEARTBEAT.** The SNP_OVL logs carry `[heartbeat] t=Ns` lines,
+and that is the ONLY execution signal in them. Split the DMA stream on
+heartbeats and you get BURSTS. **A collision inside one burst is a step in a
+single load sequence; a collision spanning a heartbeat is the hazard.** Every
+archive-over-overlay collision in all three logs is inside a burst — so the
+answer to A767's question is NO, at one-second resolution.
+
+**BUT THE RESTING LAYOUT IS THE THING TO READ.** What matters is not the instant
+of the collision, it is the state the burst LEAVES the window in, because that
+is what the following seconds of execution run against. The tool prints it
+top-down. In every run, the first burst leaves a four-way split with 0x14E0
+bytes of archive data sitting inside a mapped overlay's body, and it rests there
+for five seconds.
+
+### CONTROLS — four, and C4 is verified to change the answer
+
+* **C1 `--dry-run`** reads no log.
+* **C2 positive**, needle taken from the logs and not from this file (T100): the
+  parse must reproduce A767's **published 151 `[ovl]` lines and 44
+  window-targeting** ones.
+* **C3** `ovl1.log` and `ovl2.log` are two runs of the same sequence; their
+  window burst structure must agree. **Two runs agreeing is a reproducibility
+  check A767 and A773 never had.**
+* **C4 `--break-heartbeats`** ignores heartbeats so everything collapses to one
+  burst. Burst counts must CHANGE — measured 2/4/4 → 1/1/1 — proving the
+  partition is driven by heartbeats and not by file order. **Note C3 still
+  passes under the break, deliberately: it is not the control that discriminates
+  here, and a control that cannot fail is not a control (T65).**
+
+### TWO BUGS THIS TOOL HAD, BOTH IN THE TIME AXIS, BOTH CAUGHT BEFORE PUBLICATION
+
+**Neither would have been caught by any control above, and both would have put a
+wrong number in a ledger entry.**
+
+1. The resting interval printed the BURST'S OWN duration, not the gap to the
+   next burst. Off by 6x on the one burst that matters.
+2. `start_t` advanced only when a burst was flushed, so a burst preceded by
+   quiet heartbeats reported the previous burst's start — **making a five-second
+   gap read as zero.**
+
+**What caught both was reading the printed number against the raw log by hand
+before quoting it.** T209's rule in its literal form: say what the instrument
+would show if the answer were different, and check that it does. A time axis
+assembled from event ordering is worth re-deriving by hand once, on one case,
+every time.
