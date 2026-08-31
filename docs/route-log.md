@@ -540,3 +540,17 @@ A gap in the numbering means a roll was skipped.
 - roll #521: **EXPLOIT** (drew 0.876 vs eps 0.3) -> `A211` [witness `f2e10f`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
 - roll #522: **EXPLOIT** (drew 0.440 vs eps 0.3) -> `T197` [witness `9a34e3`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
 - roll #523: **EXPLORE** (drew 0.069 vs eps 0.3) -> `A225` [witness `071741`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #524: **EXPLOIT** (drew 0.638 vs eps 0.3) -> `A219` [witness `4eb734`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #525: **EXPLOIT** (drew 0.399 vs eps 0.3) -> `A218` [witness `17ddea`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #526: **EXPLOIT** (drew 0.403 vs eps 0.3) -> `A211` [witness `a7e1bd`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #527: **EXPLOIT** (drew 0.747 vs eps 0.3) -> `T197` [witness `697927`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #528: **EXPLOIT** (drew 0.967 vs eps 0.3) -> `A225` [witness `865189`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #529: **EXPLORE** (drew 0.029 vs eps 0.3) -> `A225` [witness `f4f3ec`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #530: **EXPLOIT** (drew 0.369 vs eps 0.3) -> `A219` [witness `44b081`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #531: **EXPLOIT** (drew 0.699 vs eps 0.3) -> `A218` [witness `ef2fe0`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #532: **EXPLOIT** (drew 0.993 vs eps 0.3) -> `A211` [witness `4aa604`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
+- roll #533: **EXPLOIT** (drew 0.538 vs eps 0.3) -> `T197` [witness `e5c248`] — WHY IT IS WORTH COST 3: our whole generated tree is boot_func_XXXXXXXX, and every static investi
+- roll #534: **EXPLOIT** (drew 0.563 vs eps 0.3) -> `A225` [witness `446f4f`] — Priced and opened from A224, which measured it densely (32 samples per run at 0.5 s). WHY COST 2
+- roll #535: **EXPLOIT** (drew 0.850 vs eps 0.3) -> `A219` [witness `54dd8b`] — Split out of A210 by A217; the pattern is the user's, the measurements are A212/A213 corrected b
+- roll #536: **EXPLOIT** (drew 0.418 vs eps 0.3) -> `A218` [witness `7e3718`] — Split out of A210 by A217; the observation is the user's, at t=158 s where the frame is otherwis
+- roll #537: **EXPLOIT** (drew 0.909 vs eps 0.3) -> `A211` [witness `b7ab94`] — Priced and opened by T122; the findings are A204 and A206. WHAT IS ESTABLISHED, 2 runs of the sa
