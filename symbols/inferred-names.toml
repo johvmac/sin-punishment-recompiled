@@ -876,3 +876,18 @@
                                     # wrapper -- same handle, same -1 guard, then
                                     # snp_heap_free with (heap, pointer).
                                     # 5 callers.
+0x80031950 = "snp_dl_submit_and_rotate" # DESCRIBED (A799): closes out the frame's
+                                    # display list. Reads the buffer index at
+                                    # 0x80068270, computes that buffer's base as
+                                    # 0x802E1AD0 + index * 128000 (the shift
+                                    # chain 32i - i, <<2, +i, <<10 = 125i<<10),
+                                    # subtracts it from the write cursor at
+                                    # 0x80068280 to get the bytes written,
+                                    # divides by 8 with a round-toward-zero
+                                    # correction -- so RSP commands are 8 bytes,
+                                    # matching A795's cursor stride from the
+                                    # other direction -- and calls 0x8004DB04
+                                    # with (base, length, 0, 1). Then increments
+                                    # the index and WRAPS AT 3: three display-
+                                    # list buffers rotating, in step with A367's
+                                    # three framebuffers. 98 lines, 1 caller.
