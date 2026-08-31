@@ -721,3 +721,32 @@
                                     # re-derived here. The decrement itself is
                                     # read directly. Subtracting 0x40 preserves
                                     # A722's mod-0x40 residue.
+0x80028A6C = "snp_mtx_push_view"   # DESCRIBED (A777): the PUSH counterpart of
+                                    # snp_mtx_stack_pop. Reads the stack-top
+                                    # global at 0x80068A84, adds 0x40, writes it
+                                    # back, then fills the 16 words at the NEW
+                                    # top: eleven from the view context
+                                    # ([0x80068180] + 0xB0..0xD0) and five from
+                                    # the PREVIOUS top (+0xC/1C/2C/30/34). Then,
+                                    # if arg0 is non-zero, two rotations from
+                                    # [arg0+0x0] and [arg0+0x4] via 0x8002844C
+                                    # and 0x800284A8. CAVEAT: "matrix stack" is
+                                    # A566's identification of the global, not
+                                    # re-derived here; the +0x40 and the 16
+                                    # stores are read directly.
+0x80028C10 = "snp_mtx_push_view_rz" # DESCRIBED (A777): snp_mtx_push_view with a
+                                    # second argument — after the same push,
+                                    # fill and two rotations, if arg1 is
+                                    # non-zero it calls snp_mtx_rot_z (A744's
+                                    # 0x80027C38) with it. Same caveat.
+0x800397A8 = "snp_unpack_bytes_4x4" # DESCRIBED (A777): a leaf function, no
+                                    # prologue. Takes four packed words in
+                                    # $a0-$a3 and a DESTINATION as the fifth
+                                    # argument (sp+0x10), and writes 16 words at
+                                    # 0x00..0x3C, each holding one byte of one
+                                    # argument zero-extended — arg N's bytes go
+                                    # to 0x10N + 0/4/8/C, most significant
+                                    # first. NAMED FOR ITS OPERATION ONLY: what
+                                    # the sixteen bytes MEAN is not established
+                                    # here, and per A771's rule that is left
+                                    # unnamed rather than guessed.
