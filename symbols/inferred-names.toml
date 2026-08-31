@@ -950,3 +950,18 @@
                                     # to 0x80075DAC -- the reverse of the last
                                     # copy in snp_unpack_bitfield_table. Also
                                     # ignores $a2.
+0x8004D54C = "snp_set_callback_7AF10"  # DESCRIBED (A848): 20 instructions, the
+                                    # SAME SHAPE as snp_set_frame_callback
+                                    # (0x8004D500) one slot along -- osSetIntMask(1),
+                                    # sw $a0 -> 0x8007AF10 (lui 0x8008 / -0x50F0),
+                                    # osSetIntMask(restore). One jal caller.
+                                    # 0x8007AF10 is inside A828's corrupted span.
+0x80025D50 = "snp_submit_boot_dl"      # DESCRIBED (A848): 70 instructions. Builds
+                                    # four 8-byte display-list commands on the
+                                    # stack at $sp+0x18 -- 0xDE000000, 0xE9000000,
+                                    # 0xDF000000 and a segment pointer -- computes
+                                    # the byte length, and passes (buf, len, 0, 0)
+                                    # to 0x8004DB04, which A846 found READING
+                                    # 0x8007AF08. Also stores 0x80058F40 into
+                                    # 0x8007AF08 (lui 0x8008 / -0x50F8) and
+                                    # 0x80004000 into 0x8007AB70. One jal caller.
