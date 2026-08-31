@@ -74,6 +74,31 @@ CASES = [
      f"| ZZ1 | WD | This cites ZZ9 but is itself withdrawn | 2026-01-01 |",
      False, "a withdrawn row citing a withdrawn row is not a problem"),
 
+    # --- `WD IN PART` is a disclosure the regex could not read (T247) ------
+    # The vocabulary gap that blocked the nightly push for three days: the
+    # exemption matched `withdr` but not `WD`, the form the ledger itself uses.
+    # The first case is the fix; the rest are the guards, and the THIRD is the
+    # one that matters -- a bare `WD` must NOT waive, or this becomes T48 again.
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | this rests on ZZ9 WD IN PART — cited only for the half "
+     f"that STANDS | 2026-01-01 |",
+     False, "T247: `WD IN PART` beside the citation waives it"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | this rests on ZZ9 WD AS TO its headline, the rest "
+     f"stands | 2026-01-01 |",
+     False, "T247: `WD AS TO` beside the citation waives it"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | the WD column is wide here. {'padding text ' * 8}"
+     f"and separately this rests on ZZ9 | 2026-01-01 |",
+     True,  "THE ONE THAT MATTERS: a BARE `WD` must NOT waive (T48 again)"),
+
+    (f"| ZZ9 | WD | Retired thing | 2026-01-01 |\n"
+     f"| ZZ1 | MEASURED | ZZ9 is WD IN PART elsewhere. {'padding text ' * 20}"
+     f"and this rests on ZZ9 | 2026-01-01 |",
+     True,  "T247: a FAR `WD IN PART` does not waive a later citation"),
+
     # --- CITED AS PRECEDENT (T126) ----------------------------------------
     # A waiver on the highest-value check is the most dangerous thing in this
     # file. The ONLY control that matters is the third: a marker naming a

@@ -315,8 +315,26 @@ def main():
     # So the word must sit NEAR the citation it excuses. Same fix as T40's --
     # narrow the scope of the predicate to the thing it describes. The window is
     # deliberately generous (a long sentence) but is a small fraction of a row.
+    # `WD IN PART` IS THE LEDGER'S OWN SHORTHAND AND THIS REGEX COULD NOT SEE IT
+    # (T247, 2026-08-31). It matched the long form `withdr` but not `WD`, the
+    # abbreviation `is_withdrawn` accepts in a STATUS cell and which entries use
+    # in prose. A667 disclosed its A461 citation TWICE -- "WD IN PART — cited
+    # only for the half that STANDS", and a note that check_ledger flagged it at
+    # write time and it was sharpened rather than dropped -- and stayed flagged
+    # anyway. Because `daily_push.sh` gates on `--strict`, that one unreachable
+    # disclosure BLOCKED THE NIGHTLY PUSH for three days and 152 commits, into a
+    # log nobody reads. Same shape as the route-state incident this script's own
+    # comment records: three days, 182 commits, same log.
+    #
+    # THE PHRASE, NOT THE BARE TOKEN. Adding `WD` alone would match "WD" inside
+    # ordinary prose and switch the highest-value check here off wholesale --
+    # precisely T48's failure, which exempted 62 of 185 rows including the case
+    # the check exists for. `WD IN PART` and `WD AS TO` are the two forms the
+    # ledger actually writes, both are multi-word, and both still have to sit
+    # within NEAR of the citation they excuse.
     supersedes = re.compile(
-        r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~)", re.I)
+        r"(supersed|replaces|corrects|refut|retract|too coarse|withdr|~~"
+        r"|WD IN PART|WD AS TO)", re.I)
     NEAR = 150
 
     # CITING A WITHDRAWN ENTRY AS A CAUTIONARY EXAMPLE (T126).
