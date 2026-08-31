@@ -5607,3 +5607,36 @@ before quoting it.** T209's rule in its literal form: say what the instrument
 would show if the answer were different, and check that it does. A time axis
 assembled from event ordering is worth re-deriving by hand once, on one case,
 every time.
+
+## Overlay residency: the TABLE, so nobody re-derives it again (added 2026-08-31, A820)
+
+**Five entries — A729, A746, A752, A758, A763 — each worked out which overlay was
+resident in a snapshot from scratch.** Here is the answer for every snapshot the
+archive holds, measured with `ovl_whole_image.py` and its self-check passing.
+
+**RUN THE TOOL BEFORE READING ANY ADDRESS IN `0x800E4780`+.** All 27 overlays load
+at that vram, so an address there names a different function per resident overlay
+(A803: one address names three).
+
+| snapshot | shared window `0x800E4780` | runner-up |
+|---|---|---|
+| a99-fault | `.ovlfile19` 99.69% | ≤15.9% |
+| a590-tutorial | `.ovlfile19` 99.68% | ≤15.9% |
+| a601-freeze | `.ovlfile19` 99.68% | ≤15.9% |
+| a580-hangdump-control | `.ovlfile20` 99.99% | 15.89% |
+| a594-logo | `.ovlfile20` 99.99% | 15.89% |
+| a680-scene20 | `.ovlfile20` 99.99% | 15.89% |
+| a604-logowindow | `.ovlfile01` 100% (`0x7F0` only) + `.ovlfile23` 48.77% | — the contaminated one (A752) |
+
+**THE SPLIT IS BY SCENE.** Faulty tutorial and fault captures → `.ovlfile19`.
+Logo, scene 20 and the hangdump control → `.ovlfile20`. **`.ovlfile24` also reads
+100% in several but loads at `0x802B4000`, and `.ovlfile25` reads 99.84% at
+`0x802C3B30` — different windows, not competitors.**
+
+**AND THE GAP THIS EXPOSES.** `.ovlfile03`, `.ovlfile11`, `.ovlfile21` and
+`.ovlfile23` are resident in NO snapshot (bar a604's contaminated 48.77%).
+**A584's and A604's addresses belong to those overlays**, so no capture the project
+owns can check either entry. If you need one, that is a run.
+
+**Run it from the project root** — the tool resolves `rom/sinpunishment.z64`
+relatively and refuses unhelpfully from elsewhere. Snapshot path first, flags after.
